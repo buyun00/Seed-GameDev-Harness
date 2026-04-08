@@ -44,24 +44,24 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup-claude-md.sh" <SCOPE>
 
 向用户报告输出结果。
 
-## 阶段 2：配置 dispatch 模式
+## 阶段 2：配置 bud 模式
 
-读取 `.seed/config.json`。如果 `dispatch.mode` 已设置，跳过此阶段并告知用户当前模式。
+读取 `.seed/config.json`。如果 `bud.mode` 已设置，跳过此阶段并告知用户当前模式。
 
-如果 `dispatch.mode` 未设置，使用 `AskUserQuestion` 询问用户：
+如果 `bud.mode` 未设置，使用 `AskUserQuestion` 询问用户：
 
-"`/seed:dispatch` 应该如何处理团队组装？"
+"`/seed:bud` 应该如何处理团队组装？"
 - **auto** — 分析后直接启动，无需确认
 - **confirm** — 展示方案，一次确认后启动（推荐）
 - **guided** — 逐步引导，可调整每个参数
 
-将选择的模式写入 `.seed/config.json` 的 `dispatch.mode`。
+将选择的模式写入 `.seed/config.json` 的 `bud.mode`。
 
 ## 阶段 3：启用 Agent Teams
 
 使用 `AskUserQuestion` 询问用户：
 
-"是否启用 CC 原生 agent teams？这是 `/seed:dispatch` 正常工作的必要条件。"
+"是否启用 CC 原生 agent teams？这是 `/seed:bud` 正常工作的必要条件。"
 - **是** — 启用（推荐）
 - **否** — 暂时跳过
 
@@ -87,11 +87,11 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup-claude-md.sh" <SCOPE>
 Seed 设置完成！
 
   CLAUDE.md:  已安装（{SCOPE}）
-  Dispatch:   {mode} 模式
+  Bud:        {mode} 模式
   Teams:      {已启用/未启用}
 
 重启 Claude Code 以使所有配置生效。
 
 快速开始：
-  /seed:dispatch <描述你的任务>
+  /seed:bud <描述你的任务>
 ```

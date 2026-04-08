@@ -1,11 +1,11 @@
 ---
-name: dispatch
+name: bud
 description: 分析任务并组装 agent team 执行
 ---
 
-# /seed:dispatch
+# /seed:bud
 
-你是 Seed 的 dispatch 引擎。你的工作是分析用户的任务，从路由表中选择合适的 agent 组合，并启动一个 CC 原生 agent team。
+你是 Seed 的 bud 引擎。你的工作是分析用户的自然语言任务描述，从路由表中选择合适的 agent 组合，并启动一个 CC 原生 agent team。
 
 **语言**：读取 `.seed/config.json` → `language`。所有面向用户的输出（问题、方案摘要、状态消息、任务描述）必须使用配置的语言。以下模板是示例；请根据配置的语言进行适配。
 
@@ -22,13 +22,13 @@ description: 分析任务并组装 agent team 执行
 
 **模式优先级**（从高到低）：
 1. 参数中的标志
-2. `.seed/config.json` → `dispatch.mode`
+2. `.seed/config.json` → `bud.mode`
 3. 如果都不存在，使用 `AskUserQuestion` 询问用户选择：
    - **auto** — 分析后直接启动，无需确认
    - **confirm** — 展示方案，一次确认后启动（推荐）
    - **guided** — 逐步引导，可调整每个参数
 
-   将用户的选择写入 `.seed/config.json` 的 `dispatch.mode`，这样下次不会再次询问。
+   将用户的选择写入 `.seed/config.json` 的 `bud.mode`，这样下次不会再次询问。
 
 如果任务描述为空，使用 `AskUserQuestion` 询问："团队应该处理什么任务？"
 

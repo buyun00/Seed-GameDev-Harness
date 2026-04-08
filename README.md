@@ -49,14 +49,14 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 | ------------------ | ----------------------- | --------------------------------------------------------------------------------------------- |
 | `plugin-setup.mjs` | `/plugin install` 后自动执行 | 保存 Node 路径到 `~/.claude/.seed-config.json`，将 `hooks.json` 的 `node` 替换为绝对路径（兼容 nvm/fnm/Windows） |
 | `setup-init.mjs`   | 首次打开 CC session         | 创建 `.seed/state`、`.seed/logs`、`.seed/plans` 目录结构                                              |
-| `/seed:setup`      | 用户手动运行                  | 安装 CLAUDE.md、配置 dispatch 模式、启用 Agent Teams                                                    |
+| `/seed:setup`      | 用户手动运行                  | 安装 CLAUDE.md、配置 bud 模式、启用 Agent Teams                                                    |
 
 
 ### `/seed:setup` 五阶段向导
 
 0. **语言选择** — 选择交互语言（English / 中文 / 日本語 / 한국어），后续所有提问、文档输出、注释均使用选定语言
 1. **CLAUDE.md 安装** — 选择 local（`.claude/CLAUDE.md`）或 global（`~/.claude/CLAUDE.md`），安装 Seed 核心指令
-2. **Dispatch 模式** — 选择默认执行模式（auto / confirm / guided）
+2. **Bud 模式** — 选择默认执行模式（auto / confirm / guided）
 3. **Agent Teams** — 启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
 4. **完成确认** — 写入 `setupCompleted` 标记
 
@@ -66,16 +66,16 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 
 ### 核心命令
 
-#### `/seed:dispatch` — 动态组装 Agent Team
+#### `/seed:bud` — 动态组装 Agent Team
 
 ```bash
 # 默认使用 config 中的模式
-/seed:dispatch 实现跳跃手感优化
+/seed:bud 实现跳跃手感优化
 
 # 指定模式
-/seed:dispatch --auto 调查帧率下降问题
-/seed:dispatch --confirm Review the new combat system
-/seed:dispatch --guided 重构战斗系统架构
+/seed:bud --auto 调查帧率下降问题
+/seed:bud --confirm Review the new combat system
+/seed:bud --guided 重构战斗系统架构
 ```
 
 **三种执行模式：**
@@ -88,7 +88,7 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 | `guided`  | 逐步引导，可调整每个参数  | 首次使用，或需要精细控制 Agent 组合  |
 
 
-**Dispatch 执行流程：**
+**Bud 执行流程：**
 
 1. **任务分析** — 自动识别 `task_kind`（implement / investigate / fix / review / design / operate）、`domain`、`complexity`
 2. **查路由表** — 根据分析结果查 `.seed/team-router.md`，选择 Agent 组合
@@ -254,7 +254,7 @@ seed/
 │       └── stdin.mjs             # 超时保护的 stdin 读取
 ├── commands/
 │   ├── setup.md                  # /seed:setup 命令定义
-│   └── dispatch.md               # /seed:dispatch 命令定义（核心）
+│   └── bud.md                    # /seed:bud 命令定义（核心）
 ├── agents/
 │   ├── leader.md                 # 协调者 Agent
 │   ├── builder.md                # 实现者 Agent
@@ -324,7 +324,7 @@ Seed 通过 Claude Code Hook 机制在 session 生命周期的关键节点注入
 ```json
 {
   "language": "中文",
-  "dispatch": {
+  "bud": {
     "mode": "confirm"
   },
   "memory": {
@@ -345,7 +345,7 @@ Seed 通过 Claude Code Hook 机制在 session 生命周期的关键节点注入
 | 配置项                           | 说明                     | 默认值       |
 | ----------------------------- | ---------------------- | --------- |
 | `language`                    | 交互语言（影响所有输出和注释）        | setup 时选择 |
-| `dispatch.mode`               | 默认执行模式                 | `confirm` |
+| `bud.mode`                    | 默认执行模式                 | `confirm` |
 | `memory.autoLearn`            | 自动学习项目知识               | `true`    |
 | `memory.rescanIntervalHours`  | 记忆重扫间隔（小时）             | `24`      |
 | `contextGuard.threshold`      | Context 使用率告警阈值（%）     | `75`      |

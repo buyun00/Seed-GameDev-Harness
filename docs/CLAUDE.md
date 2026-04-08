@@ -13,7 +13,7 @@
 - Mailbox（SendMessage）是低延迟沟通面
 
 ## Agent Team 使用
-需要启动多 agent 协作时，使用 /seed:dispatch 命令。
+需要启动多 agent 协作时，使用 /seed:bud 命令。
 系统会根据任务特征自动选择 agent 组合。
 
 ## 任务升级原则

@@ -12,18 +12,18 @@ Seed 是一个基于 Claude Code plugin 的游戏研发 AI 工作流系统，提
 ### /seed:setup
 初始化当前项目的 Seed 配置：
 - 安装 CLAUDE.md（local 或 global）
-- 配置 dispatch 默认模式（auto / confirm / guided）
+- 配置 bud 默认模式（auto / confirm / guided）
 - 启用 CC native agent teams
 
-### /seed:dispatch
+### /seed:bud
 核心命令——分析任务并自动组装 agent team 执行。
 
 用法：
 ```
-/seed:dispatch <任务描述>
-/seed:dispatch --auto <任务描述>
-/seed:dispatch --confirm <任务描述>
-/seed:dispatch --guided <任务描述>
+/seed:bud <任务描述>
+/seed:bud --auto <任务描述>
+/seed:bud --confirm <任务描述>
+/seed:bud --guided <任务描述>
 ```
 
 执行模式：
@@ -55,7 +55,7 @@ Seed 是一个基于 Claude Code plugin 的游戏研发 AI 工作流系统，提
 
 - **项目记忆**：`.seed/project-memory.json` — 长期项目知识（tech stack、hot paths、directives），每次 session 自动注入
 - **会话笔记**：`.seed/notepad.md` — 三段式（Priority Context / Working Memory / Manual Notes），Priority 段抗 compact
-- **配置**：`.seed/config.json` — 用户偏好（dispatch 模式、记忆设置、context guard 阈值）
+- **配置**：`.seed/config.json` — 用户偏好（bud 模式、记忆设置、context guard 阈值）
 - **路由表**：`.seed/team-router.md` — 可项目级定制的 agent 组合路由规则
 
 ## 项目级 Skills
