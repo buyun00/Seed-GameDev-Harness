@@ -31,7 +31,7 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 
 ```bash
 # 1. 添加 marketplace 仓库
-/plugin marketplace add <repo_url>
+/plugin marketplace add https://github.com/buyun00/Seed-GameDev-Harness.git
 
 # 2. 安装插件
 /plugin install seed
