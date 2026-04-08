@@ -1,4 +1,5 @@
 <img src="assets/logo.jpg" alt="Seed" width="300" />
+
 # Seed
 
 **AI Workflow System for Game Development**
