@@ -22,7 +22,7 @@ description: 分析任务并组装 agent team 执行
 
 **模式优先级**（从高到低）：
 1. 参数中的标志
-2. `.seed/config.json` → `bud.mode`
+2. `.seed/config.json` → `bud.mode`（如果不存在但存在旧版的 `dispatch.mode`，自动迁移：将值复制到 `bud.mode`，删除 `dispatch` 键，写回 config）
 3. 如果都不存在，使用 `AskUserQuestion` 询问用户选择：
    - **auto** — 分析后直接启动，无需确认
    - **confirm** — 展示方案，一次确认后启动（推荐）

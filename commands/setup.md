@@ -46,7 +46,15 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup-claude-md.sh" <SCOPE>
 
 ## 阶段 2：配置 bud 模式
 
-读取 `.seed/config.json`。如果 `bud.mode` 已设置，跳过此阶段并告知用户当前模式。
+读取 `.seed/config.json`。
+
+**迁移检查**：如果 config 中存在旧的 `dispatch` 键（来自旧版本 Seed），自动迁移：
+1. 将 `dispatch.mode` 的值复制到 `bud.mode`
+2. 删除 `dispatch` 键
+3. 写回 config 文件
+4. 告知用户："已自动将旧版 dispatch 配置迁移为 bud。"
+
+如果 `bud.mode` 已设置（包括刚迁移的），跳过此阶段并告知用户当前模式。
 
 如果 `bud.mode` 未设置，使用 `AskUserQuestion` 询问用户：
 
