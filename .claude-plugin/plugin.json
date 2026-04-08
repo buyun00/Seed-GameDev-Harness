@@ -1,0 +1,10 @@
+{
+  "name": "seed",
+  "version": "0.1.0",
+  "description": "Fragment-based AI workflow system for game development",
+  "author": { "name": "seed contributors" },
+  "repository": "https://github.com/your-repo/seed",
+  "license": "MIT",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

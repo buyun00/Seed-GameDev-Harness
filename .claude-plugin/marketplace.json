@@ -1,0 +1,14 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "seed",
+  "description": "Fragment-based AI workflow system for game development",
+  "plugins": [
+    {
+      "name": "seed",
+      "version": "0.1.0",
+      "source": "./",
+      "category": "productivity",
+      "tags": ["gamedev", "multi-agent", "unity", "lua", "orchestration"]
+    }
+  ]
+}

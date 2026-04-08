@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "gamedev-knowledge": {
+      "command": "python",
+      "args": ["-m", "gamedev_mcp_server"],
+      "note": "待 L2 Knowledge Engine 部署后填写实际配置"
+    }
+  }
+}

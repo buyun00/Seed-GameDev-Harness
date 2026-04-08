@@ -1,0 +1,16 @@
+{
+  "dispatch": {
+    "mode": "confirm"
+  },
+  "memory": {
+    "autoLearn": true,
+    "rescanIntervalHours": 24
+  },
+  "contextGuard": {
+    "threshold": 75,
+    "maxBlocks": 2
+  },
+  "skillInjector": {
+    "maxPerSession": 5
+  }
+}
