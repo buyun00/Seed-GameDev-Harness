@@ -1,14 +1,24 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "seed",
-  "description": "Fragment-based AI workflow system for game development",
+  "description": "AI workflow system for game development",
+  "owner": {
+    "name": "Lin Buyun",
+    "email": "buyun0@qq.com"
+  },
   "plugins": [
     {
       "name": "seed",
       "version": "0.1.0",
+      "author": {
+        "name": "Lin Buyun",
+        "email": "buyun0@qq.com"
+      },
       "source": "./",
       "category": "productivity",
+      "homepage": "https://github.com/buyun00/Seed-GameDev-Harness",
       "tags": ["gamedev", "multi-agent", "unity", "lua", "orchestration"]
     }
-  ]
+  ],
+  "version": "0.1.0"
 }
