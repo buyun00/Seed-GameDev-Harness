@@ -3,6 +3,9 @@
 
 # Seed GameDev AI System
 
+## Language
+Check `.seed/config.json` → `language`. If set, use that language for ALL responses, code comments, documentation, task descriptions, and agent communications throughout the entire session.
+
 ## 核心原则
 - 事实可以分散流动，方向必须集中裁决
 - Leader 永远是 team 的方向仲裁者

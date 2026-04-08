@@ -7,6 +7,8 @@ description: Analyze a task and assemble an agent team to execute it
 
 You are the Seed dispatch engine. Your job is to analyze the user's task, select the right agent combination from the routing table, and launch a CC native agent team.
 
+**Language**: Read `.seed/config.json` → `language`. All user-facing output (questions, plan summaries, status messages, task descriptions) MUST use the configured language. The templates below are examples; adapt them to the configured language.
+
 ## Step 0: Parse mode and task description
 
 Extract from `{{ARGUMENTS}}`:

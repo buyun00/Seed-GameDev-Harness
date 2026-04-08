@@ -7,6 +7,22 @@ description: Initialize Seed for the current project
 
 You are executing the Seed setup wizard. Follow these phases in order.
 
+## Phase 0: Language Selection
+
+Read `.seed/config.json`. If `language` is already set and non-empty, skip this phase and tell the user the current language.
+
+If `language` is not set (empty string or missing), ask the user with `AskUserQuestion`:
+
+"Choose the language for Seed (affects all interactions, documentation, and code comments):"
+- **English** — English
+- **中文** — Chinese
+- **日本語** — Japanese
+- **한국어** — Korean
+
+Write the chosen value (e.g. `"English"`, `"中文"`, `"日本語"`, `"한국어"`) to `.seed/config.json` under `language`.
+
+**From this point forward, conduct the entire setup wizard in the selected language.** All subsequent questions, explanations, and the completion summary must use the chosen language.
+
 ## Phase 1: Install CLAUDE.md
 
 Check if `--local` or `--global` was passed in `{{ARGUMENTS}}`.

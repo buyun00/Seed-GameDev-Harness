@@ -4,13 +4,16 @@
  * used by both SessionStart injection and PreCompact preservation.
  */
 
+import { t } from './i18n.mjs';
+
 /**
  * Format a project-memory.json object into a markdown summary.
  *
  * @param {object} memory - Parsed project-memory.json content
+ * @param {string} [lang] - Language setting from config (raw value)
  * @returns {string} Formatted markdown summary, or empty string if no content
  */
-export function formatContextSummary(memory) {
+export function formatContextSummary(memory, lang) {
   if (!memory) return '';
 
   const sections = [];
@@ -33,7 +36,7 @@ export function formatContextSummary(memory) {
       .slice(0, 10);
     const lines = ['### [Hot Paths]'];
     for (const hp of sorted) {
-      lines.push(`- ${hp.path} (访问 ${hp.count || 0} 次)`);
+      lines.push(`- ${hp.path} (${t(lang, 'hotPathAccess', hp.count || 0)})`);
     }
     sections.push(lines.join('\n'));
   }

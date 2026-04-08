@@ -10,6 +10,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readStdin } from './lib/stdin.mjs';
 import { formatContextSummary } from './lib/memory-formatter.mjs';
+import { readLanguageConfig } from './lib/i18n.mjs';
 
 const SEED_DIR = '.seed';
 const MEMORY_FILE = 'project-memory.json';
@@ -36,7 +37,8 @@ async function main() {
       return;
     }
 
-    const summary = formatContextSummary(memory);
+    const lang = readLanguageConfig(cwd);
+    const summary = formatContextSummary(memory, lang);
     if (!summary) {
       console.log(JSON.stringify({ continue: true, suppressOutput: true }));
       return;

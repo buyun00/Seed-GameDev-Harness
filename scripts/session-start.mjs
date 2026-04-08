@@ -9,6 +9,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readStdin } from './lib/stdin.mjs';
+import { readLanguageConfig, buildLanguageDirective, t } from './lib/i18n.mjs';
 
 const SEED_DIR = '.seed';
 const NOTEPAD_FILE = 'notepad.md';
@@ -46,7 +47,14 @@ async function main() {
     try { data = JSON.parse(input); } catch { /* ignore */ }
 
     const cwd = data.cwd || data.directory || process.cwd();
+    const lang = readLanguageConfig(cwd);
     const parts = [];
+
+    // 0. Language directive (highest priority — injected first)
+    const langDirective = buildLanguageDirective(lang);
+    if (langDirective) {
+      parts.push(langDirective);
+    }
 
     // 1. Notepad Priority Context
     const notepadPath = join(cwd, SEED_DIR, NOTEPAD_FILE);
@@ -60,11 +68,8 @@ async function main() {
       } catch { /* ignore read errors */ }
     }
 
-    // 2. Soft team-status hint (no actual detection — CC native teams
-    //    store state in ~/.claude/teams/, not accessible to Seed)
-    parts.push(
-      '> Tip: 如果有未完成的 agent team，可用 `/team status` 查看。'
-    );
+    // 2. Soft team-status hint
+    parts.push(t(lang, 'teamStatusTip'));
 
     if (parts.length === 0) {
       console.log(JSON.stringify({ continue: true, suppressOutput: true }));

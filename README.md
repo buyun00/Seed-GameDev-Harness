@@ -52,8 +52,9 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 | `/seed:setup`      | 用户手动运行                  | 安装 CLAUDE.md、配置 dispatch 模式、启用 Agent Teams                                                    |
 
 
-### `/seed:setup` 四阶段向导
+### `/seed:setup` 五阶段向导
 
+0. **语言选择** — 选择交互语言（English / 中文 / 日本語 / 한국어），后续所有提问、文档输出、注释均使用选定语言
 1. **CLAUDE.md 安装** — 选择 local（`.claude/CLAUDE.md`）或 global（`~/.claude/CLAUDE.md`），安装 Seed 核心指令
 2. **Dispatch 模式** — 选择默认执行模式（auto / confirm / guided）
 3. **Agent Teams** — 启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
@@ -249,6 +250,7 @@ seed/
 │       ├── config-dir.mjs        # Claude 配置目录解析
 │       ├── config-dir.sh         # Shell 版配置目录解析
 │       ├── memory-formatter.mjs  # 项目记忆格式化工具
+│       ├── i18n.mjs              # 国际化工具（语言配置读取 + 本地化字符串）
 │       └── stdin.mjs             # 超时保护的 stdin 读取
 ├── commands/
 │   ├── setup.md                  # /seed:setup 命令定义
@@ -321,6 +323,7 @@ Seed 通过 Claude Code Hook 机制在 session 生命周期的关键节点注入
 
 ```json
 {
+  "language": "中文",
   "dispatch": {
     "mode": "confirm"
   },
@@ -341,6 +344,7 @@ Seed 通过 Claude Code Hook 机制在 session 生命周期的关键节点注入
 
 | 配置项                           | 说明                     | 默认值       |
 | ----------------------------- | ---------------------- | --------- |
+| `language`                    | 交互语言（影响所有输出和注释）        | setup 时选择 |
 | `dispatch.mode`               | 默认执行模式                 | `confirm` |
 | `memory.autoLearn`            | 自动学习项目知识               | `true`    |
 | `memory.rescanIntervalHours`  | 记忆重扫间隔（小时）             | `24`      |
