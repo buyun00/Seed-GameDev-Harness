@@ -8,18 +8,49 @@
  * Scan order (higher priority first):
  *   1. {cwd}/.seed/skills/  (project-level)
  *   2. $CLAUDE_PLUGIN_ROOT/skills/  (plugin built-in)
+ *
+ * Session-level dedup is persisted to .seed/state/skill-injected-{sessionId}.json
+ * so it survives across hook invocations within the same session.
  */
 
 import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { readStdin } from './lib/stdin.mjs';
+import { atomicWriteFileSync, ensureDirSync } from './lib/atomic-write.mjs';
 
 const SEED_DIR = '.seed';
 const SKILL_EXTENSION = '.md';
 const MAX_SKILLS_PER_SESSION = 5;
+const SESSION_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,255}$/;
 
-// In-memory cache (resets each process invocation — acceptable for hook lifecycle)
-const injectedCache = new Map();
+function isValidSessionId(sessionId) {
+  return sessionId && sessionId !== 'unknown' && SESSION_ID_PATTERN.test(sessionId);
+}
+
+function getInjectedFilePath(cwd, sessionId) {
+  return join(cwd, SEED_DIR, 'state', `skill-injected-${sessionId}.json`);
+}
+
+function loadInjectedSet(cwd, sessionId) {
+  if (!isValidSessionId(sessionId)) return new Set();
+  const filePath = getInjectedFilePath(cwd, sessionId);
+  try {
+    if (existsSync(filePath)) {
+      const data = JSON.parse(readFileSync(filePath, 'utf-8'));
+      return new Set(Array.isArray(data) ? data : []);
+    }
+  } catch { /* ignore */ }
+  return new Set();
+}
+
+function saveInjectedSet(cwd, sessionId, set) {
+  if (!isValidSessionId(sessionId)) return;
+  const filePath = getInjectedFilePath(cwd, sessionId);
+  try {
+    ensureDirSync(join(cwd, SEED_DIR, 'state'));
+    atomicWriteFileSync(filePath, JSON.stringify([...set]));
+  } catch { /* ignore — dedup is best-effort */ }
+}
 
 /**
  * Parse YAML frontmatter from a skill file.
@@ -90,11 +121,7 @@ function findMatchingSkills(prompt, cwd, sessionId) {
   const candidates = findSkillFiles(cwd);
   const matches = [];
 
-  if (!injectedCache.has(sessionId)) {
-    if (injectedCache.size > 500) injectedCache.clear();
-    injectedCache.set(sessionId, new Set());
-  }
-  const alreadyInjected = injectedCache.get(sessionId);
+  const alreadyInjected = loadInjectedSet(cwd, sessionId);
 
   for (const candidate of candidates) {
     if (alreadyInjected.has(candidate.path)) continue;
@@ -125,10 +152,16 @@ function findMatchingSkills(prompt, cwd, sessionId) {
   }
 
   matches.sort((a, b) => b.score - a.score);
-  const selected = matches.slice(0, MAX_SKILLS_PER_SESSION);
 
-  for (const skill of selected) {
-    alreadyInjected.add(skill.path);
+  // Enforce session-wide limit: only select up to (MAX - already injected count)
+  const remaining = Math.max(0, MAX_SKILLS_PER_SESSION - alreadyInjected.size);
+  const selected = matches.slice(0, remaining);
+
+  if (selected.length > 0) {
+    for (const skill of selected) {
+      alreadyInjected.add(skill.path);
+    }
+    saveInjectedSet(cwd, sessionId, alreadyInjected);
   }
 
   return selected;

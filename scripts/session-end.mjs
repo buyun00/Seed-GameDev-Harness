@@ -48,7 +48,7 @@ async function main() {
       try {
         const files = readdirSync(stateDir);
         for (const file of files) {
-          if (file.endsWith('-stop-breaker.json') || file.startsWith('hud-')) {
+          if (file.endsWith('-stop-breaker.json') || file.startsWith('skill-injected-')) {
             try {
               unlinkSync(join(stateDir, file));
             } catch { /* ignore */ }

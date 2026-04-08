@@ -127,7 +127,7 @@ function incrementBlockCount(sessionId) {
 
 function buildStopRecoveryAdvice(contextPercent, blockCount) {
   const severity = contextPercent >= 90 ? 'CRITICAL' : 'HIGH';
-  return `[Seed ${severity}] Context at ${contextPercent}% (threshold: ${THRESHOLD}%). ` +
+  return `[Seed] Context at ${contextPercent}% (${severity}, threshold: ${THRESHOLD}%). ` +
     `Run /compact immediately before continuing. If /compact cannot complete, ` +
     `stop spawning new agents and recover in a fresh session using existing checkpoints ` +
     `(.seed/state, .seed/notepad.md). (Block ${blockCount}/${MAX_BLOCKS})`;

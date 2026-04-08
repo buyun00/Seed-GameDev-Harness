@@ -21,7 +21,12 @@ Extract from `{{ARGUMENTS}}`:
 **Mode priority** (highest to lowest):
 1. Flag from arguments
 2. `.seed/config.json` → `dispatch.mode`
-3. If neither exists, default to `confirm`
+3. If neither exists, use `AskUserQuestion` to ask the user to choose:
+   - **auto** — Analyze and launch immediately, no confirmation
+   - **confirm** — Show the plan, one confirmation to launch (recommended)
+   - **guided** — Step-by-step walkthrough, you can adjust every parameter
+
+   Write the user's choice to `.seed/config.json` under `dispatch.mode` so they won't be asked again.
 
 If the task description is empty, use `AskUserQuestion` to ask: "What task should the team work on?"
 
@@ -108,16 +113,18 @@ Then ask with `AskUserQuestion`: "Confirm to launch? (Yes / No / Adjust)"
 Show the same plan as confirm mode, but then walk through each adjustable parameter one by one:
 
 1. **Task description** — "Want to modify the task description?" (show current, let user edit or skip)
-2. **task_kind** — "Current: {kind}. Change?" (show options)
-3. **domain** — "Current: {domain}. Change?" (show options)
-4. **Agent composition** — "Current agents: {list}. Want to add/remove agents?" Options:
+2. **task_kind** — "Current: {kind}. Change?" (show options: implement / investigate / fix / review / design / operate)
+3. **domain** — "Current: {domain}. Change?" (show options: unity-runtime / lua-gameplay / ai-pipeline / architecture / cross-domain)
+4. **complexity** — "Current: {complexity}. Change?" (show options: focused / module / system)
+5. **Root cause status** (only shown when task_kind = fix) — "Is the root cause known or unknown?" (known / unknown). If the user changes task_kind away from fix, skip this step.
+6. **Agent composition** — "Current agents: {list}. Want to add/remove agents?" Options:
    - Add reviewer (force code review)
    - Add researcher (force investigation phase)
    - Add unity-pilot (force Editor verification)
    - Remove a specific agent
-5. **Task breakdown** — "Current tasks: {list}. Want to modify, add, or remove tasks?"
+7. **Task breakdown** — "Current tasks: {list}. Want to modify, add, or remove tasks?"
 
-After all adjustments, show the final plan and ask for confirmation.
+After all adjustments (and re-routing if task_kind/domain/complexity/root-cause changed), show the final plan and ask for confirmation.
 
 ## Step 4: Launch CC native team
 
@@ -135,7 +142,7 @@ TeamCreate("{slug}")
 ```
 
 ### 4.3 Create tasks
-For each task in the breakdown, call `TaskCreate` with description following the `templates/task.md` format:
+For each task in the breakdown, call `TaskCreate` with description following the `templates/task.md` format (10 fields — extends the design doc's 8-field schema with Scope Coverage and Exclusions for better task scoping):
 
 ```
 Task Kind: {implement | investigate | review | verify | closeout}
