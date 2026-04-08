@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * Skill Injector Hook (UserPromptSubmit)
+ * Skill 注入器 Hook（UserPromptSubmit）
  *
- * Scans the user prompt for trigger keywords and injects matching
- * learned skill fragments into the context.
+ * 扫描用户 prompt 中的触发关键词，并将匹配的
+ * learned skill 片段注入到上下文中。
  *
- * Scan order (higher priority first):
- *   1. {cwd}/.seed/skills/  (project-level)
- *   2. $CLAUDE_PLUGIN_ROOT/skills/  (plugin built-in)
+ * 扫描顺序（优先级从高到低）：
+ *   1. {cwd}/.seed/skills/（项目级）
+ *   2. $CLAUDE_PLUGIN_ROOT/skills/（插件内置）
  *
- * Session-level dedup is persisted to .seed/state/skill-injected-{sessionId}.json
- * so it survives across hook invocations within the same session.
+ * Session 级别的去重状态持久化到 .seed/state/skill-injected-{sessionId}.json，
+ * 以确保在同一 session 的多次 hook 调用间不重复注入。
  */
 
 import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
@@ -39,7 +39,7 @@ function loadInjectedSet(cwd, sessionId) {
       const data = JSON.parse(readFileSync(filePath, 'utf-8'));
       return new Set(Array.isArray(data) ? data : []);
     }
-  } catch { /* ignore */ }
+  } catch { /* 忽略 */ }
   return new Set();
 }
 
@@ -49,12 +49,12 @@ function saveInjectedSet(cwd, sessionId, set) {
   try {
     ensureDirSync(join(cwd, SEED_DIR, 'state'));
     atomicWriteFileSync(filePath, JSON.stringify([...set]));
-  } catch { /* ignore — dedup is best-effort */ }
+  } catch { /* 忽略 — 去重是尽力而为 */ }
 }
 
 /**
- * Parse YAML frontmatter from a skill file.
- * Returns { name, triggers, content } or null.
+ * 解析 skill 文件的 YAML frontmatter。
+ * 返回 { name, triggers, content } 或 null。
  */
 function parseSkillFrontmatter(content) {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
@@ -74,13 +74,13 @@ function parseSkillFrontmatter(content) {
   }
 
   const nameMatch = yamlContent.match(/name:\s*["']?([^"'\n]+)["']?/);
-  const name = nameMatch ? nameMatch[1].trim() : 'Unnamed Skill';
+  const name = nameMatch ? nameMatch[1].trim() : '未命名 Skill';
 
   return { name, triggers, content: body };
 }
 
 /**
- * Discover all .md skill files from the given directories.
+ * 从指定目录中发现所有 .md skill 文件。
  */
 function findSkillFiles(cwd) {
   const candidates = [];
@@ -105,16 +105,16 @@ function findSkillFiles(cwd) {
             seenPaths.add(realPath);
             candidates.push({ path: fullPath, scope });
           }
-        } catch { /* ignore symlink errors */ }
+        } catch { /* 忽略符号链接错误 */ }
       }
-    } catch { /* ignore directory read errors */ }
+    } catch { /* 忽略目录读取错误 */ }
   }
 
   return candidates;
 }
 
 /**
- * Match prompt against skill triggers, return top results.
+ * 将 prompt 与 skill 触发词匹配，返回得分最高的结果。
  */
 function findMatchingSkills(prompt, cwd, sessionId) {
   const promptLower = prompt.toLowerCase();
@@ -148,12 +148,12 @@ function findMatchingSkills(prompt, cwd, sessionId) {
           triggers: skill.triggers
         });
       }
-    } catch { /* ignore file read errors */ }
+    } catch { /* 忽略文件读取错误 */ }
   }
 
   matches.sort((a, b) => b.score - a.score);
 
-  // Enforce session-wide limit: only select up to (MAX - already injected count)
+  // 强制 session 级别限制：仅选取不超过（上限 - 已注入数量）个
   const remaining = Math.max(0, MAX_SKILLS_PER_SESSION - alreadyInjected.size);
   const selected = matches.slice(0, remaining);
 
@@ -168,15 +168,15 @@ function findMatchingSkills(prompt, cwd, sessionId) {
 }
 
 /**
- * Format matched skills for injection.
+ * 格式化匹配的 skill 用于注入。
  */
 function formatSkillsMessage(skills) {
   const lines = [
     '<seed-skills>',
     '',
-    '## Relevant Learned Skills',
+    '## 相关 Learned Skills',
     '',
-    'The following skills may help with this task:',
+    '以下 skill 可能对当前任务有帮助：',
     ''
   ];
 
@@ -202,7 +202,7 @@ async function main() {
     }
 
     let data = {};
-    try { data = JSON.parse(input); } catch { /* ignore */ }
+    try { data = JSON.parse(input); } catch { /* 忽略 */ }
 
     const prompt = data.prompt || '';
     const sessionId = data.session_id || data.sessionId || 'unknown';

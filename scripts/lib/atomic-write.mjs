@@ -1,6 +1,6 @@
 /**
- * Atomic file writes for Seed hooks.
- * Self-contained module with no external dependencies.
+ * Seed hook 脚本的原子文件写入工具。
+ * 无外部依赖的独立模块。
  */
 
 import { openSync, writeSync, fsyncSync, closeSync, renameSync, unlinkSync, mkdirSync, existsSync } from 'fs';
@@ -8,7 +8,7 @@ import { dirname, basename, join } from 'path';
 import { randomUUID } from 'crypto';
 
 /**
- * Ensure directory exists.
+ * 确保目录存在。
  */
 export function ensureDirSync(dir) {
   if (existsSync(dir)) {
@@ -25,11 +25,11 @@ export function ensureDirSync(dir) {
 }
 
 /**
- * Write string content atomically to a file.
- * Uses temp file + atomic rename pattern with fsync for durability.
+ * 原子地将字符串内容写入文件。
+ * 使用临时文件 + 原子重命名模式，配合 fsync 确保持久性。
  *
- * @param {string} filePath Target file path
- * @param {string} content String content to write
+ * @param {string} filePath 目标文件路径
+ * @param {string} content 要写入的字符串内容
  */
 export function atomicWriteFileSync(filePath, content) {
   const dir = dirname(filePath);
@@ -59,14 +59,14 @@ export function atomicWriteFileSync(filePath, content) {
         closeSync(dirFd);
       }
     } catch {
-      // Some platforms don't support directory fsync
+      // 某些平台不支持目录 fsync
     }
   } finally {
     if (fd !== null) {
-      try { closeSync(fd); } catch { /* ignore */ }
+      try { closeSync(fd); } catch { /* 忽略 */ }
     }
     if (!success) {
-      try { unlinkSync(tempPath); } catch { /* ignore */ }
+      try { unlinkSync(tempPath); } catch { /* 忽略 */ }
     }
   }
 }

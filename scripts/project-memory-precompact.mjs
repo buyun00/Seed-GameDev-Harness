@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * PreCompact Hook: Project Memory Preservation
+ * PreCompact Hook：项目记忆保护
  *
- * Reads .seed/project-memory.json and returns a formatted summary
- * as systemMessage so it survives compaction. Does NOT write any files.
+ * 读取 .seed/project-memory.json 并返回格式化摘要
+ * 作为 systemMessage，使其在压缩后存活。不写入任何文件。
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -19,7 +19,7 @@ async function main() {
   try {
     const input = await readStdin();
     let data = {};
-    try { data = JSON.parse(input); } catch { /* ignore */ }
+    try { data = JSON.parse(input); } catch { /* 忽略 */ }
 
     const cwd = data.cwd || data.directory || process.cwd();
     const memoryPath = join(cwd, SEED_DIR, MEMORY_FILE);

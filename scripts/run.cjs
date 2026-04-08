@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 'use strict';
 /**
- * Cross-platform hook runner (run.cjs)
+ * 跨平台 hook 执行器 (run.cjs)
  *
- * Uses process.execPath (the Node binary already running this script) to spawn
- * the target .mjs hook, bypassing PATH / shell discovery issues.
+ * 使用 process.execPath（运行本脚本的 Node 二进制路径）来 spawn
+ * 目标 .mjs hook，绕过 PATH / shell 发现问题。
  *
- * Usage (from hooks.json, after setup patches the absolute node path in):
+ * 用法（从 hooks.json 调用，安装时已修补为绝对 node 路径）：
  *   /abs/path/to/node "${CLAUDE_PLUGIN_ROOT}/scripts/run.cjs" \
  *       "${CLAUDE_PLUGIN_ROOT}/scripts/<hook>.mjs" [args...]
  *
- * During post-install setup, the leading `node` token is replaced with
- * process.execPath so nvm/fnm users and Windows users all get the right binary.
+ * 安装后配置阶段会将开头的 `node` token 替换为
+ * process.execPath，确保 nvm/fnm 用户和 Windows 用户都能找到正确的二进制。
  */
 
 const { spawnSync } = require('child_process');
@@ -20,33 +20,32 @@ const { join, basename, dirname } = require('path');
 
 const target = process.argv[2];
 if (!target) {
-  // Nothing to run — exit cleanly so Claude Code hooks are never blocked.
+  // 没有要执行的目标 — 干净退出，确保 Claude Code hooks 永远不被阻塞。
   process.exit(0);
 }
 
 /**
- * Resolve the hook script target path, handling stale CLAUDE_PLUGIN_ROOT.
+ * 解析 hook 脚本目标路径，处理过期的 CLAUDE_PLUGIN_ROOT。
  *
- * Resolution strategy:
- *   1. Use the target as-is if it exists.
- *   2. Try resolving through realpathSync (follows symlinks).
- *   3. Scan the plugin cache for the latest available version that has the
- *      same script name and use that instead.
- *   4. If all else fails, return null (caller exits cleanly).
+ * 解析策略：
+ *   1. 如果目标路径直接存在，直接使用。
+ *   2. 尝试通过 realpathSync 解析（跟随符号链接）。
+ *   3. 扫描插件缓存目录，查找包含相同脚本名的最新可用版本。
+ *   4. 如果都失败，返回 null（调用方干净退出）。
  */
 function resolveTarget(targetPath) {
-  // Fast path: target exists (common case)
+  // 快速路径：目标存在（常见情况）
   if (existsSync(targetPath)) return targetPath;
 
-  // Try realpath resolution (handles broken symlinks that resolve elsewhere)
+  // 尝试 realpath 解析（处理指向其他位置的损坏符号链接）
   try {
     const resolved = realpathSync(targetPath);
     if (existsSync(resolved)) return resolved;
   } catch {
-    // realpathSync throws if the path doesn't exist at all — expected
+    // realpathSync 在路径完全不存在时抛异常 — 属于预期
   }
 
-  // Fallback: scan plugin cache for the same script in the latest version.
+  // 回退：在插件缓存中查找最新版本的同名脚本
   try {
     const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
     if (!pluginRoot) return null;
@@ -59,7 +58,7 @@ function resolveTarget(targetPath) {
     const { readdirSync } = require('fs');
     const entries = readdirSync(cacheBase).filter(v => /^\d+\.\d+\.\d+/.test(v));
 
-    // Sort descending by semver
+    // 按语义版本号降序排列
     entries.sort((a, b) => {
       const pa = a.split('.').map(Number);
       const pb = b.split('.').map(Number);
@@ -74,7 +73,7 @@ function resolveTarget(targetPath) {
       if (existsSync(candidate)) return candidate;
     }
   } catch {
-    // Any error in fallback scan — give up gracefully
+    // 回退扫描中的任何错误 — 优雅放弃
   }
 
   return null;
@@ -82,7 +81,7 @@ function resolveTarget(targetPath) {
 
 const resolved = resolveTarget(target);
 if (!resolved) {
-  // Target not found anywhere — exit cleanly so hooks are never blocked.
+  // 到处都找不到目标 — 干净退出，确保 hooks 永远不被阻塞。
   process.exit(0);
 }
 
@@ -96,5 +95,5 @@ const result = spawnSync(
   }
 );
 
-// Propagate the child exit code (null → 0 to avoid blocking hooks).
+// 传播子进程退出码（null → 0 以避免阻塞 hooks）。
 process.exit(result.status ?? 0);

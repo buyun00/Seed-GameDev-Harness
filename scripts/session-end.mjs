@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Seed Session End Hook
+ * Seed Session 结束 Hook
  *
- * - Writes session metrics to .seed/sessions/{sessionId}.json
- * - Cleans up transient state files
+ * - 将 session 指标写入 .seed/sessions/{sessionId}.json
+ * - 清理临时状态文件
  */
 
 import { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -16,13 +16,13 @@ async function main() {
   try {
     const input = await readStdin(1000);
     let data = {};
-    try { data = JSON.parse(input); } catch { /* ignore */ }
+    try { data = JSON.parse(input); } catch { /* 忽略 */ }
 
     const cwd = data.cwd || data.directory || process.cwd();
     const sessionId = data.session_id || data.sessionId || '';
     const now = new Date().toISOString();
 
-    // 1. Write session record
+    // 1. 写入 session 记录
     if (sessionId) {
       const sessionsDir = join(cwd, SEED_DIR, 'sessions');
       if (!existsSync(sessionsDir)) {
@@ -42,7 +42,7 @@ async function main() {
       );
     }
 
-    // 2. Clean up transient state files
+    // 2. 清理临时状态文件
     const stateDir = join(cwd, SEED_DIR, 'state');
     if (existsSync(stateDir)) {
       try {
@@ -51,10 +51,10 @@ async function main() {
           if (file.endsWith('-stop-breaker.json') || file.startsWith('skill-injected-')) {
             try {
               unlinkSync(join(stateDir, file));
-            } catch { /* ignore */ }
+            } catch { /* 忽略 */ }
           }
         }
-      } catch { /* ignore */ }
+      } catch { /* 忽略 */ }
     }
 
     console.log(JSON.stringify({ continue: true, suppressOutput: true }));

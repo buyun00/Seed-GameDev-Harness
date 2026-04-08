@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# setup-claude-md.sh - Unified CLAUDE.md install/merge script for Seed
-# Usage: setup-claude-md.sh <local|global>
+# setup-claude-md.sh - Seed 的 CLAUDE.md 统一安装/合并脚本
+# 用法: setup-claude-md.sh <local|global>
 #
-# Handles: version extraction, backup, merge, version reporting.
+# 处理：版本提取、备份、合并、版本报告。
 
 set -euo pipefail
 
-MODE="${1:?Usage: setup-claude-md.sh <local|global>}"
+MODE="${1:?用法: setup-claude-md.sh <local|global>}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 . "$SCRIPT_DIR/lib/config-dir.sh"
 
-# Resolve active plugin root from installed_plugins.json.
+# 从 installed_plugins.json 解析活跃的插件根目录。
 resolve_active_plugin_root() {
   local config_dir
   config_dir="$(resolve_claude_config_dir)"
@@ -32,7 +32,7 @@ resolve_active_plugin_root() {
     fi
   fi
 
-  # Fallback: scan sibling version directories for the latest
+  # 回退：扫描同级版本目录查找最新版本
   local cache_base
   cache_base="$(dirname "$SCRIPT_PLUGIN_ROOT")"
   if [ -d "$cache_base" ]; then
@@ -55,7 +55,7 @@ ensure_local_seed_git_exclude() {
   local exclude_path
 
   if ! exclude_path=$(git rev-parse --git-path info/exclude 2>/dev/null); then
-    echo "Skipped Seed git exclude setup (not a git repository)"
+    echo "跳过 Seed git exclude 配置（不是 git 仓库）"
     return 0
   fi
 
@@ -64,7 +64,7 @@ ensure_local_seed_git_exclude() {
   local block_start="# BEGIN Seed local artifacts"
 
   if [ -f "$exclude_path" ] && grep -Fq "$block_start" "$exclude_path"; then
-    echo "Seed git exclude already configured"
+    echo "Seed git exclude 已配置"
     return 0
   fi
 
@@ -80,10 +80,10 @@ ensure_local_seed_git_exclude() {
 # END Seed local artifacts
 EOF
 
-  echo "Configured git exclude for local .seed artifacts (preserving .seed/skills/)"
+  echo "已配置 git exclude 排除本地 .seed 产物（保留 .seed/skills/）"
 }
 
-# Determine target path
+# 确定目标路径
 CONFIG_DIR="$(resolve_claude_config_dir)"
 if [ "$MODE" = "local" ]; then
   mkdir -p .claude/skills/seed-reference
@@ -94,7 +94,7 @@ elif [ "$MODE" = "global" ]; then
   TARGET_PATH="$CONFIG_DIR/CLAUDE.md"
   SKILL_TARGET_PATH="$CONFIG_DIR/skills/seed-reference/SKILL.md"
 else
-  echo "ERROR: Invalid mode '$MODE'. Use 'local' or 'global'." >&2
+  echo "错误: 无效模式 '$MODE'。请使用 'local' 或 'global'。" >&2
   exit 1
 fi
 
@@ -112,38 +112,38 @@ install_seed_reference_skill() {
     source_label="${CLAUDE_PLUGIN_ROOT}/skills/seed-reference/SKILL.md"
   else
     rm -f "$temp_skill"
-    echo "Skipped seed-reference skill install (canonical skill source unavailable)"
+    echo "跳过 seed-reference skill 安装（规范 skill 源不可用）"
     return 0
   fi
 
   if [ ! -s "$temp_skill" ]; then
     rm -f "$temp_skill"
-    echo "Skipped seed-reference skill install (empty canonical skill source: $source_label)"
+    echo "跳过 seed-reference skill 安装（规范 skill 源为空: $source_label）"
     return 0
   fi
 
   mkdir -p "$(dirname "$SKILL_TARGET_PATH")"
   cp "$temp_skill" "$SKILL_TARGET_PATH"
   rm -f "$temp_skill"
-  echo "Installed seed-reference skill to $SKILL_TARGET_PATH"
+  echo "已安装 seed-reference skill 到 $SKILL_TARGET_PATH"
 }
 
-# Extract old version before install
+# 安装前提取旧版本号
 OLD_VERSION=$(grep -m1 'SEED:VERSION:' "$TARGET_PATH" 2>/dev/null | sed -E 's/.*SEED:VERSION:([^ ]+).*/\1/' || true)
 if [ -z "$OLD_VERSION" ]; then
   OLD_VERSION="none"
 fi
 
-# Backup existing
+# 备份现有文件
 BACKUP_DATE=""
 if [ -f "$TARGET_PATH" ]; then
   BACKUP_DATE=$(date +%Y-%m-%d_%H%M%S)
   BACKUP_PATH="${TARGET_PATH}.backup.${BACKUP_DATE}"
   cp "$TARGET_PATH" "$BACKUP_PATH"
-  echo "Backed up existing CLAUDE.md to $BACKUP_PATH"
+  echo "已备份现有 CLAUDE.md 到 $BACKUP_PATH"
 fi
 
-# Load canonical Seed content to temp file
+# 将规范 Seed 内容加载到临时文件
 TEMP_SEED=$(mktemp /tmp/seed-claude-XXXXXX.md)
 trap 'rm -f "$TEMP_SEED"' EXIT
 
@@ -165,42 +165,42 @@ elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/docs/CLAUDE
   cp "${CLAUDE_PLUGIN_ROOT}/docs/CLAUDE.md" "$TEMP_SEED"
   SOURCE_LABEL="${CLAUDE_PLUGIN_ROOT}/docs/CLAUDE.md"
 else
-  echo "ERROR: Failed to find canonical CLAUDE.md source. Aborting."
+  echo "错误: 找不到规范 CLAUDE.md 源。中止操作。"
   rm -f "$TEMP_SEED"
   exit 1
 fi
 
 if [ ! -s "$TEMP_SEED" ]; then
-  echo "ERROR: Canonical CLAUDE.md source is empty. Aborting."
+  echo "错误: 规范 CLAUDE.md 源为空。中止操作。"
   rm -f "$TEMP_SEED"
   exit 1
 fi
 
 if ! grep -q '<!-- SEED:START -->' "$TEMP_SEED" || ! grep -q '<!-- SEED:END -->' "$TEMP_SEED"; then
-  echo "ERROR: Canonical CLAUDE.md source is missing required SEED markers: $SOURCE_LABEL" >&2
+  echo "错误: 规范 CLAUDE.md 源缺少必需的 SEED 标记: $SOURCE_LABEL" >&2
   exit 1
 fi
 
-# Strip existing markers from source content (idempotency)
+# 从源内容中剥离已有标记（幂等性）
 if grep -q '<!-- SEED:START -->' "$TEMP_SEED"; then
   awk '/<!-- SEED:END -->/{p=0} p; /<!-- SEED:START -->/{p=1}' "$TEMP_SEED" > "${TEMP_SEED}.clean"
   mv "${TEMP_SEED}.clean" "$TEMP_SEED"
 fi
 
 if [ ! -f "$TARGET_PATH" ]; then
-  # Fresh install: wrap in markers
+  # 全新安装：用标记包裹
   write_wrapped_seed_file "$TARGET_PATH"
   rm -f "$TEMP_SEED"
-  echo "Installed CLAUDE.md (fresh)"
+  echo "已安装 CLAUDE.md（全新）"
 else
-  # Merge: preserve user content outside SEED markers
+  # 合并：保留 SEED 标记外的用户内容
   if grep -q '<!-- SEED:START -->' "$TARGET_PATH"; then
-    # Has markers: remove all complete SEED blocks, preserve user text
+    # 有标记：移除所有完整的 SEED 块，保留用户文本
     perl -0pe 's/^<!-- SEED:START -->\R[\s\S]*?^<!-- SEED:END -->(?:\R)?//msg; s/^<!-- User customizations(?: \([^)]+\))? -->\R?//mg; s/\A(?:[ \t]*\R)+//; s/(?:\R[ \t]*)+\z//;' \
       "$TARGET_PATH" > "${TARGET_PATH}.preserved"
 
     if grep -Eq '^<!-- SEED:(START|END) -->$' "${TARGET_PATH}.preserved"; then
-      # Corrupted/unmatched markers: preserve whole original
+      # 标记损坏/不匹配：保留整个原始内容
       OLD_CONTENT=$(cat "$TARGET_PATH")
       {
         echo '<!-- SEED:START -->'
@@ -226,9 +226,9 @@ else
 
     mv "${TARGET_PATH}.tmp" "$TARGET_PATH"
     rm -f "${TARGET_PATH}.preserved"
-    echo "Updated Seed section (user customizations preserved)"
+    echo "已更新 Seed 段落（用户自定义内容已保留）"
   else
-    # No markers: wrap new content, append old content as user section
+    # 无标记：包裹新内容，将旧内容追加为用户段落
     OLD_CONTENT=$(cat "$TARGET_PATH")
     {
       echo '<!-- SEED:START -->'
@@ -239,13 +239,13 @@ else
       printf '%s\n' "$OLD_CONTENT"
     } > "${TARGET_PATH}.tmp"
     mv "${TARGET_PATH}.tmp" "$TARGET_PATH"
-    echo "Migrated existing CLAUDE.md (added Seed markers, preserved old content)"
+    echo "已迁移现有 CLAUDE.md（添加 Seed 标记，保留旧内容）"
   fi
   rm -f "$TEMP_SEED"
 fi
 
 if ! grep -q '<!-- SEED:START -->' "$TARGET_PATH" || ! grep -q '<!-- SEED:END -->' "$TARGET_PATH"; then
-  echo "ERROR: Installed CLAUDE.md is missing required SEED markers: $TARGET_PATH" >&2
+  echo "错误: 安装后的 CLAUDE.md 缺少必需的 SEED 标记: $TARGET_PATH" >&2
   exit 1
 fi
 
@@ -255,15 +255,15 @@ if [ "$MODE" = "local" ]; then
   ensure_local_seed_git_exclude
 fi
 
-# Extract new version and report
+# 提取新版本号并报告
 NEW_VERSION=$(grep -m1 'SEED:VERSION:' "$TARGET_PATH" 2>/dev/null | sed -E 's/.*SEED:VERSION:([^ ]+).*/\1/' || true)
 if [ -z "$NEW_VERSION" ]; then
   NEW_VERSION="unknown"
 fi
 if [ "$OLD_VERSION" = "none" ]; then
-  echo "Installed CLAUDE.md: $NEW_VERSION"
+  echo "已安装 CLAUDE.md: $NEW_VERSION"
 elif [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
-  echo "CLAUDE.md unchanged: $NEW_VERSION"
+  echo "CLAUDE.md 未变更: $NEW_VERSION"
 else
-  echo "Updated CLAUDE.md: $OLD_VERSION -> $NEW_VERSION"
+  echo "已更新 CLAUDE.md: $OLD_VERSION -> $NEW_VERSION"
 fi

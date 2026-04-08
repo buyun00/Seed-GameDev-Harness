@@ -10,35 +10,35 @@ triggers:
   - prompt
 ---
 
-## AI Pipeline Design Principles
+## AI Pipeline 设计原则
 
-### Agent Design
+### Agent 设计
 
-- **Single Responsibility**: Each agent should have one clear job. If an agent needs to do two different things, split it into two agents.
-- **Explicit Communication**: Agents communicate through structured messages (SendMessage), not shared mutable state.
-- **Escalation Over Assumption**: When uncertain, agents should escalate to leader rather than guess. Wrong decisions propagate faster than correct ones.
-- **Idempotent Operations**: Design agent tasks so they can be safely retried if interrupted.
+- **单一职责**：每个 agent 应该有一个明确的工作。如果一个 agent 需要做两件不同的事，将它拆分为两个 agent。
+- **显式通信**：Agent 之间通过结构化消息（SendMessage）通信，而不是共享可变状态。
+- **升级优先于假设**：不确定时，agent 应该升级给 leader 而不是猜测。错误决策的传播速度比正确决策更快。
+- **幂等操作**：设计 agent 任务时确保它们在中断后可以安全重试。
 
-### MCP Tool Integration
+### MCP 工具集成
 
-- **Tool Boundaries**: MCP tools provide domain-specific capabilities (knowledge retrieval, editor operations, etc.). Agents should use tools for what they're designed for, not as general-purpose workarounds.
-- **Error Handling**: Always check tool_call results. MCP tools can fail due to network issues, server restarts, or invalid inputs. Handle failures gracefully.
-- **Rate Awareness**: Some MCP servers have rate limits. Batch related queries when possible rather than making many small calls.
+- **工具边界**：MCP 工具提供特定领域的能力（知识检索、编辑器操作等）。Agent 应该按工具的设计用途使用它们，不要作为通用变通方案。
+- **错误处理**：始终检查 tool_call 结果。MCP 工具可能因网络问题、服务器重启或无效输入而失败。优雅地处理失败。
+- **频率感知**：某些 MCP 服务器有速率限制。尽可能批量处理相关查询，而不是发起大量小请求。
 
-### Prompt Engineering for Game Dev
+### 游戏开发的 Prompt 工程
 
-- **Context Injection**: Use the Seed memory system (.seed/project-memory.json, .seed/notepad.md) to persist important context across sessions. Don't rely on the context window to remember project-specific conventions.
-- **Domain Vocabulary**: Be precise with game dev terminology. "Frame rate" vs "tick rate", "rigid body" vs "character controller", "prefab instance" vs "scene object" — ambiguity causes misunderstandings.
-- **Reproducibility**: When describing bugs or behaviors, include: Unity version, scene name, reproduction steps, expected vs. actual behavior.
+- **上下文注入**：使用 Seed 记忆系统（.seed/project-memory.json、.seed/notepad.md）在 session 间持久化重要上下文。不要依赖上下文窗口来记住项目特定的约定。
+- **领域词汇**：精确使用游戏开发术语。"帧率" vs "tick rate"，"刚体" vs "角色控制器"，"预制体实例" vs "场景对象" — 歧义会导致误解。
+- **可复现性**：描述 bug 或行为时，包括：Unity 版本、场景名、复现步骤、预期行为 vs 实际行为。
 
-### Workflow Patterns
+### 工作流模式
 
-- **Investigation → Implementation → Verification**: The standard three-phase workflow. Don't skip investigation for complex bugs; don't skip verification for any change.
-- **Parallel Independent Work**: If two tasks have no dependencies, assign them to different agents to run in parallel.
-- **Checkpoint Before Risk**: Before making high-risk changes, ensure the current state is captured in .seed/notepad.md or a commit.
+- **调查 → 实现 → 验证**：标准三阶段工作流。复杂 bug 不要跳过调查；任何变更都不要跳过验证。
+- **并行独立工作**：如果两个任务没有依赖关系，分配给不同的 agent 并行执行。
+- **高风险前建立检查点**：在做高风险变更前，确保当前状态已记录在 .seed/notepad.md 或 commit 中。
 
-### Team Coordination
+### 团队协调
 
-- **Task Board as Truth**: The TaskCreate tasks are the authoritative record of what needs to be done. All changes to scope should be reflected in new tasks.
-- **Mailbox for Speed**: Use SendMessage for quick coordination, clarifications, and status updates. Don't create a task for every small question.
-- **Leader Decides Direction**: Facts can be distributed (researcher finds info, builder discovers constraints), but direction decisions are centralized in the leader.
+- **任务板即真相**：TaskCreate 的任务是需要做什么的权威记录。所有范围变更都应反映在新任务中。
+- **Mailbox 求速度**：使用 SendMessage 进行快速协调、澄清和状态更新。不要为每个小问题都创建任务。
+- **Leader 决定方向**：事实可以分散（researcher 收集信息、builder 发现约束），但方向决策集中在 leader。

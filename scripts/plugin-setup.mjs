@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Seed Plugin Post-Install Setup
+ * Seed 插件安装后配置脚本
  *
- * Runs automatically after plugin installation.
- * - Saves the node binary path to ~/.claude/.seed-config.json
- * - Patches hooks.json to use the absolute node binary path
+ * 在插件安装后自动运行。
+ * - 将 node 二进制路径保存到 ~/.claude/.seed-config.json
+ * - 修补 hooks.json 以使用绝对 node 二进制路径
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -18,9 +18,9 @@ const __dirname = dirname(__filename);
 const CLAUDE_DIR = getClaudeConfigDir();
 const nodeBin = process.execPath || 'node';
 
-console.log('[Seed] Running post-install setup...');
+console.log('[Seed] 正在运行安装后配置...');
 
-// 1. Persist node binary path to .seed-config.json
+// 1. 将 node 二进制路径持久化到 .seed-config.json
 try {
   const configPath = join(CLAUDE_DIR, '.seed-config.json');
   let seedConfig = {};
@@ -30,15 +30,14 @@ try {
   if (nodeBin !== 'node') {
     seedConfig.nodeBinary = nodeBin;
     writeFileSync(configPath, JSON.stringify(seedConfig, null, 2));
-    console.log(`[Seed] Saved node binary path: ${nodeBin}`);
+    console.log(`[Seed] 已保存 node 二进制路径: ${nodeBin}`);
   }
 } catch (e) {
-  console.log('[Seed] Warning: Could not save node binary path (non-fatal):', e.message);
+  console.log('[Seed] 警告: 无法保存 node 二进制路径（非致命）:', e.message);
 }
 
-// 2. Patch hooks.json to use absolute node binary path.
-//    Without this, nvm/fnm users and Windows users get "node not found" errors
-//    in non-interactive shells.
+// 2. 修补 hooks.json 以使用绝对 node 二进制路径。
+//    否则 nvm/fnm 用户和 Windows 用户在非交互式 shell 中会遇到 "node not found" 错误。
 try {
   const hooksJsonPath = join(__dirname, '..', 'hooks', 'hooks.json');
   if (existsSync(hooksJsonPath)) {
@@ -50,14 +49,14 @@ try {
         for (const hook of (group.hooks ?? [])) {
           if (typeof hook.command !== 'string') continue;
 
-          // Replace bare `node` with absolute path
+          // 将裸 `node` 替换为绝对路径
           if (hook.command.startsWith('node ') && hook.command.includes('/scripts/run.cjs')) {
             hook.command = hook.command.replace(/^node\b/, `"${nodeBin}"`);
             patched = true;
             continue;
           }
 
-          // Self-healing: rewrite stale absolute node paths
+          // 自愈机制：重写过期的绝对 node 路径
           const absNodeMatch = hook.command.match(
             /^"([^"]*\/node|[A-Za-z]:\\[^"]*\\node(?:\.exe)?)"\s+.*\/scripts\/run\.cjs/,
           );
@@ -74,11 +73,11 @@ try {
 
     if (patched) {
       writeFileSync(hooksJsonPath, JSON.stringify(data, null, 2) + '\n');
-      console.log(`[Seed] Patched hooks.json with absolute node path (${nodeBin})`);
+      console.log(`[Seed] 已修补 hooks.json 的绝对 node 路径 (${nodeBin})`);
     }
   }
 } catch (e) {
-  console.log('[Seed] Warning: Could not patch hooks.json:', e.message);
+  console.log('[Seed] 警告: 无法修补 hooks.json:', e.message);
 }
 
-console.log('[Seed] Setup complete! Restart Claude Code to activate.');
+console.log('[Seed] 配置完成！重启 Claude Code 以激活。');

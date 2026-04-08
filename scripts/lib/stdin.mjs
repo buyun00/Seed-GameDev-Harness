@@ -1,13 +1,13 @@
 /**
- * Shared stdin utilities for Seed hook scripts.
- * Provides timeout-protected stdin reading to prevent hangs on Linux and Windows.
+ * Seed hook 脚本的共享 stdin 工具。
+ * 提供带超时保护的 stdin 读取，防止在 Linux 和 Windows 上无限挂起。
  */
 
 /**
- * Read all stdin with timeout to prevent indefinite hang.
+ * 带超时的 stdin 全量读取，防止无限挂起。
  *
- * @param {number} timeoutMs - Maximum time to wait for stdin (default: 5000ms)
- * @returns {Promise<string>} - The stdin content, or empty string on error/timeout
+ * @param {number} timeoutMs - 等待 stdin 的最大时间（默认：5000ms）
+ * @returns {Promise<string>} - stdin 内容，错误/超时时返回空字符串
  */
 export async function readStdin(timeoutMs = 5000) {
   return new Promise((resolve) => {

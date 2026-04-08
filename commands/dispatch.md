@@ -1,245 +1,245 @@
 ---
 name: dispatch
-description: Analyze a task and assemble an agent team to execute it
+description: 分析任务并组装 agent team 执行
 ---
 
 # /seed:dispatch
 
-You are the Seed dispatch engine. Your job is to analyze the user's task, select the right agent combination from the routing table, and launch a CC native agent team.
+你是 Seed 的 dispatch 引擎。你的工作是分析用户的任务，从路由表中选择合适的 agent 组合，并启动一个 CC 原生 agent team。
 
-**Language**: Read `.seed/config.json` → `language`. All user-facing output (questions, plan summaries, status messages, task descriptions) MUST use the configured language. The templates below are examples; adapt them to the configured language.
+**语言**：读取 `.seed/config.json` → `language`。所有面向用户的输出（问题、方案摘要、状态消息、任务描述）必须使用配置的语言。以下模板是示例；请根据配置的语言进行适配。
 
-## Step 0: Parse mode and task description
+## 步骤 0：解析模式和任务描述
 
-Extract from `{{ARGUMENTS}}`:
+从 `{{ARGUMENTS}}` 中提取：
 
-**Flags** (optional, first token starting with `--`):
+**标志**（可选，以 `--` 开头的第一个 token）：
 - `--auto` → mode = auto
 - `--confirm` → mode = confirm
 - `--guided` → mode = guided
 
-**Task description**: everything after the flag (or the entire argument if no flag).
+**任务描述**：标志之后的所有内容（如果没有标志则为整个参数）。
 
-**Mode priority** (highest to lowest):
-1. Flag from arguments
+**模式优先级**（从高到低）：
+1. 参数中的标志
 2. `.seed/config.json` → `dispatch.mode`
-3. If neither exists, use `AskUserQuestion` to ask the user to choose:
-   - **auto** — Analyze and launch immediately, no confirmation
-   - **confirm** — Show the plan, one confirmation to launch (recommended)
-   - **guided** — Step-by-step walkthrough, you can adjust every parameter
+3. 如果都不存在，使用 `AskUserQuestion` 询问用户选择：
+   - **auto** — 分析后直接启动，无需确认
+   - **confirm** — 展示方案，一次确认后启动（推荐）
+   - **guided** — 逐步引导，可调整每个参数
 
-   Write the user's choice to `.seed/config.json` under `dispatch.mode` so they won't be asked again.
+   将用户的选择写入 `.seed/config.json` 的 `dispatch.mode`，这样下次不会再次询问。
 
-If the task description is empty, use `AskUserQuestion` to ask: "What task should the team work on?"
+如果任务描述为空，使用 `AskUserQuestion` 询问："团队应该处理什么任务？"
 
-## Step 1: Task analysis (silent — do NOT show this to the user)
+## 步骤 1：任务分析（静默执行 — 不要展示给用户）
 
-Analyze the task description and determine three dimensions:
+分析任务描述并确定三个维度：
 
-### task_kind (one of):
-| Kind | When to use |
+### task_kind（选其一）：
+| 类型 | 何时使用 |
+|------|---------|
+| `implement` | 构建新功能、添加新代码 |
+| `investigate` | 研究、探索、"为什么 X 会发生" |
+| `fix` | Bug 修复、错误解决、"X 坏了" |
+| `review` | 代码审查、架构审查、PR 审查 |
+| `design` | 系统设计、架构规划、API 设计 |
+| `operate` | Unity Editor 操作、场景编辑、Play Mode 测试 |
+
+### domain（选其一）：
+| 领域 | 描述中的信号 |
 |------|------------|
-| `implement` | Building new features, adding new code |
-| `investigate` | Research, exploration, "why does X happen" |
-| `fix` | Bug fixes, error resolution, "X is broken" |
-| `review` | Code review, architecture review, PR review |
-| `design` | System design, architecture planning, API design |
-| `operate` | Unity Editor operations, scene editing, Play Mode testing |
+| `unity-runtime` | C#、MonoBehaviour、Rigidbody、Collider、Scene、Prefab、Inspector、Play Mode、物理、动画 |
+| `lua-gameplay` | Lua、xlua、hotfix、table、require、用 Lua 编写的游戏逻辑 |
+| `ai-pipeline` | MCP、agent、prompt、workflow、pipeline、model、tool_call |
+| `architecture` | 系统设计、模块结构、API 设计、重构、依赖 |
+| `cross-domain` | 涉及以上多个领域，或无法确定单一领域 |
 
-### domain (one of):
-| Domain | Signals in the description |
-|--------|--------------------------|
-| `unity-runtime` | C#, MonoBehaviour, Rigidbody, Collider, Scene, Prefab, Inspector, Play Mode, physics, animation |
-| `lua-gameplay` | Lua, xlua, hotfix, table, require, gameplay logic written in Lua |
-| `ai-pipeline` | MCP, agent, prompt, workflow, pipeline, model, tool_call |
-| `architecture` | system design, module structure, API design, refactoring, dependency |
-| `cross-domain` | touches multiple domains above, or unclear single domain |
+### complexity（选其一）：
+| 级别 | 描述 |
+|------|------|
+| `focused` | 单文件或单函数，范围明确的变更 |
+| `module` | 一个模块/系统中的多个文件 |
+| `system` | 跨模块，有架构影响 |
 
-### complexity (one of):
-| Level | Description |
-|-------|------------|
-| `focused` | Single file or function, well-scoped change |
-| `module` | Multiple files in one module/system |
-| `system` | Cross-module, architectural impact |
+### fix 专项：根因状态
+当 `task_kind` = `fix` 时，判断根因是否已知：
+- **已知**：描述中包含具体的文件路径、函数名、变量名、带堆栈跟踪的错误消息 → 用户已经知道 bug 在哪里。
+- **未知**：描述中只有症状（"跳跃感觉飘"、"帧率下降"、"偶尔崩溃"） → 需要先调查。
 
-### fix-specific: root cause status
-When `task_kind` = `fix`, determine if the root cause is known:
-- **Known**: Description contains specific file paths, function names, variable names, error messages with stack traces → The user already knows WHERE the bug is.
-- **Unknown**: Description only has symptoms ("jumping feels floaty", "frame rate drops", "sometimes crashes") → Need investigation first.
+## 步骤 2：路由到 agent 组合
 
-## Step 2: Route to agent combination
+从 `.seed/team-router.md`（在项目的 `.seed/` 目录下）读取路由表。如果不存在，回退到 `$CLAUDE_PLUGIN_ROOT/templates/team-router.md`。
 
-Read the routing table from `.seed/team-router.md` (in the project's `.seed/` directory). If it doesn't exist, fall back to `$CLAUDE_PLUGIN_ROOT/templates/team-router.md`.
+解析 markdown 表格，根据 `task_kind`、`domain`、`complexity` 以及（对于 fix）根因状态找到匹配的 agent 组合。
 
-Parse the markdown tables to find the matching agent combination based on `task_kind`, `domain`, `complexity`, and (for fix) root cause status.
+路由表会给你：
+- 包含哪些 agent（除了始终存在的 leader）
+- 团队规模建议
 
-The routing table will give you:
-- Which agents to include (besides leader, who is always present)
-- Team size recommendation
+**Leader 始终包含在内** — 不需要从路由表中列出；它是隐含的。
 
-**Leader is always included** — do not list it from the routing table; it's implicit.
+## 步骤 3：根据模式展示方案
 
-## Step 3: Present plan based on mode
+### auto 模式
+完全跳过确认。直接进入步骤 4。
 
-### auto mode
-Skip confirmation entirely. Proceed directly to Step 4.
-
-### confirm mode
-Display the plan in this exact format:
+### confirm 模式
+以以下格式展示方案：
 
 ```
 准备启动 Seed team
 
-任务：{task description}
+任务：{任务描述}
 性质：{task_kind}  领域：{domain}  复杂度：{complexity}
 
 组装方案：
   leader        协调 + 方向仲裁（常驻）
-  {agent}       {role description}
-  {agent}       {role description}
+  {agent}       {角色描述}
+  {agent}       {角色描述}
   ...
 
 任务拆解：
-  1. {task description}  →  {owner role}
-  2. {task description}  →  {owner role}（依赖 1）
+  1. {任务描述}  →  {负责角色}
+  2. {任务描述}  →  {负责角色}（依赖 1）
   ...
 ```
 
-Then ask with `AskUserQuestion`: "Confirm to launch? (Yes / No / Adjust)"
+然后使用 `AskUserQuestion` 询问："确认启动？（是 / 否 / 调整）"
 
-- **Yes** → proceed to Step 4
-- **No** → abort, tell the user they can re-run with different parameters
-- **Adjust** → switch to guided mode adjustments (see below)
+- **是** → 进入步骤 4
+- **否** → 中止，告诉用户可以用不同参数重新运行
+- **调整** → 切换到 guided 模式的调整流程（见下方）
 
-### guided mode
-Show the same plan as confirm mode, but then walk through each adjustable parameter one by one:
+### guided 模式
+展示与 confirm 模式相同的方案，然后逐一引导每个可调参数：
 
-1. **Task description** — "Want to modify the task description?" (show current, let user edit or skip)
-2. **task_kind** — "Current: {kind}. Change?" (show options: implement / investigate / fix / review / design / operate)
-3. **domain** — "Current: {domain}. Change?" (show options: unity-runtime / lua-gameplay / ai-pipeline / architecture / cross-domain)
-4. **complexity** — "Current: {complexity}. Change?" (show options: focused / module / system)
-5. **Root cause status** (only shown when task_kind = fix) — "Is the root cause known or unknown?" (known / unknown). If the user changes task_kind away from fix, skip this step.
-6. **Agent composition** — "Current agents: {list}. Want to add/remove agents?" Options:
-   - Add reviewer (force code review)
-   - Add researcher (force investigation phase)
-   - Add unity-pilot (force Editor verification)
-   - Remove a specific agent
-7. **Task breakdown** — "Current tasks: {list}. Want to modify, add, or remove tasks?"
+1. **任务描述** — "是否要修改任务描述？"（展示当前值，让用户编辑或跳过）
+2. **task_kind** — "当前：{kind}。是否更改？"（展示选项：implement / investigate / fix / review / design / operate）
+3. **domain** — "当前：{domain}。是否更改？"（展示选项：unity-runtime / lua-gameplay / ai-pipeline / architecture / cross-domain）
+4. **complexity** — "当前：{complexity}。是否更改？"（展示选项：focused / module / system）
+5. **根因状态**（仅当 task_kind = fix 时展示） — "根因是已知还是未知？"（known / unknown）。如果用户将 task_kind 改为非 fix，跳过此步。
+6. **Agent 组合** — "当前 agents：{列表}。是否要添加/移除？"选项：
+   - 添加 reviewer（强制代码审查）
+   - 添加 researcher（强制调查阶段）
+   - 添加 unity-pilot（强制 Editor 验证）
+   - 移除特定 agent
+7. **任务拆解** — "当前任务：{列表}。是否要修改、添加或删除任务？"
 
-After all adjustments (and re-routing if task_kind/domain/complexity/root-cause changed), show the final plan and ask for confirmation.
+所有调整完成后（如果 task_kind/domain/complexity/根因状态有变更则重新路由），展示最终方案并请求确认。
 
-## Step 4: Launch CC native team
+## 步骤 4：启动 CC 原生 team
 
-Execute these CC native tool calls in sequence:
+按顺序执行以下 CC 原生工具调用：
 
-### 4.1 Generate team slug
-Create a slug from the task description: take 3-4 keywords, join with `-`, all lowercase English. Examples:
+### 4.1 生成 team slug
+从任务描述创建 slug：取 3-4 个关键词，用 `-` 连接，全小写英文。示例：
 - "实现跳跃手感优化" → `jump-feel-optimization`
 - "调查帧率下降问题" → `investigate-framerate-drop`
 - "Review the new combat system" → `review-combat-system`
 
-### 4.2 Create the team
+### 4.2 创建 team
 ```
 TeamCreate("{slug}")
 ```
 
-### 4.3 Create tasks
-For each task in the breakdown, call `TaskCreate` with description following the `templates/task.md` format (10 fields — extends the design doc's 8-field schema with Scope Coverage and Exclusions for better task scoping):
+### 4.3 创建任务
+对于拆解中的每个任务，调用 `TaskCreate`，描述遵循 `templates/task.md` 格式（10 个字段 — 在设计文档的 8 字段架构基础上增加了 Scope Coverage 和 Exclusions 以更好地界定任务范围）：
 
 ```
 Task Kind: {implement | investigate | review | verify | closeout}
 Expected Owner Role: {leader | builder | researcher | reviewer | unity-pilot}
-Deliverable: {concrete deliverable description}
-Done Definition: {clear completion criteria}
-Dependencies: {comma-separated task IDs, or "none"}
+Deliverable: {具体交付物描述}
+Done Definition: {明确的完成标准}
+Dependencies: {逗号分隔的任务 ID，或 "none"}
 Risk Level: {low | medium | high}
 Leader Ack Required: {true | false}
-Original User Intent: {the user's original task description}
-Scope Coverage: {what this task covers}
-Exclusions: {what this task explicitly does NOT cover}
+Original User Intent: {用户的原始任务描述}
+Scope Coverage: {此任务覆盖的内容}
+Exclusions: {此任务明确不覆盖的内容}
 ```
 
-Guidelines for task creation:
-- First task is usually the main work item (implement/investigate/fix)
-- If researcher is involved, investigation task comes first, implementation depends on it
-- If reviewer is involved, review task depends on implementation
-- If unity-pilot is involved, verification task depends on implementation
-- Always include a `closeout` task assigned to leader as the final task, with `Leader Ack Required: true`
-- Set `Risk Level: high` for tasks that touch core systems, physics, or cross-module boundaries
+任务创建指南：
+- 第一个任务通常是主要工作项（implement/investigate/fix）
+- 如果有 researcher 参与，调查任务排在前面，实现任务依赖它
+- 如果有 reviewer 参与，审查任务依赖实现任务
+- 如果有 unity-pilot 参与，验证任务依赖实现任务
+- 始终包含一个分配给 leader 的 `closeout` 任务作为最终任务，设置 `Leader Ack Required: true`
+- 涉及核心系统、物理或跨模块边界的任务设置 `Risk Level: high`
 
-### 4.4 Send kickoff message to leader
+### 4.4 向 leader 发送启动消息
 ```
 SendMessage → leader
 ```
 
-The message to leader should contain:
+发送给 leader 的消息应包含：
 
 ```
-# Seed Team Kickoff
+# Seed Team 启动
 
-## Goal
-{user's task description}
+## 目标
+{用户的任务描述}
 
-## Analysis
-- Task Kind: {task_kind}
-- Domain: {domain}
-- Complexity: {complexity}
+## 分析
+- 任务类型: {task_kind}
+- 领域: {domain}
+- 复杂度: {complexity}
 
-## Team Composition
-{list of agents and their roles}
+## 团队组成
+{agent 列表及其角色}
 
-## Task Board
-{numbered list of all tasks with their owners and dependencies}
+## 任务板
+{带有负责人和依赖关系的编号任务列表}
 
-## Instructions
-1. Review the task board and confirm the assignments
-2. Coordinate with your teammates via SendMessage
-3. For any direction disputes or ambiguity, YOU make the final call
-4. When all tasks are complete, verify each Done Definition and close out the team
+## 指令
+1. 审查任务板并确认分配
+2. 通过 SendMessage 与队友协调
+3. 对于任何方向争议或歧义，由你做最终决定
+4. 当所有任务完成后，验证每个完成定义并关闭团队
 
-## Escalation Rules
-Teammates MUST escalate to you (not decide on their own) when:
-- Multiple implementation approaches are viable
-- Dependency changes affect other tasks
-- Risk Level = high situations arise
-- Any "should we change this?" uncertainty
+## 升级规则
+队友必须升级给你（不得自行决定）的情况：
+- 存在多个可行的实现方案
+- 依赖关系变化影响其他任务
+- 出现 Risk Level = high 的情况
+- 任何"要不要改这个"的不确定性
 ```
 
-### 4.5 Report to user
-After launching, tell the user:
+### 4.5 向用户报告
+启动后，告诉用户：
 
 ```
-Seed team launched: {slug}
+Seed team 已启动: {slug}
 
-  Team: leader + {agent list}
-  Tasks: {count} tasks created
+  团队: leader + {agent 列表}
+  任务: 已创建 {count} 个任务
 
-Use /team status to monitor progress.
-The leader will coordinate the team and close out when done.
+使用 /team status 查看进度。
+Leader 将协调团队并在完成时关闭。
 ```
 
-## Task Decomposition Guidelines
+## 任务分解指南
 
-### implement tasks
-- Single `implement` task for focused complexity
-- Split into `implement` + `verify` for module complexity
-- Split into `implement` (per subsystem) + `review` + `verify` for system complexity
+### implement 任务
+- focused 复杂度：单个 `implement` 任务
+- module 复杂度：拆分为 `implement` + `verify`
+- system 复杂度：拆分为 `implement`（每个子系统）+ `review` + `verify`
 
-### investigate tasks
-- `investigate` → `implement` (if fix needed) → `verify`
-- researcher handles investigation, builder handles implementation
+### investigate 任务
+- `investigate` → `implement`（如需修复）→ `verify`
+- researcher 负责调查，builder 负责实现
 
-### fix tasks (root cause known)
-- `implement` (the fix) → `verify`
+### fix 任务（根因已知）
+- `implement`（修复）→ `verify`
 
-### fix tasks (root cause unknown)
-- `investigate` (find root cause) → `implement` (the fix) → `verify`
+### fix 任务（根因未知）
+- `investigate`（定位根因）→ `implement`（修复）→ `verify`
 
-### review tasks
-- `review` (reviewer examines code) → leader closeout
+### review 任务
+- `review`（reviewer 检查代码）→ leader closeout
 
-### design tasks
-- `investigate` (research constraints) → `implement` (write design doc / prototype) → `review`
+### design 任务
+- `investigate`（研究约束）→ `implement`（编写设计文档/原型）→ `review`
 
-### operate tasks
-- `operate` (unity-pilot does the work) → leader closeout
+### operate 任务
+- `operate`（unity-pilot 执行工作）→ leader closeout

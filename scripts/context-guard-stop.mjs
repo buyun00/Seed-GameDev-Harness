@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * Seed Context Guard Hook (Stop)
+ * Seed 上下文守卫 Hook（Stop 事件）
  *
- * Suggests session refresh when context usage exceeds a warning threshold.
+ * 当上下文使用率超过警告阈值时建议刷新 session。
  *
- * Configurable via SEED_CONTEXT_GUARD_THRESHOLD env var (default: 75%).
+ * 可通过 SEED_CONTEXT_GUARD_THRESHOLD 环境变量配置（默认：75%）。
  *
- * Safety rules:
- *   - Never block context_limit stops (would cause compaction deadlock)
- *   - Never block user-requested stops (respect Ctrl+C / cancel)
- *   - Max 2 blocks per transcript (retry guard prevents infinite loops)
+ * 安全规则：
+ *   - 永远不阻塞 context_limit 停止（否则会导致压缩死锁）
+ *   - 永远不阻塞用户主动停止（尊重 Ctrl+C / cancel）
+ *   - 每个 transcript 最多阻塞 2 次（重试守卫防止无限循环）
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, openSync, readSync, closeSync } from 'node:fs';
@@ -85,7 +85,7 @@ function estimateContextPercent(transcriptPath) {
   } catch {
     return 0;
   } finally {
-    if (fd !== -1) try { closeSync(fd); } catch { /* ignore */ }
+    if (fd !== -1) try { closeSync(fd); } catch { /* 忽略 */ }
   }
 }
 
@@ -108,7 +108,7 @@ function getBlockCount(sessionId) {
       const data = JSON.parse(readFileSync(guardFile, 'utf-8'));
       return data.blockCount || 0;
     }
-  } catch { /* ignore */ }
+  } catch { /* 忽略 */ }
   return 0;
 }
 
@@ -122,15 +122,15 @@ function incrementBlockCount(sessionId) {
       count = data.blockCount || 0;
     }
     writeFileSync(guardFile, JSON.stringify({ blockCount: count + 1 }), { mode: 0o600 });
-  } catch { /* ignore */ }
+  } catch { /* 忽略 */ }
 }
 
 function buildStopRecoveryAdvice(contextPercent, blockCount) {
   const severity = contextPercent >= 90 ? 'CRITICAL' : 'HIGH';
-  return `[Seed] Context at ${contextPercent}% (${severity}, threshold: ${THRESHOLD}%). ` +
-    `Run /compact immediately before continuing. If /compact cannot complete, ` +
-    `stop spawning new agents and recover in a fresh session using existing checkpoints ` +
-    `(.seed/state, .seed/notepad.md). (Block ${blockCount}/${MAX_BLOCKS})`;
+  return `[Seed] 上下文使用率 ${contextPercent}%（${severity}，阈值：${THRESHOLD}%）。` +
+    `请立即运行 /compact 后再继续。如果 /compact 无法完成，` +
+    `停止创建新 agent，在新 session 中使用现有检查点恢复` +
+    `（.seed/state、.seed/notepad.md）。（第 ${blockCount}/${MAX_BLOCKS} 次阻塞）`;
 }
 
 async function main() {

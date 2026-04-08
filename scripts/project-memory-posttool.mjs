@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * PostToolUse Hook: Project Memory Update
+ * PostToolUse Hook：项目记忆更新
  *
- * After Write/Edit/MultiEdit operations, updates the hotPaths index
- * in .seed/project-memory.json via atomic write.
+ * 在 Write/Edit/MultiEdit 操作后，通过原子写入更新
+ * .seed/project-memory.json 中的 hotPaths 索引。
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -52,7 +52,7 @@ function updateHotPaths(memory, filePath, cwd) {
     });
   }
 
-  // Keep only top 50 by count
+  // 按访问次数排序，只保留前 50 条
   memory.hotPaths.sort((a, b) => (b.count || 0) - (a.count || 0));
   if (memory.hotPaths.length > 50) {
     memory.hotPaths = memory.hotPaths.slice(0, 50);
@@ -77,7 +77,7 @@ async function main() {
     ensureDirSync(seedDir);
     const memory = loadMemory(memoryPath);
 
-    // Extract file path from tool input
+    // 从工具输入中提取文件路径
     const toolInput = data.tool_input || data.toolInput || {};
     const filePath = toolInput.file_path || toolInput.filePath || toolInput.path || '';
 

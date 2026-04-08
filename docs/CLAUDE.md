@@ -1,10 +1,10 @@
 <!-- SEED:START -->
 <!-- SEED:VERSION:0.1.0 -->
 
-# Seed GameDev AI System
+# Seed GameDev AI 系统
 
-## Language
-Check `.seed/config.json` → `language`. If set, use that language for ALL responses, code comments, documentation, task descriptions, and agent communications throughout the entire session.
+## 语言
+检查 `.seed/config.json` → `language`。如果已设置，在整个 session 中所有回复、代码注释、文档、任务描述和 agent 通信都必须使用该语言。
 
 ## 核心原则
 - 事实可以分散流动，方向必须集中裁决

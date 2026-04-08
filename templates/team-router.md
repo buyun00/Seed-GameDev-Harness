@@ -1,16 +1,16 @@
-# Seed Team Router
+# Seed 团队路由表
 
-This file defines how `/seed:dispatch` selects agents based on task characteristics.
-You can customize this file per-project by editing `.seed/team-router.md`.
+本文件定义了 `/seed:dispatch` 如何根据任务特征选择 agent。
+你可以通过编辑 `.seed/team-router.md` 来按项目定制此文件。
 
-> **Note**: Leader is always included in every team and is not listed in the tables below.
+> **注意**：Leader 始终包含在每个团队中，以下表格不再列出。
 
 ---
 
 ## implement
 
-| domain | complexity | agents |
-|--------|-----------|--------|
+| 领域 | 复杂度 | agents |
+|------|--------|--------|
 | unity-runtime | focused | builder, unity-pilot |
 | unity-runtime | module | builder, unity-pilot |
 | unity-runtime | system | builder, reviewer, unity-pilot |
@@ -29,8 +29,8 @@ You can customize this file per-project by editing `.seed/team-router.md`.
 
 ## investigate
 
-| domain | complexity | agents |
-|--------|-----------|--------|
+| 领域 | 复杂度 | agents |
+|------|--------|--------|
 | unity-runtime | focused | researcher |
 | unity-runtime | module | researcher, builder |
 | unity-runtime | system | researcher, builder |
@@ -49,22 +49,22 @@ You can customize this file per-project by editing `.seed/team-router.md`.
 
 ## fix
 
-For fix tasks, routing depends on whether the root cause is known.
+对于 fix 任务，路由取决于根因是否已知。
 
-### Root cause known
+### 根因已知
 
-| domain | agents |
-|--------|--------|
+| 领域 | agents |
+|------|--------|
 | unity-runtime | builder, unity-pilot |
 | lua-gameplay | builder |
 | ai-pipeline | builder |
 | architecture | builder |
 | cross-domain | builder |
 
-### Root cause unknown
+### 根因未知
 
-| domain | agents |
-|--------|--------|
+| 领域 | agents |
+|------|--------|
 | unity-runtime | researcher, builder, unity-pilot |
 | lua-gameplay | researcher, builder |
 | ai-pipeline | researcher, builder |
@@ -73,8 +73,8 @@ For fix tasks, routing depends on whether the root cause is known.
 
 ## review
 
-| domain | agents |
-|--------|--------|
+| 领域 | agents |
+|------|--------|
 | unity-runtime | reviewer, unity-pilot |
 | lua-gameplay | reviewer |
 | ai-pipeline | reviewer |
@@ -83,8 +83,8 @@ For fix tasks, routing depends on whether the root cause is known.
 
 ## design
 
-| complexity | agents |
-|-----------|--------|
+| 复杂度 | agents |
+|--------|--------|
 | focused | researcher, builder |
 | module | researcher, builder |
 | system | researcher, builder, reviewer |
@@ -97,22 +97,22 @@ For fix tasks, routing depends on whether the root cause is known.
 
 ---
 
-## Team Size Guidelines
+## 团队规模指南
 
-| Size | Composition | When to use |
-|------|------------|------------|
-| 2 | leader + 1 | Focused, single-domain tasks |
-| 3 | leader + 2 | Module-level tasks, or tasks needing verification |
-| 4 | leader + 3 | System-level tasks, cross-domain work |
-| 4+ | — | Split the task into smaller dispatch calls first |
+| 规模 | 组成 | 适用场景 |
+|------|------|---------|
+| 2 | leader + 1 | Focused、单领域任务 |
+| 3 | leader + 2 | Module 级任务，或需要验证的任务 |
+| 4 | leader + 3 | System 级任务，跨领域工作 |
+| 4+ | — | 先将任务拆分为更小的 dispatch 调用 |
 
-## Customization
+## 定制化
 
-To customize routing for your project:
+要为你的项目定制路由：
 
-1. Copy this file to `.seed/team-router.md` (done automatically by setup-init)
-2. Edit the tables to match your project's needs
-3. Common customizations:
-   - Always include reviewer for certain domains
-   - Add unity-pilot for domains that need Editor verification
-   - Remove agents you don't need (e.g., if your project has no Lua)
+1. 将此文件复制到 `.seed/team-router.md`（setup-init 会自动完成）
+2. 编辑表格以匹配你的项目需求
+3. 常见定制：
+   - 某些领域始终包含 reviewer
+   - 需要 Editor 验证的领域添加 unity-pilot
+   - 移除不需要的 agent（如项目没有 Lua）

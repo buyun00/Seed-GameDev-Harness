@@ -8,35 +8,35 @@ triggers:
   - gamedev-knowledge
 ---
 
-## Seed MCP Tools
+## Seed MCP 工具
 
-> This skill will be populated when the L2 Knowledge Engine is deployed.
-> For now, it serves as a placeholder documenting the planned MCP integration.
+> 本 skill 将在 L2 知识引擎部署后填充内容。
+> 目前作为占位符，记录计划中的 MCP 集成。
 
-### Planned: gamedev-knowledge Server
+### 计划中：gamedev-knowledge 服务器
 
-The `gamedev-knowledge` MCP server will provide:
+`gamedev-knowledge` MCP 服务器将提供：
 
-- **Knowledge Retrieval**: Query game development best practices, engine documentation, and project-specific patterns
-- **Code Pattern Search**: Find similar implementations across known game dev codebases
-- **API Reference**: Quick lookup for Unity, Lua, and related framework APIs
+- **知识检索**：查询游戏开发最佳实践、引擎文档和项目特定模式
+- **代码模式搜索**：在已知的游戏开发代码库中查找类似实现
+- **API 参考**：快速查阅 Unity、Lua 和相关框架 API
 
-### Configuration
+### 配置
 
-The MCP server configuration is in `.mcp.json` at the plugin root. After L2 deployment, update the configuration with the actual server endpoint.
+MCP 服务器配置在插件根目录的 `.mcp.json` 中。L2 部署后，使用实际的服务器端点更新配置。
 
-### Usage Pattern (Planned)
+### 使用模式（计划中）
 
 ```
-1. Agent identifies a knowledge gap during task execution
-2. Agent calls gamedev-knowledge tool with a structured query
-3. Server returns relevant documentation, patterns, or examples
-4. Agent incorporates the knowledge into their work
+1. Agent 在任务执行过程中发现知识缺口
+2. Agent 使用结构化查询调用 gamedev-knowledge 工具
+3. 服务器返回相关的文档、模式或示例
+4. Agent 将获取的知识融入工作中
 ```
 
-### Current Workaround
+### 当前替代方案
 
-Until the MCP server is available:
-- Use project-level skills in `.seed/skills/` for project-specific patterns
-- Use built-in skills (unity-patterns, lua-scripting) for common patterns
-- Use web search or documentation tools when available
+在 MCP 服务器可用之前：
+- 使用 `.seed/skills/` 中的项目级 skill 获取项目特定模式
+- 使用内置 skill（unity-patterns、lua-scripting）获取常见模式
+- 在可用时使用网络搜索或文档工具

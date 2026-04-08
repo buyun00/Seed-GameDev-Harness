@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Seed Session Start Hook
+ * Seed Session 启动 Hook
  *
- * Injects notepad Priority Context and a soft team-status hint.
- * Does NOT touch project-memory.json (that's project-memory-session.mjs's job).
+ * 注入 notepad 的 Priority Context 和轻量级 team 状态提示。
+ * 不操作 project-memory.json（那是 project-memory-session.mjs 的职责）。
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -15,9 +15,9 @@ const SEED_DIR = '.seed';
 const NOTEPAD_FILE = 'notepad.md';
 
 /**
- * Extract the "Priority Context" section from notepad.md.
- * Looks for a heading starting with "# Priority Context" or "## Priority Context"
- * and reads until the next heading of same or higher level.
+ * 从 notepad.md 中提取 "Priority Context" 段落。
+ * 查找以 "# Priority Context" 或 "## Priority Context" 开头的标题，
+ * 读取到下一个同级或更高级标题为止。
  */
 function extractPriorityContext(notepadContent) {
   const lines = notepadContent.split('\n');
@@ -44,13 +44,13 @@ async function main() {
   try {
     const input = await readStdin();
     let data = {};
-    try { data = JSON.parse(input); } catch { /* ignore */ }
+    try { data = JSON.parse(input); } catch { /* 忽略 */ }
 
     const cwd = data.cwd || data.directory || process.cwd();
     const lang = readLanguageConfig(cwd);
     const parts = [];
 
-    // 0. Language directive (highest priority — injected first)
+    // 0. 语言指令（最高优先级 — 最先注入）
     const langDirective = buildLanguageDirective(lang);
     if (langDirective) {
       parts.push(langDirective);
@@ -65,10 +65,10 @@ async function main() {
         if (priority) {
           parts.push('### [Priority Context]\n' + priority);
         }
-      } catch { /* ignore read errors */ }
+      } catch { /* 忽略读取错误 */ }
     }
 
-    // 2. Soft team-status hint
+    // 2. 轻量级 team 状态提示
     parts.push(t(lang, 'teamStatusTip'));
 
     if (parts.length === 0) {

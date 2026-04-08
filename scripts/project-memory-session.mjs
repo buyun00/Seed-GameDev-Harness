@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * SessionStart Hook: Project Memory Injection
+ * SessionStart Hook：项目记忆注入
  *
- * Reads .seed/project-memory.json and injects a formatted summary
- * into the session context. This is the sole injection point for
- * project memory — session-start.mjs handles other context.
+ * 读取 .seed/project-memory.json 并将格式化摘要注入
+ * session 上下文。这是项目记忆的唯一注入点 —
+ * session-start.mjs 负责处理其他上下文。
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -20,7 +20,7 @@ async function main() {
   try {
     const input = await readStdin();
     let data = {};
-    try { data = JSON.parse(input); } catch { /* ignore */ }
+    try { data = JSON.parse(input); } catch { /* 忽略 */ }
 
     const cwd = data.cwd || data.directory || process.cwd();
     const memoryPath = join(cwd, SEED_DIR, MEMORY_FILE);

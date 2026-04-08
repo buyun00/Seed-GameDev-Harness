@@ -1,8 +1,8 @@
 /**
- * Minimal i18n helper for Seed hook scripts.
+ * Seed hook 脚本的轻量级国际化工具。
  *
- * Reads the language setting from .seed/config.json and provides
- * localized strings for hook output messages.
+ * 从 .seed/config.json 读取语言设置，并提供
+ * hook 输出消息的本地化字符串。
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -30,8 +30,8 @@ const strings = {
 };
 
 /**
- * Resolve a language code from the raw config value.
- * Supports codes like "en", "zh", "ja", "ko" and display names.
+ * 从原始配置值解析语言代码。
+ * 支持代码形式（如 "en"、"zh"、"ja"、"ko"）和显示名称。
  */
 function resolveLanguageCode(raw) {
   if (!raw) return 'en';
@@ -48,9 +48,9 @@ function resolveLanguageCode(raw) {
 }
 
 /**
- * Read the language setting from .seed/config.json.
- * @param {string} cwd - project working directory
- * @returns {string} raw language value from config, or ''
+ * 从 .seed/config.json 读取语言设置。
+ * @param {string} cwd - 项目工作目录
+ * @returns {string} 配置中的原始语言值，或空字符串
  */
 export function readLanguageConfig(cwd) {
   try {
@@ -64,10 +64,10 @@ export function readLanguageConfig(cwd) {
 }
 
 /**
- * Get a localized string by key.
- * @param {string} lang - raw language value from config
- * @param {string} key - string key
- * @param  {...any} args - arguments passed to string functions
+ * 根据 key 获取本地化字符串。
+ * @param {string} lang - 配置中的原始语言值
+ * @param {string} key - 字符串键
+ * @param  {...any} args - 传递给字符串函数的参数
  * @returns {string}
  */
 export function t(lang, key, ...args) {
@@ -78,9 +78,9 @@ export function t(lang, key, ...args) {
 }
 
 /**
- * Build the language directive message for session context injection.
- * @param {string} lang - raw language value from config
- * @returns {string} directive text, or empty string if no language configured
+ * 构建语言指令消息用于 session 上下文注入。
+ * @param {string} lang - 配置中的原始语言值
+ * @returns {string} 指令文本，如果未配置语言则返回空字符串
  */
 export function buildLanguageDirective(lang) {
   if (!lang) return '';

@@ -1,71 +1,71 @@
 ---
 name: setup
-description: Initialize Seed for the current project
+description: 为当前项目初始化 Seed
 ---
 
 # /seed:setup
 
-You are executing the Seed setup wizard. Follow these phases in order.
+你正在执行 Seed 设置向导。按以下阶段顺序进行。
 
-## Phase 0: Language Selection
+## 阶段 0：语言选择
 
-Read `.seed/config.json`. If `language` is already set and non-empty, skip this phase and tell the user the current language.
+读取 `.seed/config.json`。如果 `language` 已设置且非空，跳过此阶段并告知用户当前语言。
 
-If `language` is not set (empty string or missing), ask the user with `AskUserQuestion`:
+如果 `language` 未设置（空字符串或缺失），使用 `AskUserQuestion` 询问用户：
 
-"Choose the language for Seed (affects all interactions, documentation, and code comments):"
-- **English** — English
-- **中文** — Chinese
-- **日本語** — Japanese
-- **한국어** — Korean
+"选择 Seed 的交互语言（影响所有交互、文档和代码注释）："
+- **English** — 英语
+- **中文** — 中文
+- **日本語** — 日语
+- **한국어** — 韩语
 
-Write the chosen value (e.g. `"English"`, `"中文"`, `"日本語"`, `"한국어"`) to `.seed/config.json` under `language`.
+将选择的值（如 `"English"`、`"中文"`、`"日本語"`、`"한국어"`）写入 `.seed/config.json` 的 `language` 字段。
 
-**From this point forward, conduct the entire setup wizard in the selected language.** All subsequent questions, explanations, and the completion summary must use the chosen language.
+**从这一点开始，整个设置向导使用选定的语言进行。** 后续所有问题、说明和完成摘要都必须使用选定的语言。
 
-## Phase 1: Install CLAUDE.md
+## 阶段 1：安装 CLAUDE.md
 
-Check if `--local` or `--global` was passed in `{{ARGUMENTS}}`.
+检查 `{{ARGUMENTS}}` 中是否传入了 `--local` 或 `--global`。
 
-- If `--local` was passed, set SCOPE to `local`.
-- If `--global` was passed, set SCOPE to `global`.
-- If neither was passed, ask the user:
+- 如果传入了 `--local`，设置 SCOPE 为 `local`。
+- 如果传入了 `--global`，设置 SCOPE 为 `global`。
+- 如果都没有传入，询问用户：
 
-Use `AskUserQuestion` with:
-- "Where should Seed install its CLAUDE.md instructions?"
-  - **local** — `.claude/CLAUDE.md` in this project (recommended for per-project setup)
-  - **global** — `~/.claude/CLAUDE.md` (applies to all projects)
+使用 `AskUserQuestion`：
+- "Seed 应该将 CLAUDE.md 指令安装到哪里？"
+  - **local** — 本项目的 `.claude/CLAUDE.md`（推荐用于单项目配置）
+  - **global** — `~/.claude/CLAUDE.md`（适用于所有项目）
 
-Then run:
+然后执行：
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup-claude-md.sh" <SCOPE>
 ```
 
-Report the output to the user.
+向用户报告输出结果。
 
-## Phase 2: Configure dispatch mode
+## 阶段 2：配置 dispatch 模式
 
-Read `.seed/config.json`. If `dispatch.mode` is already set, skip this phase and tell the user the current mode.
+读取 `.seed/config.json`。如果 `dispatch.mode` 已设置，跳过此阶段并告知用户当前模式。
 
-If `dispatch.mode` is not set, ask the user with `AskUserQuestion`:
+如果 `dispatch.mode` 未设置，使用 `AskUserQuestion` 询问用户：
 
-"How should `/seed:dispatch` handle team assembly?"
-- **auto** — Analyze and launch immediately, no confirmation
-- **confirm** — Show the plan, one confirmation to launch (recommended)
-- **guided** — Step-by-step walkthrough, you can adjust every parameter
+"`/seed:dispatch` 应该如何处理团队组装？"
+- **auto** — 分析后直接启动，无需确认
+- **confirm** — 展示方案，一次确认后启动（推荐）
+- **guided** — 逐步引导，可调整每个参数
 
-Write the chosen mode to `.seed/config.json` under `dispatch.mode`.
+将选择的模式写入 `.seed/config.json` 的 `dispatch.mode`。
 
-## Phase 3: Enable Agent Teams
+## 阶段 3：启用 Agent Teams
 
-Ask the user with `AskUserQuestion`:
+使用 `AskUserQuestion` 询问用户：
 
-"Enable CC native agent teams? This is required for `/seed:dispatch` to work."
-- **Yes** — Enable (recommended)
-- **No** — Skip for now
+"是否启用 CC 原生 agent teams？这是 `/seed:dispatch` 正常工作的必要条件。"
+- **是** — 启用（推荐）
+- **否** — 暂时跳过
 
-If the user confirms, read or create `.claude/settings.json` in the project root, and ensure it contains:
+如果用户确认，读取或创建项目根目录下的 `.claude/settings.json`，确保包含：
 
 ```json
 {
@@ -75,23 +75,23 @@ If the user confirms, read or create `.claude/settings.json` in the project root
 }
 ```
 
-Merge with existing content if the file already exists — do not overwrite other settings.
+如果文件已存在，与现有内容合并 — 不要覆盖其他设置。
 
-## Phase 4: Complete
+## 阶段 4：完成
 
-Write `setupCompleted` with the current ISO timestamp to `.seed/config.json`.
+将 `setupCompleted` 及当前 ISO 时间戳写入 `.seed/config.json`。
 
-Output a completion summary:
+输出完成摘要：
 
 ```
-Seed setup complete!
+Seed 设置完成！
 
-  CLAUDE.md:  installed ({SCOPE})
-  Dispatch:   {mode} mode
-  Teams:      {enabled/disabled}
+  CLAUDE.md:  已安装（{SCOPE}）
+  Dispatch:   {mode} 模式
+  Teams:      {已启用/未启用}
 
-Restart Claude Code to let all configuration take effect.
+重启 Claude Code 以使所有配置生效。
 
-Quick start:
-  /seed:dispatch <describe your task>
+快速开始：
+  /seed:dispatch <描述你的任务>
 ```
