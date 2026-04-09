@@ -49,7 +49,7 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 | ------------------ | ----------------------- | --------------------------------------------------------------------------------------------- |
 | `plugin-setup.mjs` | `/plugin install` 后自动执行 | 保存 Node 路径到 `~/.claude/.seed-config.json`，将 `hooks.json` 的 `node` 替换为绝对路径（兼容 nvm/fnm/Windows） |
 | `setup-init.mjs`   | 首次打开 CC session         | 创建 `.seed/state`、`.seed/logs`、`.seed/plans` 目录结构                                              |
-| `/seed:setup`      | 用户手动运行                  | 安装 CLAUDE.md、配置 bud 模式、启用 Agent Teams                                                    |
+| `/seed:setup`      | 用户手动运行                  | 安装 CLAUDE.md、配置 bud 模式、启用 Agent Teams、创建 `/seed` 快捷命令                                |
 
 
 ### `/seed:setup` 五阶段向导
@@ -57,25 +57,33 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 0. **语言选择** — 选择交互语言（English / 中文 / 日本語 / 한국어），后续所有提问、文档输出、注释均使用选定语言
 1. **CLAUDE.md 安装** — 选择 local（`.claude/CLAUDE.md`）或 global（`~/.claude/CLAUDE.md`），安装 Seed 核心指令
 2. **Bud 模式** — 选择默认执行模式（auto / confirm / guided）
-3. **Agent Teams** — 启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+3. **Agent Teams & 快捷命令** — 启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`，创建 `.claude/commands/seed.md`（`/seed` → `/seed:bud` 转发）
 4. **完成确认** — 写入 `setupCompleted` 标记
 
 ---
 
 ## 使用
 
-### 核心命令
+### 命令体系
 
-#### `/seed:bud` — 动态组装 Agent Team
+| 命令 | 性质 | 说明 |
+|------|------|------|
+| `/seed` | 日常入口 | 项目快捷命令，转发到 `/seed:bud`。由 `/seed:setup` 在阶段 3 自动创建到 `.claude/commands/seed.md` |
+| `/seed:setup` | 一次性初始化 | 语言选择、CLAUDE.md 安装、bud 模式配置、Agent Teams 启用、创建 `/seed` 快捷命令 |
+| `/seed:bud` | 底层引擎 | 实际的 bud 命令实现（通常通过 `/seed` 调用，无需直接使用） |
+
+> **提示**：如果输入包含"配置/config/设置/改一下"等关键词，`/seed` 会提示你运行 `/seed:setup`，不会继续执行任务组装。
+
+#### `/seed` — 动态组装 Agent Team
 
 ```bash
 # 默认使用 config 中的模式
-/seed:bud 实现跳跃手感优化
+/seed 实现跳跃手感优化
 
 # 指定模式
-/seed:bud --auto 调查帧率下降问题
-/seed:bud --confirm Review the new combat system
-/seed:bud --guided 重构战斗系统架构
+/seed --auto 调查帧率下降问题
+/seed --confirm Review the new combat system
+/seed --guided 重构战斗系统架构
 ```
 
 **三种执行模式：**
@@ -88,12 +96,13 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 | `guided`  | 逐步引导，可调整每个参数  | 首次使用，或需要精细控制 Agent 组合  |
 
 
-**Bud 执行流程：**
+**执行流程：**
 
-1. **任务分析** — 自动识别 `task_kind`（implement / investigate / fix / review / design / operate）、`domain`、`complexity`
-2. **查路由表** — 根据分析结果查 `.seed/team-router.md`，选择 Agent 组合
-3. **确认/调整** — 根据模式展示方案并确认
-4. **启动 Team** — 调用 `TeamCreate` → `TaskCreate` × N → `SendMessage` → leader
+1. **配置意图拦截** — 检测"配置/设置"类关键词，命中则提示运行 `/seed:setup`
+2. **任务分析** — 自动识别 `task_kind`（implement / investigate / fix / review / design / operate）、`domain`、`complexity`
+3. **查路由表** — 根据分析结果查 `.seed/team-router.md`，选择 Agent 组合
+4. **确认/调整** — 根据模式展示方案并确认
+5. **启动 Team** — 调用 `TeamCreate` → `TaskCreate` × N → `SendMessage` → leader
 
 #### `/seed:setup` — 初始化配置
 
@@ -254,7 +263,7 @@ seed/
 │       └── stdin.mjs             # 超时保护的 stdin 读取
 ├── commands/
 │   ├── setup.md                  # /seed:setup 命令定义
-│   └── bud.md                    # /seed:bud 命令定义（核心）
+│   └── bud.md                    # /seed:bud 命令定义（通过 /seed 项目快捷命令调用）
 ├── agents/
 │   ├── leader.md                 # 协调者 Agent
 │   ├── builder.md                # 实现者 Agent
@@ -291,7 +300,9 @@ seed/
 │   ├── plans/                    # 计划文件
 │   └── skills/                   # 项目级 learned skills
 └── .claude/
-    └── CLAUDE.md                 # Seed 核心指令（setup 安装）
+    ├── CLAUDE.md                 # Seed 核心指令（setup 安装）
+    └── commands/
+        └── seed.md               # /seed 项目快捷命令（→ /seed:bud 转发）
 ```
 
 ---

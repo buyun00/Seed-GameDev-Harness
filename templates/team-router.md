@@ -1,6 +1,6 @@
 # Seed 团队路由表
 
-本文件定义了 `/seed:bud` 如何根据任务特征选择 agent。
+本文件定义了 `/seed`（`/seed:bud`）如何根据任务特征选择 agent。
 你可以通过编辑 `.seed/team-router.md` 来按项目定制此文件。
 
 > **注意**：Leader 始终包含在每个团队中，以下表格不再列出。

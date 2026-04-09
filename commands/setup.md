@@ -58,22 +58,26 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup-claude-md.sh" <SCOPE>
 
 如果 `bud.mode` 未设置，使用 `AskUserQuestion` 询问用户：
 
-"`/seed:bud` 应该如何处理团队组装？"
+"`/seed` 应该如何处理团队组装？"
 - **auto** — 分析后直接启动，无需确认
 - **confirm** — 展示方案，一次确认后启动（推荐）
 - **guided** — 逐步引导，可调整每个参数
 
 将选择的模式写入 `.seed/config.json` 的 `bud.mode`。
 
-## 阶段 3：启用 Agent Teams
+## 阶段 3：启用 Agent Teams 与快捷命令
 
 使用 `AskUserQuestion` 询问用户：
 
-"是否启用 CC 原生 agent teams？这是 `/seed:bud` 正常工作的必要条件。"
+"是否启用 CC 原生 agent teams？这是 `/seed` 正常工作的必要条件。"
 - **是** — 启用（推荐）
 - **否** — 暂时跳过
 
-如果用户确认，读取或创建项目根目录下的 `.claude/settings.json`，确保包含：
+如果用户确认，执行以下两步：
+
+### 3a. 启用 Agent Teams 环境变量
+
+读取或创建项目根目录下的 `.claude/settings.json`，确保包含：
 
 ```json
 {
@@ -84,6 +88,20 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup-claude-md.sh" <SCOPE>
 ```
 
 如果文件已存在，与现有内容合并 — 不要覆盖其他设置。
+
+### 3b. 创建 `/seed` 项目快捷命令
+
+在项目根目录下创建 `.claude/commands/seed.md`（如果已存在则跳过），内容为：
+
+```markdown
+---
+description: Seed 日常入口 — 转发到 /seed:bud
+---
+
+/seed:bud {{ARGUMENTS}}
+```
+
+这样用户可以直接用 `/seed <任务描述>` 代替 `/seed:bud <任务描述>`。
 
 ## 阶段 4：完成
 
@@ -97,9 +115,10 @@ Seed 设置完成！
   CLAUDE.md:  已安装（{SCOPE}）
   Bud:        {mode} 模式
   Teams:      {已启用/未启用}
+  快捷命令:   /seed → /seed:bud
 
 重启 Claude Code 以使所有配置生效。
 
 快速开始：
-  /seed:bud <描述你的任务>
+  /seed <描述你的任务>
 ```

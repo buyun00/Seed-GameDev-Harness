@@ -15,15 +15,15 @@ Seed 是一个基于 Claude Code plugin 的游戏研发 AI 工作流系统，提
 - 配置 bud 默认模式（auto / confirm / guided）
 - 启用 CC native agent teams
 
-### /seed:bud
-核心命令——分析任务并自动组装 agent team 执行。
+### /seed
+日常入口命令——分析任务并自动组装 agent team 执行（项目快捷命令，由 `/seed:setup` 自动创建，转发到 `/seed:bud`）。
 
 用法：
 ```
-/seed:bud <任务描述>
-/seed:bud --auto <任务描述>
-/seed:bud --confirm <任务描述>
-/seed:bud --guided <任务描述>
+/seed <任务描述>
+/seed --auto <任务描述>
+/seed --confirm <任务描述>
+/seed --guided <任务描述>
 ```
 
 执行模式：
