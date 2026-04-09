@@ -13,7 +13,7 @@ scope:
 
 # /seed:embed Step 3 Skill Catalog
 
-本文件负责根据 `tech_stack_report` 生成目标 skill 文件列表。执行前必须先加载 [`seed/skills/embed/taxonomy-registry.md`](seed/skills/embed/taxonomy-registry.md)。
+本文件负责根据 `tech_stack_report` 生成目标 skill 文件列表。执行前必须先加载 [`$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`]($CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md)。
 
 ## Step 3 目标
 
@@ -42,7 +42,7 @@ Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展
 - 文件：`domain/<engine>-<direction-kebab>.md`
 - `matrix_id`: `engine.<engine>.<direction_id>`
 - `question_set_id`: `qs-<engine>-<direction-kebab>`
-- `fixed_question_file`: `seed/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
+- `fixed_question_file`: `$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
 
 ### 2. 跨引擎能力 skill
 
@@ -62,7 +62,7 @@ Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展
 - 文件：`domain/common-<capability-kebab>.md`
 - `matrix_id`: `capability.<capability_id>`
 - `question_set_id`: `qs-common-<capability-kebab>`
-- `fixed_question_file`: `seed/skills/embed/fixed-questions/capability/<capability-kebab>.md`
+- `fixed_question_file`: `$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/capability/<capability-kebab>.md`
 
 ### 3. 不再生成的旧文件类型
 
@@ -130,7 +130,7 @@ axis: engine
 engine: unity
 direction_id: project_structure
 question_set_id: qs-unity-project-structure
-fixed_question_file: seed/skills/embed/fixed-questions/engine/unity/project-structure.md
+fixed_question_file: $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/unity/project-structure.md
 source: scanned | incomplete
 ---
 ```
@@ -153,7 +153,7 @@ axis: capability
 capability: lua_embedding
 capability_id: lua_embedding
 question_set_id: qs-common-lua-embedding
-fixed_question_file: seed/skills/embed/fixed-questions/capability/lua-embedding.md
+fixed_question_file: $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/capability/lua-embedding.md
 source: scanned | incomplete
 ---
 ```
@@ -183,9 +183,9 @@ source: scanned | incomplete
 ```markdown
 ## 固定问题
 
-- fixed_question_file: seed/skills/embed/fixed-questions/...
+- fixed_question_file: $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/...
 - composite_fixed_question_files:
-  - seed/skills/embed/fixed-questions/composite/...
+  - $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/composite/...
 - status: loaded | missing
 - questions:
   - Q1 ...
@@ -197,7 +197,7 @@ source: scanned | incomplete
 ```markdown
 ## 固定问题
 
-- fixed_question_file: seed/skills/embed/fixed-questions/...
+- fixed_question_file: $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/...
 - status: missing
 - note: 对应矩阵项的固定问题文件尚未创建，禁止补写推断性问题。
 ```

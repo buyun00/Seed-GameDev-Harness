@@ -15,9 +15,9 @@ scope:
 
 创建 `researcher-config` 前，必须先加载：
 
-1. `seed/skills/embed/researcher-common.md`
-2. `seed/skills/embed/taxonomy-registry.md`
-3. `seed/skills/embed/researcher-config.md`
+1. `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-common.md`
+2. `$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`
+3. `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-config.md`
 
 `researcher-config` 不加载 `researcher-runtime-common.md`。
 

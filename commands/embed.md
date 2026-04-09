@@ -43,6 +43,7 @@ argument-hint: "[--update]"
 - 如果 `tech_stack_report.conflicts` 非空，Step 1 必须明确展示冲突项，不得自行裁决。
 - 如果环境不能使用 `TeamCreate` / `TaskCreate` / `SendMessage`，必须降级为单 agent 串行生成 `.seed/skills/domain/` 文件。
 - `/seed:embed` 相关外置 skill 是执行规范，不是参考资料；加载后必须按其规则执行。
+- 插件内置命令、skill、fixed question 一律从 `$CLAUDE_PLUGIN_ROOT/skills/` 解析；`.seed/skills/` 只用于当前项目生成产物。
 
 ## Step 0：静默扫描项目并生成 `tech_stack_report`
 
@@ -50,8 +51,8 @@ argument-hint: "[--update]"
 
 ### 强制加载顺序
 
-1. `seed/skills/embed/taxonomy-registry.md`
-2. `seed/skills/detect-tech-stack.md`
+1. `$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`
+2. `$CLAUDE_PLUGIN_ROOT/skills/detect-tech-stack.md`
 
 ### 执行方式
 
@@ -134,8 +135,8 @@ argument-hint: "[--update]"
 
 ### 强制加载顺序
 
-1. `seed/skills/embed/taxonomy-registry.md`
-2. `seed/skills/embed/question-bank.md`
+1. `$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`
+2. `$CLAUDE_PLUGIN_ROOT/skills/embed/question-bank.md`
 
 ### 执行方式
 
@@ -165,8 +166,8 @@ argument-hint: "[--update]"
 
 ### 强制加载顺序
 
-1. `seed/skills/embed/taxonomy-registry.md`
-2. `seed/skills/embed/skill-catalog.md`
+1. `$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`
+2. `$CLAUDE_PLUGIN_ROOT/skills/embed/skill-catalog.md`
 
 ### 执行方式
 
@@ -200,9 +201,9 @@ argument-hint: "[--update]"
 
 ### 强制加载顺序
 
-1. `seed/skills/embed/taxonomy-registry.md`
-2. `seed/skills/embed/skill-catalog.md`
-3. `seed/skills/embed/builder-catalog.md`
+1. `$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`
+2. `$CLAUDE_PLUGIN_ROOT/skills/embed/skill-catalog.md`
+3. `$CLAUDE_PLUGIN_ROOT/skills/embed/builder-catalog.md`
 
 ### Team 不可用时的降级方式
 
@@ -255,9 +256,9 @@ TeamCreate("seed-embed")
 
 所有 researcher 创建前都必须遵守：
 
-1. 先加载 `seed/skills/embed/researcher-common.md`
-2. 需要回答“运行时固定问题”的 researcher 再加载 `seed/skills/embed/researcher-runtime-common.md`
-3. 再加载 `seed/skills/embed/taxonomy-registry.md`
+1. 先加载 `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-common.md`
+2. 需要回答“运行时固定问题”的 researcher 再加载 `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-runtime-common.md`
+3. 再加载 `$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`
 4. 最后加载各自领域文件
 
 按 `taxonomy-registry.md` 的双轴矩阵分类：

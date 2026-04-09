@@ -13,7 +13,7 @@ scope:
 
 # /seed:embed Builder Catalog
 
-本文件负责 Step 4 的 builder 任务模板、占位 skill 规则和 leader closeout 契约。执行前必须先加载 [`seed/skills/embed/taxonomy-registry.md`](seed/skills/embed/taxonomy-registry.md) 和 [`seed/skills/embed/skill-catalog.md`](seed/skills/embed/skill-catalog.md)。
+本文件负责 Step 4 的 builder 任务模板、占位 skill 规则和 leader closeout 契约。执行前必须先加载 [`$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`]($CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md) 和 [`$CLAUDE_PLUGIN_ROOT/skills/embed/skill-catalog.md`]($CLAUDE_PLUGIN_ROOT/skills/embed/skill-catalog.md)。
 
 ## Builder 总约束
 

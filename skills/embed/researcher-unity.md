@@ -15,10 +15,10 @@ scope:
 
 创建 `researcher-unity` 前，必须先加载：
 
-1. `seed/skills/embed/researcher-common.md`
-2. `seed/skills/embed/researcher-runtime-common.md`
-3. `seed/skills/embed/taxonomy-registry.md`
-4. `seed/skills/embed/researcher-unity.md`
+1. `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-common.md`
+2. `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-runtime-common.md`
+3. `$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`
+4. `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-unity.md`
 
 ## TaskCreate 模板
 

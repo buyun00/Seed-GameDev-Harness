@@ -53,7 +53,7 @@ scope:
 - `matrix_id`: `engine.<engine>.<direction_id>`
 - `question_set_id`: `qs-<engine>-<direction-kebab>`
 - `output_file`: `domain/<engine>-<direction-kebab>.md`
-- `fixed_question_file`: `seed/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
+- `fixed_question_file`: `$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
 - `owner`: `researcher-<engine>` / `builder-<engine>`
 
 ### Capability 方向
@@ -61,7 +61,7 @@ scope:
 - `matrix_id`: `capability.<capability_id>`
 - `question_set_id`: `qs-common-<capability-kebab>`
 - `output_file`: `domain/common-<capability-kebab>.md`
-- `fixed_question_file`: `seed/skills/embed/fixed-questions/capability/<capability-kebab>.md`
+- `fixed_question_file`: `$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/capability/<capability-kebab>.md`
 - `owner`: 见“核心规则”第 3 条
 
 ### Composite 叠加方向
@@ -69,7 +69,7 @@ scope:
 当某个复合领域需要在基础矩阵项之外补充额外必查问题时，使用单独叠加文件，而不是回写总表。
 
 - `composite_id`: `composite.<engine>.<direction_id>.<capability_id>`
-- `fixed_question_file`: `seed/skills/embed/fixed-questions/composite/<engine>/<direction-kebab>/<capability-kebab>.md`
+- `fixed_question_file`: `$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/composite/<engine>/<direction-kebab>/<capability-kebab>.md`
 - 用途：只放“该引擎方向 + 该能力”交叉后才成立的附加问题
 - 约束：composite 文件只追加问题，不覆盖 engine/capability 基础问题
 
@@ -105,7 +105,7 @@ scope:
 - 所有 engine 方向都继承：
   - `axis: engine`
   - `output_file_rule: domain/<engine>-<direction-kebab>.md`
-  - `fixed_question_file_rule: seed/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
+  - `fixed_question_file_rule: $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
 
 ## 跨引擎能力矩阵
 
@@ -123,7 +123,7 @@ scope:
   - `axis: capability`
   - `engine: common`
   - `output_file_rule: domain/common-<capability-kebab>.md`
-  - `fixed_question_file_rule: seed/skills/embed/fixed-questions/capability/<capability-kebab>.md`
+  - `fixed_question_file_rule: $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/capability/<capability-kebab>.md`
 
 ## 重叠边界
 
@@ -170,7 +170,7 @@ tech_stack_report:
       direction_id: project_structure
       owner: unity
       question_set_id: qs-unity-project-structure
-      fixed_question_file: seed/skills/embed/fixed-questions/engine/unity/project-structure.md
+      fixed_question_file: $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/unity/project-structure.md
       status: detected
       variant: "Assets + Packages + asmdef 分层"
       evidence: "Assets/Scripts/、Packages/manifest.json、*.asmdef"
@@ -181,7 +181,7 @@ tech_stack_report:
       capability_id: lua_embedding
       owner: lua
       question_set_id: qs-common-lua-embedding
-      fixed_question_file: seed/skills/embed/fixed-questions/capability/lua-embedding.md
+      fixed_question_file: $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/capability/lua-embedding.md
       status: detected
       variant: "xLua"
       evidence: "Assets/XLua/ 目录存在"
@@ -207,9 +207,9 @@ tech_stack_report:
 
 固定问题不再集中写在单一 registry 中，而是按矩阵项拆文件：
 
-- 引擎主线：`seed/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
-- 跨引擎能力：`seed/skills/embed/fixed-questions/capability/<capability-kebab>.md`
-- 复合叠加：`seed/skills/embed/fixed-questions/composite/<engine>/<direction-kebab>/<capability-kebab>.md`
+- 引擎主线：`$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
+- 跨引擎能力：`$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/capability/<capability-kebab>.md`
+- 复合叠加：`$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/composite/<engine>/<direction-kebab>/<capability-kebab>.md`
 
 执行时：
 

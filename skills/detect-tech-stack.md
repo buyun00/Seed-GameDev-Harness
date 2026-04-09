@@ -14,7 +14,7 @@ scope:
 
 # Detect Tech Stack
 
-本文件负责 `/seed:embed` Step 0 的结构化检测。执行前必须先加载 [`seed/skills/embed/taxonomy-registry.md`](seed/skills/embed/taxonomy-registry.md)，所有方向命名、owner、状态语义、文件命名都以 registry 为准。
+本文件负责 `/seed:embed` Step 0 的结构化检测。执行前必须先加载 [`$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`]($CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md)，所有方向命名、owner、状态语义、文件命名都以 registry 为准。
 
 ## 核心原则
 

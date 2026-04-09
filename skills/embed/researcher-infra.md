@@ -15,9 +15,9 @@ scope:
 
 创建 `researcher-infra` 前，必须先加载：
 
-1. `seed/skills/embed/researcher-common.md`
-2. `seed/skills/embed/taxonomy-registry.md`
-3. `seed/skills/embed/researcher-infra.md`
+1. `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-common.md`
+2. `$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`
+3. `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-infra.md`
 
 `researcher-infra` 不加载 `researcher-runtime-common.md`。
 

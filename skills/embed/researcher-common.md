@@ -14,13 +14,14 @@ scope:
 ## 用途
 
 本文件是所有 `/seed:embed` researcher 的第一层通用协议。
+本文提到的内置 skill 与 fixed question 路径都指向插件安装目录，即 `$CLAUDE_PLUGIN_ROOT/skills/`，不是仓库开发态的 `seed/skills/`。
 
 加载顺序固定为：
 
-1. 先加载 `seed/skills/embed/researcher-common.md`
-2. 运行时 researcher 再加载 `seed/skills/embed/researcher-runtime-common.md`
-3. 再加载 `seed/skills/embed/taxonomy-registry.md`
-4. 再加载各自的 `seed/skills/embed/researcher-<domain>.md`
+1. 先加载 `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-common.md`
+2. 运行时 researcher 再加载 `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-runtime-common.md`
+3. 再加载 `$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`
+4. 再加载各自的 `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-<domain>.md`
 5. 最后按本次负责的 `matrix_id` 加载对应的 fixed question 文件；如存在匹配的 composite fixed question 文件，再追加加载
 
 ## 核心元规则

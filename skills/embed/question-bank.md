@@ -13,7 +13,7 @@ scope:
 
 # /seed:embed Step 2 Question Bank
 
-本文件负责 `/seed:embed` Step 2 的补问逻辑。执行前必须先加载 [`seed/skills/embed/taxonomy-registry.md`](seed/skills/embed/taxonomy-registry.md)。
+本文件负责 `/seed:embed` Step 2 的补问逻辑。执行前必须先加载 [`$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`]($CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md)。
 
 ## Step 2 目标
 
