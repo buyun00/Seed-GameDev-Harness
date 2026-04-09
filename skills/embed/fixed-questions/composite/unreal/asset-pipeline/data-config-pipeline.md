@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unreal/asset-pipeline.md` 与 `fixed-questions/capability/data-config-pipeline.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unreal_asset_pipeline_data_config_pipeline_q1
   question: 项目中的配置型数据主要落在 `PrimaryDataAsset`、`DataAsset`、`DataTable`、`CurveTable` 或 Blueprint Data-Only Asset 的哪几类资源里？

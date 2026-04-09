@@ -22,7 +22,7 @@ scope:
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 - 当前先留空模板，后续按实际项目与复用频次补充问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: cocos_script_layer_lua_embedding_q1
   question: 项目启动时，Cocos 脚本层入口与 Lua 运行时入口的先后顺序在哪里定义，是脚本层先完成引擎初始化再拉起 Lua，还是 Lua 主导业务入口？
@@ -246,9 +246,3 @@ scope:
     - evidence_paths
     - matched_strings
     - implementation
-
-## 交叉搜索提示
-
-- 优先从每条问题自己的 `search_hints.paths` 开始找。
-- 额外关注目录：`assets/`、`assets/scripts/`、`src/`、`script/`、`lua/`、`res/`、`frameworks/runtime-src/Classes/`、`tools/`
-- 额外关注关键词：`LuaEngine`、`LuaStack`、`require`、`package.path`、`Component`、`schedule`、`eventBus`、`bridge`

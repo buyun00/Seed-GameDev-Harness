@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/godot/bridge-layer.md` 和 `fixed-questions/capability/lua-embedding.md` 已覆盖的基础问题。
 - 每条问题都单独给出 `search_hints.paths` 与 `search_hints.keywords`，目录 hint 已下沉到问题级别。
 
-## 交叉固定问题
+## 固定问题
 
 - id: godot_bridge_layer_lua_embedding_q1
   question: Godot 与 Lua 的宿主桥接是落在 GDExtension、原生模块、C# bridge 还是纯 GDScript addon 上，Lua 运行时由哪个桥接入口创建并持有？

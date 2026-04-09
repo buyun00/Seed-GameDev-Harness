@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unity/event-and-message-system.md` 和 `fixed-questions/capability/network-protocol-and-sync.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unity_event_and_message_system_network_protocol_and_sync_q1
   question: 网络层收到的包、RPC 或自定义消息是如何转成项目内部事件 / 消息总线事件的，第一跳分发入口在哪里？
@@ -228,19 +228,6 @@ scope:
     - matched_strings
     - implementation
 
-## 交叉搜索提示
-
-- paths:
-  - `Assets/`
-  - `Packages/`
-  - `Tools/`
-  - `Assets/Editor/`
-  - `Assets/Plugins/`
-- keywords:
-  - `ClientRpc`
-  - `ServerRpc`
-  - `CustomMessagingManager`
-  - `NetworkVariable`
   - `opcode`
   - `dispatch`
   - `EventBus`

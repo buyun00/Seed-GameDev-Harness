@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unity/asset-pipeline.md` 和 `fixed-questions/capability/data-config-pipeline.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unity_asset_pipeline_data_config_pipeline_q1
   question: 配置源数据从表格、JSON、Proto 或其他格式导入 Unity 后，最终会生成什么资源形态参与打包，例如 ScriptableObject、TextAsset、bytes 或 AssetBundle 依赖？
@@ -237,19 +237,6 @@ scope:
     - matched_strings
     - implementation
 
-## 交叉搜索提示
-
-- paths:
-  - `Assets/`
-  - `Assets/Editor/`
-  - `Assets/AddressableAssetsData/`
-  - `Assets/Resources/`
-  - `Assets/StreamingAssets/`
-  - `Tools/`
-  - `Packages/`
-- keywords:
-  - `ScriptedImporter`
-  - `AssetPostprocessor`
   - `ScriptableObject`
   - `TextAsset`
   - `bytes`

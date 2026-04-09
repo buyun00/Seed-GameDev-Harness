@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unity/asset-pipeline.md` 和 `fixed-questions/capability/build-release-and-cicd.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unity_asset_pipeline_build_release_and_cicd_q1
   question: 资源打包在 CI/CD 中由哪个 Unity Editor 脚本、命令行入口或流水线任务触发，它与 Player Build 的先后顺序是什么？
@@ -240,19 +240,6 @@ scope:
     - matched_strings
     - implementation
 
-## 交叉搜索提示
-
-- paths:
-  - `Assets/Editor/`
-  - `Assets/AddressableAssetsData/`
-  - `ProjectSettings/`
-  - `Tools/`
-  - `Scripts/`
-  - `Library/`
-- keywords:
-  - `BuildPlayerContent`
-  - `ContentUpdateScript`
-  - `content_state.bin`
   - `BuildProfile`
   - `RemoteLoadPath`
   - `AddressablesPlayerBuildResult`

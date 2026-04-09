@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unreal/bridge-layer.md` 与 `fixed-questions/capability/lua-embedding.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unreal_bridge_layer_lua_embedding_q1
   question: 项目实际使用的是哪套 Unreal Lua 方案，例如 `UnLua`、`slua-unreal` 或自研桥，插件和主入口模块在哪里？

@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/godot/physics-navigation-or-runtime-framework.md` 和 `fixed-questions/capability/network-protocol-and-sync.md` 已覆盖的基础问题。
 - 每条问题都单独给出 `search_hints.paths` 与 `search_hints.keywords`，目录 hint 已下沉到问题级别。
 
-## 交叉固定问题
+## 固定问题
 
 - id: godot_physics_navigation_or_runtime_framework_network_protocol_and_sync_q1
   question: 角色、投射物、物理体和导航代理的网络 authority 是如何划分的，哪些对象由服务端权威驱动，哪些对象允许客户端本地预测？

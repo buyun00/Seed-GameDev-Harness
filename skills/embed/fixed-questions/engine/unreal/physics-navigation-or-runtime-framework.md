@@ -16,7 +16,7 @@ scope:
 - 本文件是 engine.unreal.physics_navigation_or_runtime_framework 的固定问题模板。
 - 补充该引擎物理、导航或 runtime framework 方向上的固定问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
-- 如该方向对当前引擎通常可能为 unsupported，也先保留模板；是否启用由 	axonomy-registry.md 和实际检测结果决定。
+- 如该方向对当前引擎通常可能为 unsupported，也先保留模板；是否启用由 `taxonomy-registry.md` 和实际检测结果决定。
 
 ## 固定问题
 

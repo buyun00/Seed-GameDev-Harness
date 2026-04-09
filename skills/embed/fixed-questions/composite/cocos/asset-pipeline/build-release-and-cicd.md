@@ -22,7 +22,7 @@ scope:
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 - 当前先留空模板，后续按实际项目与复用频次补充问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: cocos_asset_pipeline_build_release_and_cicd_q1
   question: 构建脚本是在哪里把 `resources`、Asset Bundle、远端资源和原生包内资源拆成不同发布产物的，分仓规则写在编辑器配置、构建 profile 还是自定义 build hook 中？
@@ -252,9 +252,3 @@ scope:
     - evidence_paths
     - matched_strings
     - implementation
-
-## 交叉搜索提示
-
-- 优先从每条问题自己的 `search_hints.paths` 开始找。
-- 额外关注目录：`assets/resources/`、`assets/bundles/`、`remote-assets/`、`build/`、`profiles/`、`extensions/`、`build-templates/`、`native/`
-- 额外关注关键词：`builder`、`build profile`、`settings.json`、`config.json`、`manifest`、`md5Cache`、`upload`、`publish`

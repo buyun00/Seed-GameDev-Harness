@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/godot/asset-pipeline.md` 和 `fixed-questions/capability/data-config-pipeline.md` 已覆盖的基础问题。
 - 每条问题都单独给出 `search_hints.paths` 与 `search_hints.keywords`，目录 hint 已下沉到问题级别。
 
-## 交叉固定问题
+## 固定问题
 
 - id: godot_asset_pipeline_data_config_pipeline_q1
   question: 配置数据源文件最终是以原始文本文件形式随包导出，还是在导入阶段被转换成 `.tres`、`.res` 或自定义 `Resource` 后再由运行时加载？

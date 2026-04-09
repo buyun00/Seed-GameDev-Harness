@@ -41,7 +41,7 @@ argument-hint: "[--update]"
 - 如果当前环境**不支持** `AskUserQuestion`，必须降级为普通文本提问，并明确告诉用户如何回复。
 - 每到需要用户输入的节点，都要明确写出“你现在需要回复什么”。
 - 如果 `tech_stack_report.conflicts` 非空，Step 1 必须明确展示冲突项，不得自行裁决。
-- 如果环境不能使用 `TeamCreate` / `TaskCreate` / `SendMessage`，必须降级为单 agent 串行生成 `.seed/skills/domain/` 文件。
+- 如果环境不能使用 `TeamCreate` / `TaskCreate` / `SendMessage`，必须直接报错尝试修复，修不了停掉流程告诉用户，不能兜底。
 - `/seed:embed` 相关外置 skill 是执行规范，不是参考资料；加载后必须按其规则执行。
 - 插件内置命令、skill、fixed question 一律从 `$CLAUDE_PLUGIN_ROOT/skills/` 解析；`.seed/skills/` 只用于当前项目生成产物。
 

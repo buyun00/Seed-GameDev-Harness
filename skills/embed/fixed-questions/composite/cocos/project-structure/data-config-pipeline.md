@@ -22,7 +22,7 @@ scope:
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 - 当前先留空模板，后续按实际项目与复用频次补充问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: cocos_project_structure_data_config_pipeline_q1
   question: 配置表源文件、Schema 和导表脚本在项目目录结构中分别位于哪里，它们与 `assets/` 下运行时配置资源的边界是否清晰？
@@ -243,9 +243,3 @@ scope:
     - evidence_paths
     - matched_strings
     - implementation
-
-## 交叉搜索提示
-
-- 优先从每条问题自己的 `search_hints.paths` 开始找。
-- 额外关注目录：`assets/config/`、`assets/resources/`、`assets/bundles/`、`tools/`、`scripts/`、`extensions/`、`profiles/`、`settings/`、`remote-assets/`
-- 额外关注关键词：`config`、`schema`、`codegen`、`JsonAsset`、`asset-db`、`reimport`、`builder`、`profile`

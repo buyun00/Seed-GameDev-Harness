@@ -22,7 +22,7 @@ scope:
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 - 当前先留空模板，后续按实际项目与复用频次补充问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: cocos_bridge_layer_lua_embedding_q1
   question: Lua VM 初始化与原生桥接注册的先后顺序在哪里定义，是先起 `LuaEngine`/`LuaStack` 再注册 SDK 桥，还是先初始化原生桥后再暴露给 Lua？
@@ -241,9 +241,3 @@ scope:
     - evidence_paths
     - matched_strings
     - implementation
-
-## 交叉搜索提示
-
-- 优先从每条问题自己的 `search_hints.paths` 开始找。
-- 额外关注目录：`frameworks/runtime-src/Classes/`、`frameworks/cocos2d-x/cocos/scripting/lua-bindings/`、`src/`、`res/`、`script/`、`lua/`、`plugins/`
-- 额外关注关键词：`LuaEngine`、`LuaStack`、`tolua`、`register_all`、`executeFunctionByHandler`、`retainScriptHandler`、`addSearchPath`

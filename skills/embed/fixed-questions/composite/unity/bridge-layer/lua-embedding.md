@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unity/bridge-layer.md` 和 `fixed-questions/capability/lua-embedding.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unity_bridge_layer_lua_embedding_q1
   question: 项目使用哪套 Lua 方案承载桥接层，例如 xLua、tolua 或其他实现，桥接初始化与平台桥接模块的汇合点在哪里？
@@ -242,19 +242,6 @@ scope:
     - matched_strings
     - implementation
 
-## 交叉搜索提示
-
-- paths:
-  - `Assets/`
-  - `Assets/Plugins/`
-  - `Assets/Plugins/Android/`
-  - `Assets/Plugins/iOS/`
-  - `Assets/Editor/`
-  - `Packages/`
-  - `Lua/`
-- keywords:
-  - `LuaEnv`
-  - `LuaCallCSharp`
   - `CSharpCallLua`
   - `UnitySendMessage`
   - `AndroidJavaObject`

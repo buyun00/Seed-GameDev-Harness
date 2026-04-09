@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unreal/project-structure.md` 与 `fixed-questions/capability/data-config-pipeline.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unreal_project_structure_data_config_pipeline_q1
   question: 数据定义层在项目结构里如何分区，`Source/` 中的 row struct、loader、validator 与 `Content/` 中的 `DataAsset/DataTable` 是否一一对应？

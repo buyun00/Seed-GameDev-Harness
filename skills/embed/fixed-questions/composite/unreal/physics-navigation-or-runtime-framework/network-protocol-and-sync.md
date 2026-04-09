@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unreal/physics-navigation-or-runtime-framework.md` 与 `fixed-questions/capability/network-protocol-and-sync.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unreal_physics_navigation_or_runtime_framework_network_protocol_and_sync_q1
   question: 项目的移动主框架是什么，使用 `CharacterMovementComponent`、`Mover`、Chaos Networked Physics 还是完全自研运行时框架？

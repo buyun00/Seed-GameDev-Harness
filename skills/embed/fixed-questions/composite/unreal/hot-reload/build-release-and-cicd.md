@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unreal/hot-reload.md` 与 `fixed-questions/capability/build-release-and-cicd.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unreal_hot_reload_build_release_and_cicd_q1
   question: 团队当前默认使用的是 `Live Coding` 还是传统 `Hot Reload`，本地开发约定与正式 CI 约定是否刻意分离？

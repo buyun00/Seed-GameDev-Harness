@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unity/project-structure.md` 和 `fixed-questions/capability/data-config-pipeline.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unity_project_structure_data_config_pipeline_q1
   question: 配置源文件、Schema、导表工具、生成代码、生成资产和运行时加载器分别位于哪些目录，它们的分层边界是否清晰？
@@ -240,19 +240,6 @@ scope:
     - matched_strings
     - implementation
 
-## 交叉搜索提示
-
-- paths:
-  - `Assets/`
-  - `Assets/Editor/`
-  - `Assets/Resources/`
-  - `Assets/StreamingAssets/`
-  - `Assets/AddressableAssetsData/`
-  - `Packages/`
-  - `Tools/`
-  - `Documentation/`
-- keywords:
-  - `Config`
   - `Schema`
   - `Generated`
   - `AutoGen`

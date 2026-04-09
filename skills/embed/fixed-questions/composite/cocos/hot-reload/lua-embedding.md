@@ -22,7 +22,7 @@ scope:
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 - 当前先留空模板，后续按实际项目与复用频次补充问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: cocos_hot_reload_lua_embedding_q1
   question: 热更新实际更新的内容是否包含 Lua 源码、Lua 字节码、配置资源和普通资源；边界定义写在 manifest 生成脚本还是 Lua 启动脚本中？
@@ -244,9 +244,3 @@ scope:
     - evidence_paths
     - matched_strings
     - implementation
-
-## 交叉搜索提示
-
-- 优先从每条问题自己的 `search_hints.paths` 开始找。
-- 额外关注目录：`src/`、`res/`、`script/`、`lua/`、`frameworks/runtime-src/Classes/`、`tools/`、`scripts/`、`manifest/`、`remote-assets/`
-- 额外关注关键词：`package.loaded`、`addSearchPath`、`LuaStack`、`xxtea`、`luacompile`、`hotupdate`、`writablePath`

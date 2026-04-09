@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unity/script-layer.md` 和 `fixed-questions/capability/lua-embedding.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unity_script_layer_lua_embedding_q1
   question: Lua 脚本层的首个业务入口是如何从 Unity C# 脚本层拉起的，入口 MonoBehaviour、Manager 或 Bootstrap 写在哪里？
@@ -234,19 +234,6 @@ scope:
     - matched_strings
     - implementation
 
-## 交叉搜索提示
-
-- paths:
-  - `Assets/`
-  - `Packages/`
-  - `Lua/`
-  - `Assets/Resources/`
-  - `Assets/StreamingAssets/`
-  - `Assets/Scenes/`
-- keywords:
-  - `LuaEnv`
-  - `LuaManager`
-  - `LuaBehaviour`
   - `LuaComponent`
   - `DoString`
   - `require`

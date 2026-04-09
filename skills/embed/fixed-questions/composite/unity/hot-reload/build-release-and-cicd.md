@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unity/hot-reload.md` 和 `fixed-questions/capability/build-release-and-cicd.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unity_hot_reload_build_release_and_cicd_q1
   question: 热更新相关产物的构建入口是什么，CI 流水线在哪一步生成热更 DLL、补丁包或热更资源？
@@ -240,19 +240,6 @@ scope:
     - matched_strings
     - implementation
 
-## 交叉搜索提示
-
-- paths:
-  - `Assets/Editor/`
-  - `Assets/`
-  - `Assets/StreamingAssets/`
-  - `Tools/`
-  - `Packages/`
-  - `Tests/`
-- keywords:
-  - `HybridCLR`
-  - `ILRuntime`
-  - `LoadMetadataForAOTAssembly`
   - `GenerateCLRBinding`
   - `CopyDll`
   - `manifest`

@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unity/hot-reload.md` 和 `fixed-questions/capability/lua-embedding.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unity_hot_reload_lua_embedding_q1
   question: 项目里的 Lua 是否本身就是主要热更载荷，还是只在 DLL 热更旁边承担少量脚本补丁职责？
@@ -240,19 +240,6 @@ scope:
     - matched_strings
     - implementation
 
-## 交叉搜索提示
-
-- paths:
-  - `Assets/`
-  - `Assets/StreamingAssets/`
-  - `Assets/Editor/`
-  - `Packages/`
-  - `Lua/`
-  - `Tools/`
-- keywords:
-  - `LuaEnv`
-  - `AddLoader`
-  - `CustomLoader`
   - `package.loaded`
   - `persistentDataPath`
   - `manifest`

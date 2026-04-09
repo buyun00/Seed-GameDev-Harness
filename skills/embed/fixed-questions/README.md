@@ -43,18 +43,28 @@ scope:
 
 ## 文件写法
 
-每个固定问题文件建议包含：
+每个固定问题文件统一采用以下结构：
 
-- `matrix_id` 或 `composite_id`
-- `owner`
-- `question_set_id`
-- `questions`
-  - `id`
-  - `question`
-  - `must_find`
-  - `fatal_if_missing`
-  - `search_hints`
-  - `report_fields`
+- frontmatter
+  - `engine` / `capability` 文件包含：`matrix_id`、`owner`、`question_set_id`
+  - `composite` 文件包含：`composite_id`、`owner`、`researcher_owner`、`capability_owner`
+- `## 填写说明`
+- `## 固定问题`
+  - 每道题都使用同一题目块结构：
+    - `id`
+    - `question`
+    - `must_find`
+    - `fatal_if_missing`
+    - `search_hints`
+      - `paths`
+      - `keywords`
+    - `report_fields`
+
+补充约定：
+
+- 不再使用文件级 `## 搜索提示` / `## 交叉搜索提示`
+- `search_hints` 统一写在每一道题下面
+- `report_fields` 默认统一为：`evidence_paths`、`matched_strings`、`implementation`
 
 ## 当前落地范围
 

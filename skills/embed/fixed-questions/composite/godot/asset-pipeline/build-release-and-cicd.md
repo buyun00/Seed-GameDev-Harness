@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/godot/asset-pipeline.md` 和 `fixed-questions/capability/build-release-and-cicd.md` 已覆盖的基础问题。
 - 每条问题都单独给出 `search_hints.paths` 与 `search_hints.keywords`，目录 hint 已下沉到问题级别。
 
-## 交叉固定问题
+## 固定问题
 
 - id: godot_asset_pipeline_build_release_and_cicd_q1
   question: CI 在执行 Godot 导出前，是否会先运行一次 headless 编辑器导入或重导入，确保 `.godot/imported`、导入缓存和导入产物在干净机器上完整生成？

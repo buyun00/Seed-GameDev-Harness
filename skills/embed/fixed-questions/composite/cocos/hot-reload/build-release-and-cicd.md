@@ -22,7 +22,7 @@ scope:
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 - 当前先留空模板，后续按实际项目与复用频次补充问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: cocos_hot_reload_build_release_and_cicd_q1
   question: `project.manifest`、`version.manifest` 和热更资源索引是在流水线的哪个阶段生成的，是紧跟 Cocos 构建产物后生成，还是独立脚本二次扫描产物目录？
@@ -246,9 +246,3 @@ scope:
     - evidence_paths
     - matched_strings
     - implementation
-
-## 交叉搜索提示
-
-- 优先从每条问题自己的 `search_hints.paths` 开始找。
-- 额外关注目录：`build/`、`remote-assets/`、`manifest/`、`scripts/`、`tools/`、`native/`、`.github/`、`ci/`
-- 额外关注关键词：`AssetsManagerEx`、`project.manifest`、`version.manifest`、`packageUrl`、`md5`、`upload`、`rollback`

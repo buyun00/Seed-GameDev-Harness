@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/godot/script-layer.md` 和 `fixed-questions/capability/lua-embedding.md` 已覆盖的基础问题。
 - 每条问题都单独给出 `search_hints.paths` 与 `search_hints.keywords`，目录 hint 已下沉到问题级别。
 
-## 交叉固定问题
+## 固定问题
 
 - id: godot_script_layer_lua_embedding_q1
   question: Lua 在脚本层的真正启动入口写在哪里，是 autoload 的 `_init()`、`_ready()`、主场景启动脚本，还是某个统一 `LuaManager` 或 `LuaState` service？

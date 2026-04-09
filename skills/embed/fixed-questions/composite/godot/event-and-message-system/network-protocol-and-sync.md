@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/godot/event-and-message-system.md` 和 `fixed-questions/capability/network-protocol-and-sync.md` 已覆盖的基础问题。
 - 每条问题都单独给出 `search_hints.paths` 与 `search_hints.keywords`，目录 hint 已下沉到问题级别。
 
-## 交叉固定问题
+## 固定问题
 
 - id: godot_event_and_message_system_network_protocol_and_sync_q1
   question: 项目是否把 `SceneMultiplayer`、peer 生命周期和 RPC 回调统一转成内部 signal 或 event bus 消息，而不是让业务节点直接散落处理网络回调？

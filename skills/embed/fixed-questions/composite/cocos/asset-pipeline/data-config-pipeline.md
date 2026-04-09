@@ -22,7 +22,7 @@ scope:
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 - 当前先留空模板，后续按实际项目与复用频次补充问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: cocos_asset_pipeline_data_config_pipeline_q1
   question: 配置表源文件是如何进入 Cocos 资源树的，是先导出到 `assets/resources`/bundle，再由引擎导入，还是运行时从原生可写目录或远端拉取？
@@ -242,9 +242,3 @@ scope:
     - evidence_paths
     - matched_strings
     - implementation
-
-## 交叉搜索提示
-
-- 优先从每条问题自己的 `search_hints.paths` 开始找。
-- 额外关注目录：`assets/config/`、`assets/resources/`、`assets/bundles/`、`tools/`、`scripts/`、`extensions/`、`profiles/`、`remote-assets/`
-- 额外关注关键词：`JsonAsset`、`TextAsset`、`config`、`xlsx`、`csv`、`codegen`、`asset-db`、`schema`

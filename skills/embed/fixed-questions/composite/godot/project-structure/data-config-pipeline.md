@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/godot/project-structure.md` 和 `fixed-questions/capability/data-config-pipeline.md` 已覆盖的基础问题。
 - 每条问题都单独给出 `search_hints.paths` 与 `search_hints.keywords`，目录 hint 已下沉到问题级别。
 
-## 交叉固定问题
+## 固定问题
 
 - id: godot_project_structure_data_config_pipeline_q1
   question: 配置源文件、schema、生成脚本、导出产物和运行时消费层在项目目录中分别落在哪些顶层或 feature 目录下，是否有统一命名约定？

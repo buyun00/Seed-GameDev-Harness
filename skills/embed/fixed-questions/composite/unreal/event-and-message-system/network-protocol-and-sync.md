@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unreal/event-and-message-system.md` 与 `fixed-questions/capability/network-protocol-and-sync.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unreal_event_and_message_system_network_protocol_and_sync_q1
   question: 事件系统是否明确区分“持久状态同步”和“瞬时事件广播”，前者走属性复制或 `RepNotify`，后者走 RPC、delegate 或消息总线？

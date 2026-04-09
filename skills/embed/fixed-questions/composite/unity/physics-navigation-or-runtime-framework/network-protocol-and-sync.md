@@ -21,7 +21,7 @@ scope:
 - 不重复 `fixed-questions/engine/unity/physics-navigation-or-runtime-framework.md` 和 `fixed-questions/capability/network-protocol-and-sync.md` 已覆盖的基础问题。
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: unity_physics_navigation_or_runtime_framework_network_protocol_and_sync_q1
   question: 物理驱动对象、CharacterController 或自定义 Motor 的网络权威模型是什么，是服务器权威、Owner 权威还是客户端预测加服务器校正？
@@ -226,19 +226,6 @@ scope:
     - matched_strings
     - implementation
 
-## 交叉搜索提示
-
-- paths:
-  - `Assets/`
-  - `Packages/`
-  - `ProjectSettings/`
-  - `Assets/Editor/`
-- keywords:
-  - `NetworkTransform`
-  - `NetworkRigidbody`
-  - `authority`
-  - `prediction`
-  - `reconcile`
   - `FixedUpdate`
   - `TickRate`
   - `NavMeshAgent`

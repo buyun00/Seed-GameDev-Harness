@@ -22,7 +22,7 @@ scope:
 - 后续填写时，只写 researcher 必须在项目中找到实际实现的问题。
 - 当前先留空模板，后续按实际项目与复用频次补充问题。
 
-## 交叉固定问题
+## 固定问题
 
 - id: cocos_event_and_message_system_network_protocol_and_sync_q1
   question: 网络层收到协议包后，是在哪里把消息解包并转换成 Cocos 事件系统可消费的事件、通知或消息对象的？
@@ -243,9 +243,3 @@ scope:
     - evidence_paths
     - matched_strings
     - implementation
-
-## 交叉搜索提示
-
-- 优先从每条问题自己的 `search_hints.paths` 开始找。
-- 额外关注目录：`assets/net/`、`assets/network/`、`assets/proto/`、`assets/msg/`、`assets/framework/`、`native/`
-- 额外关注关键词：`WebSocket`、`socket`、`proto`、`dispatch`、`emit`、`heartbeat`、`reconnect`、`frame sync`
