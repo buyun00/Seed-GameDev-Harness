@@ -49,15 +49,16 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 | ------------------ | ----------------------- | --------------------------------------------------------------------------------------------- |
 | `plugin-setup.mjs` | `/plugin install` 后自动执行 | 保存 Node 路径到 `~/.claude/.seed-config.json`，将 `hooks.json` 的 `node` 替换为绝对路径（兼容 nvm/fnm/Windows） |
 | `setup-init.mjs`   | 首次打开 CC session         | 创建 `.seed/state`、`.seed/logs`、`.seed/plans` 目录结构                                              |
-| `/seed:setup`      | 用户手动运行                  | 安装 CLAUDE.md、写入默认配置、启用 Agent Teams、创建 `/seed` 快捷命令、引导运行 `/seed:embed`                |
+| `/seed:setup`      | 用户手动运行                  | 语言选择、安装 CLAUDE.md、写入默认配置、启用 Agent Teams、创建 `/seed` 快捷命令、引导运行 `/seed:embed`                |
 
 
-### `/seed:setup` 四阶段向导
+### `/seed:setup` 五阶段向导
 
-1. **CLAUDE.md 安装** — 唯一需要用户决策的步骤：选择 local（`.claude/CLAUDE.md`）或 global（`~/.claude/CLAUDE.md`）
-2. **默认配置写入（静默）** — 自动写入 `.seed/config.json`、启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`、创建 `/seed` 快捷命令
-3. **引导运行 /seed:embed** — 提示用户重启 Claude Code 后运行 `/seed:embed` 分析项目技术栈
-4. **完成确认** — 写入 `setupCompleted` 标记
+1. **语言选择** — 选择交互语言（English / 中文 / 日本語 / 한국어），后续所有提问、文档输出、注释均使用选定语言
+2. **CLAUDE.md 安装** — 选择 local（`.claude/CLAUDE.md`）或 global（`~/.claude/CLAUDE.md`），安装 Seed 核心指令
+3. **默认配置写入（静默）** — 自动写入 `.seed/config.json`、启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`、创建 `/seed` 快捷命令
+4. **引导运行 /seed:embed** — 提示用户重启 Claude Code 后运行 `/seed:embed` 分析项目技术栈
+5. **完成确认** — 写入 `setupCompleted` 标记
 
 ---
 
@@ -68,7 +69,7 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 | 命令 | 性质 | 说明 |
 |------|------|------|
 | `/seed` | 日常入口 | 项目快捷命令，转发到 `/seed:bud`。由 `/seed:setup` 自动创建到 `.claude/commands/seed.md` |
-| `/seed:setup` | 一次性初始化 | CLAUDE.md 安装、默认配置写入、引导运行 embed |
+| `/seed:setup` | 一次性初始化 | 语言选择、CLAUDE.md 安装、默认配置写入、引导运行 embed |
 | `/seed:embed` | 项目分析 | 分析项目技术栈，生成项目专属 domain skill。可随时重跑（`--update` 增量模式） |
 | `/seed:bud` | 底层引擎 | 实际的 bud 命令实现（通常通过 `/seed` 调用，无需直接使用） |
 
@@ -381,7 +382,7 @@ Seed 通过 Claude Code Hook 机制在 session 生命周期的关键节点注入
 
 | 配置项                           | 说明                     | 默认值       |
 | ----------------------------- | ---------------------- | --------- |
-| `language`                    | 交互语言（影响所有输出和注释）        | 空（未设置） |
+| `language`                    | 交互语言（影响所有输出和注释）        | setup 时选择 |
 | `bud.mode`                    | 默认执行模式                 | `auto`    |
 | `memory.autoLearn`            | 自动学习项目知识               | `true`    |
 | `memory.rescanIntervalHours`  | 记忆重扫间隔（小时）             | `24`      |

@@ -25,11 +25,12 @@ Seed 是一个基于 Claude Code plugin 的游戏研发 AI 工作流系统，提
 ## 命令
 
 ### /seed:setup
-初始化当前项目的 Seed 配置（四阶段）：
-1. 安装 CLAUDE.md（local 或 global）
-2. 静默写入默认配置（config.json、agent teams、快捷命令）
-3. 引导运行 /seed:embed
-4. 写入完成标记
+初始化当前项目的 Seed 配置（五阶段）：
+1. 语言选择（影响所有后续交互）
+2. 安装 CLAUDE.md（local 或 global）
+3. 静默写入默认配置（config.json、agent teams、快捷命令）
+4. 引导运行 /seed:embed
+5. 写入完成标记
 
 ### /seed:embed
 分析项目技术栈，生成项目专属 domain skill。可随时重跑。

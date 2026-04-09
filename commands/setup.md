@@ -5,11 +5,25 @@ description: 为当前项目初始化 Seed
 
 # /seed:setup
 
-你正在执行 Seed 设置向导。按以下四个阶段顺序进行。
+你正在执行 Seed 设置向导。按以下五个阶段顺序进行。
 
-## 阶段 1：安装 CLAUDE.md
+## 阶段 1：语言选择
 
-这是唯一需要用户做决策的步骤。
+读取 `.seed/config.json`。如果 `language` 已设置且非空，跳过此阶段并告知用户当前语言。
+
+如果 `language` 未设置（空字符串或缺失），使用 `AskUserQuestion` 询问用户：
+
+"选择 Seed 的交互语言（影响所有交互、文档和代码注释）："
+- **English** — 英语
+- **中文** — 中文
+- **日本語** — 日语
+- **한국어** — 韩语
+
+将选择的值写入 `.seed/config.json` 的 `language` 字段。
+
+**从这一点开始，整个设置向导使用选定的语言进行。** 后续所有问题、说明和完成摘要都必须使用选定的语言。
+
+## 阶段 2：安装 CLAUDE.md
 
 检查 `{{ARGUMENTS}}` 中是否传入了 `--local` 或 `--global`。
 
@@ -29,18 +43,18 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup-claude-md.sh" <SCOPE>
 
 向用户报告输出结果。
 
-## 阶段 2：写入默认配置（静默，不询问）
+## 阶段 3：写入默认配置（静默，不询问）
 
 自动执行以下三步，不向用户提问：
 
-### 2a. 写入 `.seed/config.json`
+### 3a. 写入 `.seed/config.json`
 
 如果 `.seed/config.json` 不存在，从 `$CLAUDE_PLUGIN_ROOT/templates/config.json` 复制。
 
 如果已存在，保留现有内容不覆盖。
 
 
-### 2b. 启用 Agent Teams 环境变量
+### 3b. 启用 Agent Teams 环境变量
 
 读取或创建项目根目录下的 `.claude/settings.json`，确保包含：
 
@@ -54,7 +68,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup-claude-md.sh" <SCOPE>
 
 如果文件已存在，与现有内容合并 — 不要覆盖其他设置。
 
-### 2c. 创建 `/seed` 项目快捷命令
+### 3c. 创建 `/seed` 项目快捷命令
 
 在项目根目录下创建 `.claude/commands/seed.md`（如果已存在则跳过），内容为：
 
@@ -66,7 +80,7 @@ description: Seed 日常入口 — 转发到 /seed:bud
 /seed:bud {{ARGUMENTS}}
 ```
 
-## 阶段 3：引导运行 /seed:embed
+## 阶段 4：引导运行 /seed:embed
 
 输出以下提示：
 
@@ -79,7 +93,7 @@ description: Seed 日常入口 — 转发到 /seed:bud
 生成项目专属的 domain skill，让 Seed 更了解你的项目。
 ```
 
-## 阶段 4：完成
+## 阶段 5：完成
 
 将 `setupCompleted` 及当前 ISO 时间戳写入 `.seed/config.json`。
 
