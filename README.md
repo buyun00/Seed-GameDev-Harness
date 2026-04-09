@@ -201,15 +201,16 @@ Compact 前会自动读取 `project-memory.json` 格式化为摘要，作为 `sy
 
 | Skill            | 目录 | 触发词示例                                   | 内容                   |
 | ---------------- | ---- | --------------------------------------- | -------------------- |
-| `unity-patterns` | skills/ | rigidbody, physics, animation, prefab   | Unity 引擎开发模式和最佳实践    |
-| `lua-scripting`  | skills/ | lua, xlua, hotfix, require, table       | Lua / xLua 热更新脚本开发指南 |
-| `ai-pipeline`    | skills/ | mcp, agent, prompt, pipeline, tool_call | AI 工作流和 MCP 集成模式     |
-| `mcp-tools`      | skills/ | mcp server, tool, resource, stdio       | MCP 工具开发和调试指南        |
-| `implement`      | skills/method/ | 实现, 开发, feature, coding              | 功能实现方法论             |
-| `debug`          | skills/method/ | 调试, bug, crash, error                  | 系统化调试方法论             |
-| `review`         | skills/method/ | 审查, code review, PR                    | 代码审查方法论             |
-| `verify`         | skills/method/ | 验证, 测试, test, QA                      | 验证方法论               |
-| `config-change`  | skills/method/ | 配置, setting, 参数调整                     | 配置变更方法论             |
+| `unity-patterns`     | skills/ | rigidbody, physics, animation, prefab   | Unity 引擎开发模式和最佳实践    |
+| `lua-scripting`      | skills/ | lua, xlua, hotfix, require, table       | Lua / xLua 热更新脚本开发指南 |
+| `ai-pipeline`        | skills/ | mcp, agent, prompt, pipeline, tool_call | AI 工作流和 MCP 集成模式     |
+| `mcp-tools`          | skills/ | mcp server, tool, resource, stdio       | MCP 工具开发和调试指南        |
+| `detect-tech-stack`  | skills/ | 技术栈检测, 引擎识别, 框架指纹, embed Step 0 | `/seed:embed` Step 0 结构化技术栈指纹检测 |
+| `implement`          | skills/method/ | 实现, 开发, feature, coding        | 功能实现方法论             |
+| `debug`              | skills/method/ | 调试, bug, crash, error             | 系统化调试方法论             |
+| `review`             | skills/method/ | 审查, code review, PR               | 代码审查方法论             |
+| `verify`             | skills/method/ | 验证, 测试, test, QA                 | 验证方法论               |
+| `config-change`      | skills/method/ | 配置, setting, 参数调整              | 配置变更方法论             |
 
 
 ### 添加项目级 Skill
@@ -303,11 +304,41 @@ seed/
 │   ├── lua-scripting.md          # Lua/xLua 脚本开发
 │   ├── ai-pipeline.md            # AI 工作流模式
 │   ├── mcp-tools.md              # MCP 工具开发
+│   ├── detect-tech-stack.md      # /seed:embed Step 0 技术栈指纹检测规则
 │   ├── embed/
 │   │   ├── taxonomy-registry.md  # /seed:embed 双轴矩阵单一事实源
 │   │   ├── question-bank.md      # Step 2 矩阵补问题库
 │   │   ├── skill-catalog.md      # Step 3 矩阵 skill 目录
-│   │   └── builder-catalog.md    # Step 4 builder 生成规则
+│   │   ├── builder-catalog.md    # Step 4 builder 生成规则
+│   │   ├── researcher-common.md        # researcher 通用物理证据协议与报告结构
+│   │   ├── researcher-config.md        # 配置能力 researcher 扫描剧本
+│   │   ├── researcher-infra.md         # 基础设施 researcher 扫描剧本
+│   │   ├── researcher-lua.md           # Lua researcher 扫描剧本
+│   │   ├── researcher-runtime-common.md # 运行时通用 researcher 扫描剧本
+│   │   ├── researcher-unity.md         # Unity researcher 扫描剧本
+│   │   ├── researcher-godot.md         # Godot researcher 扫描剧本
+│   │   ├── researcher-cocos.md         # Cocos researcher 扫描剧本
+│   │   ├── researcher-unreal.md        # Unreal researcher 扫描剧本
+│   │   └── fixed-questions/            # 分矩阵项拆分的固定调查问题文件
+│   │       ├── README.md               # 目录规则与加载顺序说明
+│   │       ├── engine/                 # 引擎主线矩阵项（每引擎 13 个方向文件）
+│   │       │   ├── unity/              # project-structure, scene-graph-and-lifecycle, script-layer,
+│   │       │   ├── godot/              #   bridge-layer, ui-system, animation-system, hot-reload,
+│   │       │   ├── cocos/              #   asset-pipeline, event-and-message-system,
+│   │       │   └── unreal/             #   physics-navigation-or-runtime-framework,
+│   │       │                           #   native-code-architecture, platform-adaptation, plugin-extension
+│   │       ├── capability/             # 跨引擎能力矩阵项（5 个 capability）
+│   │       │   ├── lua-embedding.md
+│   │       │   ├── data-config-pipeline.md
+│   │       │   ├── network-protocol-and-sync.md
+│   │       │   ├── build-release-and-cicd.md
+│   │       │   └── tooling-and-ai-pipeline.md
+│   │       └── composite/              # 引擎方向 × capability 交叉叠加问题（第一批高价值预建）
+│   │           ├── README.md
+│   │           ├── unity/…
+│   │           ├── godot/…
+│   │           ├── cocos/…
+│   │           └── unreal/…
 │   ├── method/
 │   │   ├── implement.md          # 功能实现方法论
 │   │   ├── debug.md              # 系统化调试方法论
