@@ -452,23 +452,27 @@ AskUserQuestion(
 
 整理出完整的文件列表，标注每个文件的状态，用 `AskUserQuestion` 确认：
 
+- 展示格式必须同时包含：`文件名 | 作用说明 | 状态`
+- `作用说明` 优先复用上面各表中的「说明」列；如果是执行时动态新增的 skill，也必须补上一句简短用途说明
+- `状态` 至少区分：`新建`、`已存在，将覆盖`、`已存在，--update 下跳过`
+
 ```
 根据你的选择，将生成以下 skill 文件：
 
 .seed/skills/domain/
-  project-structure.md          ← 新建
-  project-conventions.md        ← 新建
-  unity-project-structure.md    ← 新建
-  unity-prefab-conventions.md   ← 新建
-  csharp-coding-rules.md        ← 新建
-  csharp-architecture.md        ← 新建
-  lua-architecture.md           ← 新建
-  lua-coding-rules.md           ← 新建
-  xlua-bridge-rules.md          ← 新建
-  xlua-hotfix-patterns.md       ← 新建
-  ugui-component-rules.md       ← 新建
-  ugui-prefab-conventions.md    ← 已存在，将覆盖（--update 模式下跳过）
-  config-schema.md              ← 新建
+  project-structure.md        | 项目目录结构和模块划分               | 新建
+  project-conventions.md      | 项目通用约定（命名、注释、提交规范等） | 新建
+  unity-project-structure.md  | Unity 项目目录组织方式               | 新建
+  unity-prefab-conventions.md | Prefab 命名、组织、引用约定          | 新建
+  csharp-coding-rules.md      | 代码风格、命名规范、文件组织          | 新建
+  csharp-architecture.md      | C# 层架构设计（框架选型、分层约定）   | 新建
+  lua-architecture.md         | Lua 层模块组织和架构设计             | 新建
+  lua-coding-rules.md         | Lua 编码规范（命名、注释、文件结构）  | 新建
+  xlua-bridge-rules.md        | xLua 桥接层约定                     | 新建
+  xlua-hotfix-patterns.md     | 热补丁使用规范和注意事项             | 新建
+  ugui-component-rules.md     | UI 组件命名和组织约定                | 新建
+  ugui-prefab-conventions.md  | UI Prefab 组织和复用约定             | 已存在，将覆盖（--update 模式下跳过）
+  config-schema.md            | 配置表字段规范和类型约定             | 新建
   ...
 
 共 N 个文件。预计需要 3-5 分钟。
@@ -480,6 +484,7 @@ AskUserQuestion(
 
 ```text
 根据你的选择，将生成以上 skill 文件。
+请按「文件名 | 作用说明 | 状态」格式展示完整列表。
 
 请直接回复：
   1. 确认生成

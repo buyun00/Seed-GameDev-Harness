@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "seed",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "author": {
         "name": "Lin Buyun",
         "email": "buyun0@qq.com"
