@@ -114,65 +114,89 @@ argument-hint: "[--update]"
 
 ---
 
-## Step 2：技术细节勾选（一次性列表）
+## Step 2：技术细节勾选
 
-根据 Step 1 确认的技术栈，把所有相关细节整合成一张列表，一次性用 `AskUserQuestion` 展示让用户勾选。
+根据 Step 1 确认的技术栈，对每个相关分组依次调用 `AskUserQuestion`（type: multi_select）展示勾选框。**只展示与当前技术栈相关的分组，不相关的跳过。**
 
-**只展示与当前技术栈相关的分组**，不相关的分组不显示。
+每个分组独立调用一次，选项末尾统一加上"暂未确定"供用户跳过。
 
+---
+
+**如果检测到 Lua，调用：**
 ```
-请勾选项目使用的技术方案（可多选，暂未确定的留空即可）：
-
-【Lua 桥接】（检测到项目包含 Lua）
-  [ ] xLua
-  [ ] tolua
-  [ ] SLua
-  [ ] 自研桥接层
-
-【UI 框架】
-  [ ] UGUI
-  [ ] FairyGUI
-  [ ] UI Toolkit
-  [ ] 自研 UI 框架
-
-【热更方案】
-  [ ] xLua 热更新
-  [ ] HybridCLR
-  [ ] ILRuntime
-  [ ] 无热更需求
-
-【资源管理】
-  [ ] Addressables
-  [ ] AssetBundle 自管理
-  [ ] 自研资源系统
-
-【配置表】
-  [ ] Excel 导出（如 ET、QFramework 等工具链）
-  [ ] Proto / FlatBuffers
-  [ ] 自定义 JSON/YAML 格式
-  [ ] 无配置表
-
-【策划文档】
-  [ ] 有规范化的策划文档体系
-  [ ] 有但不规范
-  [ ] 无
-
-【网络层】（如果是联网游戏）
-  [ ] 自研网络框架
-  [ ] Mirror / Netcode（Unity）
-  [ ] Godot 内置多人游戏
-  [ ] 无网络需求
-
-【其他集成】
-  [ ] MCP 工具集成
-  [ ] AI pipeline / agent 工作流
-  [ ] 自动化测试框架
-  [ ] CI/CD 流程
+AskUserQuestion(
+  type: multi_select,
+  question: "Lua 桥接方式（可多选）",
+  options: ["xLua", "tolua", "SLua", "自研桥接层", "暂未确定"]
+)
 ```
 
-如果 `AskUserQuestion` 不可用，改为普通文本多选，要求用户直接回复逗号分隔的选项名或编号。
+**如果检测到 Unity 或任何 UI 相关代码，调用：**
+```
+AskUserQuestion(
+  type: multi_select,
+  question: "UI 框架（可多选）",
+  options: ["UGUI", "FairyGUI", "UI Toolkit", "自研 UI 框架", "暂未确定"]
+)
+```
 
-用户勾选完成后直接进入 Step 3，不再追问。
+**如果检测到热更相关特征，调用：**
+```
+AskUserQuestion(
+  type: multi_select,
+  question: "热更方案（可多选）",
+  options: ["xLua 热更新", "HybridCLR", "ILRuntime", "无热更需求", "暂未确定"]
+)
+```
+
+**如果检测到 Unity 资源相关目录，调用：**
+```
+AskUserQuestion(
+  type: multi_select,
+  question: "资源管理方式（可多选）",
+  options: ["Addressables", "AssetBundle 自管理", "自研资源系统", "暂未确定"]
+)
+```
+
+**如果检测到配置表相关文件，调用：**
+```
+AskUserQuestion(
+  type: multi_select,
+  question: "配置表方案（可多选）",
+  options: ["Excel 导出", "Proto / FlatBuffers", "自定义 JSON/YAML", "无配置表", "暂未确定"]
+)
+```
+
+**如果检测到策划文档目录，调用：**
+```
+AskUserQuestion(
+  type: multi_select,
+  question: "策划文档规范现状",
+  options: ["有规范化的文档体系", "有但不规范", "无", "暂未确定"]
+)
+```
+
+**如果检测到网络相关代码，调用：**
+```
+AskUserQuestion(
+  type: multi_select,
+  question: "网络层方案（可多选）",
+  options: ["自研网络框架", "Mirror / Netcode", "Godot 内置多人游戏", "无网络需求", "暂未确定"]
+)
+```
+
+**通用集成（所有项目都询问）：**
+```
+AskUserQuestion(
+  type: multi_select,
+  question: "其他集成（可多选）",
+  options: ["MCP 工具集成", "AI pipeline / agent 工作流", "自动化测试框架", "CI/CD 流程", "无"]
+)
+
+---
+
+所有分组问完后直接进入 Step 3，不再追问。
+```
 
 ---
 
