@@ -38,32 +38,36 @@ argument-hint: "[--update]"
 - **Step 0 只是静默扫描，不是流程终点。** 扫描完成后，必须在同一轮内立刻进入 Step 1，向用户展示确认内容。**禁止**只进行搜索/读取后直接结束当前回复。
 - 如果当前环境**不支持** `AskUserQuestion`，或按钮/表单式交互没有成功弹出，**必须立即降级为普通文本提问**，并明确告诉用户该如何回复，例如：`回复 1 继续，回复 2 修改`。**不要**因为缺少 `AskUserQuestion` 而停住。
 - 每到一个需要用户输入的节点，都要明确写出“你现在需要回复什么”。**不要**把下一步留在隐含状态。
-- 如果扫描证据不完整，也要给出“当前推断 + 不确定项”，继续进入确认步骤；**不要**无限延长扫描。
+- 如果 `tech_stack_report` 中存在 `conflicts`，必须在 Step 1 中明确展示冲突项，并让用户选择正确答案；不要自行裁决冲突。
 - 如果当前环境无法使用 `TeamCreate` / `TaskCreate` / `SendMessage`，必须明确告知用户，并**降级为单 agent 串行生成** `.seed/skills/domain/` 文件；**不要**静默结束。
 
-## Step 0：扫描项目结构（静默，不展示给用户）
+## Step 0：扫描项目技术栈（静默，不展示给用户）
 
 完成 Step 0 后，**立即**进入 Step 1；不要等待额外指令。
 
-使用 Read / Glob / Grep 扫描项目，推断以下信息。每项都需要记录推断结果和依据。
+**本步骤强制调用 detect-tech-stack skill 执行，不允许自行判断，不允许跳过任何 Phase。**
 
-### 扫描项
+### 执行方式
 
-| 扫描项 | 检测方法 |
+1. 加载 `.seed/skills/detect-tech-stack.md`
+2. 按 Phase 1 → Phase 2 → Phase 3（各子项）→ Phase 4 顺序执行
+3. 每个检测项严格按 skill 中定义的「物理证据规则」查找，不做自由推断
+4. Phase 4 输出标准 `tech_stack_report` 结构体，作为 Step 1 的数据来源
+
+### 额外扫描（不在 detect-tech-stack 中，Step 0 自行完成）
+
+| 扫描项 | 方法 |
 |---|---|
-| **引擎类型** | `Assets/` + `*.unity` → Unity；`project.godot` → Godot；`*.uproject` → Unreal |
-| **引擎版本** | Unity: `ProjectSettings/ProjectVersion.txt`；Godot: `project.godot` 中 `config_version`；Unreal: `.uproject` 中 `EngineAssociation` |
-| **主要语言** | 统计 `*.cs` / `*.lua` / `*.py` / `*.ts` / `*.gd` / `*.cpp` 文件数量分布 |
-| **项目阶段** | git commit 数量、是否有 README、是否有 build 产物 |
-| **Lua 桥接** | 检测 `xlua` / `tolua` / `slua` 目录或 package 引用 |
-| **UI 框架** | 检测 `FairyGUI` / `UGUI` / `UI Toolkit` 相关目录或 package |
-| **热更方案** | 检测 `HybridCLR` / `ILRuntime` / xlua 热补丁相关目录 |
-| **资源管理** | 检测 `Addressables` 配置或 AssetBundle 构建脚本 |
-| **配置表** | 检测 Excel 文件、proto 文件、json 数据目录 |
-| **策划文档** | 检测 `doc/` `design/` `策划/` 等目录 |
-| **MCP 集成** | 检测 `.mcp.json` 或 mcp 相关配置 |
-| **AI pipeline** | 检测 `.seed/` 或 agent 相关目录 |
-| **网络层** | 检测 Mirror / Netcode / 自研网络框架相关引用 |
+| **项目阶段** | 检查 git log 数量（0-10 commits = 原型；>10 = 开发中）；检查 README.md 是否存在；检查 Build/ 或 Release/ 目录是否存在 |
+| **策划文档** | 检查 doc/ design/ 策划/ 文档/ 目录是否存在 |
+
+### Step 0 完成标准
+
+- `tech_stack_report` 已完整输出（所有字段填写，无遗漏）
+- `conflicts` 字段已检查（如有冲突，Step 1 中必须展示给用户确认）
+- 以上两项额外扫描已完成
+
+**禁止**在 `tech_stack_report` 未完整输出前进入 Step 1。
 
 ---
 
@@ -101,7 +105,7 @@ argument-hint: "[--update]"
 请修正以下信息：
 
 引擎
-  ( ) Unity    ( ) Godot    ( ) Unreal    ( ) 无引擎    ( ) 其他
+  ( ) Unity    ( ) Godot    ( ) Unreal    ( ) Cocos Creator    ( ) 无引擎    ( ) 其他
 
 语言（可多选）
   [ ] C#    [ ] Lua    [ ] Python    [ ] TypeScript    [ ] GDScript    [ ] C++    [ ] 其他
@@ -122,52 +126,61 @@ argument-hint: "[--update]"
 
 ---
 
-**如果检测到 Lua，调用：**
+**选项标注规则**：`tech_stack_report` 中已检测到的选项标注为「✓（已检测到：{证据}）」，未检测到的作为「可补充」供用户修正。
+
+---
+
+**如果 `tech_stack_report.lua_bridge.type != none`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "Lua 桥接方式（可多选）",
+  question: "Lua 桥接方式（检测结果已预选，可修正）",
   options: ["xLua", "tolua", "SLua", "自研桥接层", "暂未确定"]
+  # 将 tech_stack_report.lua_bridge.type 命中的选项追加 ✓（已检测到：{evidence}）
 )
 ```
 
-**如果检测到 Unity 或任何 UI 相关代码，调用：**
+**如果 `tech_stack_report.engine.name == unity`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "UI 框架（可多选）",
+  question: "UI 框架（检测结果已预选，可修正）",
   options: ["UGUI", "FairyGUI", "UI Toolkit", "自研 UI 框架", "暂未确定"]
+  # 将 tech_stack_report.ui_frameworks 命中的选项追加 ✓（已检测到：{evidence}）
 )
 ```
 
-**如果检测到热更相关特征，调用：**
+**如果 `tech_stack_report.hot_update` 列表非空 OR `tech_stack_report.engine.name == unity`（Unity 项目必问），调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "热更方案（可多选）",
-  options: ["xLua 热更新", "HybridCLR", "ILRuntime", "无热更需求", "暂未确定"]
+  question: "热更方案（检测结果已预选，可修正）",
+  options: ["xLua 热更新", "tolua 热更新", "HybridCLR", "ILRuntime", "无热更需求", "暂未确定"]
+  # 将 tech_stack_report.hot_update 命中的选项追加 ✓（已检测到：{evidence}）
 )
 ```
 
-**如果检测到 Unity 资源相关目录，调用：**
+**如果 `tech_stack_report.engine.name == unity`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "资源管理方式（可多选）",
+  question: "资源管理方式（检测结果已预选，可修正）",
   options: ["Addressables", "AssetBundle 自管理", "自研资源系统", "暂未确定"]
+  # 将 tech_stack_report.asset_management 命中的选项追加 ✓（已检测到：{evidence}）
 )
 ```
 
-**如果检测到配置表相关文件，调用：**
+**如果 `tech_stack_report.config_format.types != [none]`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "配置表方案（可多选）",
+  question: "配置表方案（检测结果已预选，可修正）",
   options: ["Excel 导出", "Proto / FlatBuffers", "自定义 JSON/YAML", "无配置表", "暂未确定"]
+  # 将 tech_stack_report.config_format.types 命中的选项追加 ✓（已检测到：{evidence}）
 )
 ```
 
-**如果检测到策划文档目录，调用：**
+**如果 Step 0 额外扫描：策划文档目录存在，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
@@ -176,12 +189,43 @@ AskUserQuestion(
 )
 ```
 
-**如果检测到网络相关代码，调用：**
+**如果 `tech_stack_report.network.types != [none]`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "网络层方案（可多选）",
+  question: "网络层方案（检测结果已预选，可修正）",
   options: ["自研网络框架", "Mirror / Netcode", "Godot 内置多人游戏", "无网络需求", "暂未确定"]
+  # 将 tech_stack_report.network.types 命中的选项追加 ✓（已检测到：{evidence}）
+)
+```
+
+**如果 `tech_stack_report.engine.name == godot`，调用：**
+```
+AskUserQuestion(
+  type: multi_select,
+  question: "Godot 项目特有配置（可多选）",
+  options: ["纯 GDScript", "GDScript + C#", "使用 Godot 内置多人游戏", "有导出配置（export_presets.cfg）", "暂未确定"]
+  # 将 tech_stack_report.godot_extra 命中的选项追加 ✓（已检测到）
+)
+```
+
+**如果 `tech_stack_report.engine.name == unreal`，调用：**
+```
+AskUserQuestion(
+  type: multi_select,
+  question: "Unreal 项目特有配置（可多选）",
+  options: ["主要用 Blueprint", "主要用 C++", "Blueprint + C++ 混合", "使用了插件（Plugins/ 目录）", "暂未确定"]
+  # 将 tech_stack_report.unreal_extra 命中的选项追加 ✓（已检测到）
+)
+```
+
+**如果 `tech_stack_report.engine.name == cocos`，调用：**
+```
+AskUserQuestion(
+  type: multi_select,
+  question: "Cocos Creator 项目配置（可多选）",
+  options: ["TypeScript", "JavaScript", "微信小游戏平台", "有热更新方案", "暂未确定"]
+  # 将 tech_stack_report.cocos_extra 命中的选项追加 ✓（已检测到）
 )
 ```
 
@@ -191,12 +235,13 @@ AskUserQuestion(
   type: multi_select,
   question: "其他集成（可多选）",
   options: ["MCP 工具集成", "AI pipeline / agent 工作流", "自动化测试框架", "CI/CD 流程", "无"]
+  # 将 tech_stack_report.integrations 中为 true 的选项追加 ✓（已检测到）
 )
+```
 
 ---
 
 所有分组问完后直接进入 Step 3，不再追问。
-```
 
 ---
 
@@ -258,6 +303,12 @@ AskUserQuestion(
 | `domain/tolua-bridge-rules.md` | tolua 桥接层约定 |
 | `domain/tolua-coroutine.md` | tolua 协程使用规范 |
 
+**SLua 桥接：**
+
+| 文件 | 说明 |
+|---|---|
+| `domain/slua-bridge-rules.md` | SLua 桥接层约定 |
+
 **UGUI：**
 
 | 文件 | 说明 |
@@ -275,6 +326,13 @@ AskUserQuestion(
 | `domain/fairygui-binding-patterns.md` | FairyGUI 与代码层绑定方式 |
 | `domain/fairygui-export-rules.md` | 导出设置和资源管理约定 |
 
+**UI Toolkit（Unity）：**
+
+| 文件 | 说明 |
+|---|---|
+| `domain/ui-toolkit-conventions.md` | UXML/USS 命名和组织约定 |
+| `domain/ui-toolkit-binding-patterns.md` | 数据绑定方式 |
+
 **HybridCLR：**
 
 | 文件 | 说明 |
@@ -283,12 +341,26 @@ AskUserQuestion(
 | `domain/hybridclr-restrictions.md` | 热更代码限制和注意事项 |
 | `domain/hybridclr-update-flow.md` | 热更发布和回滚流程 |
 
+**ILRuntime：**
+
+| 文件 | 说明 |
+|---|---|
+| `domain/ilruntime-setup.md` | ILRuntime 配置和初始化 |
+| `domain/ilruntime-restrictions.md` | 热更代码约束和注意事项 |
+
 **Addressables：**
 
 | 文件 | 说明 |
 |---|---|
 | `domain/addressables-organization.md` | 资源分组和标签组织约定 |
 | `domain/addressables-loading.md` | 加载和释放规范 |
+
+**AssetBundle 自管理：**
+
+| 文件 | 说明 |
+|---|---|
+| `domain/assetbundle-build-pipeline.md` | AssetBundle 构建流程和分包策略 |
+| `domain/assetbundle-loading.md` | 运行时加载和卸载规范 |
 
 **配置表（Excel 导出）：**
 
@@ -324,6 +396,33 @@ AskUserQuestion(
 |---|---|
 | `domain/ai-pipeline-conventions.md` | AI 工作流设计约定 |
 | `domain/agent-collaboration.md` | Agent 协作规范 |
+
+**Godot 项目：**
+
+| 文件 | 说明 |
+|---|---|
+| `domain/godot-project-structure.md` | Godot 项目目录和节点组织方式 |
+| `domain/godot-scene-conventions.md` | Scene/Node 命名和组织约定 |
+| `domain/godot-signals.md` | Signal 使用规范和事件通信约定 |
+| `domain/gdscript-coding-rules.md` | GDScript 编码规范 |
+
+**Unreal 项目：**
+
+| 文件 | 说明 |
+|---|---|
+| `domain/unreal-project-structure.md` | Unreal 项目目录和模块组织 |
+| `domain/unreal-blueprint-conventions.md` | Blueprint 命名和组织约定 |
+| `domain/unreal-cpp-coding-rules.md` | C++ 编码规范（命名、模块划分） |
+| `domain/unreal-gameplay-framework.md` | GameMode/GameState/PlayerController 使用约定 |
+
+**Cocos Creator 项目：**
+
+| 文件 | 说明 |
+|---|---|
+| `domain/cocos-project-structure.md` | Cocos 项目目录和资源组织方式 |
+| `domain/cocos-component-conventions.md` | 组件脚本命名和挂载约定 |
+| `domain/cocos-typescript-rules.md` | TypeScript 编码规范 |
+| `domain/cocos-hotupdate.md` | 热更新方案配置和流程（如有） |
 
 ### 灵活性原则
 
@@ -453,7 +552,7 @@ Dependencies: none
 Risk Level: low
 Leader Ack Required: false
 Original User Intent: 分析项目 Lua 技术栈，为生成 skill 文件提供依据
-Scope Coverage: Lua 模块组织、桥接层（xLua/tolua）、热更新模式、C#-Lua 互调、错误处理、日志规范
+Scope Coverage: Lua 模块组织、桥接层（xLua/tolua/SLua）、热更新模式、C#-Lua 互调、错误处理、日志规范
 Exclusions: 纯 C# 层代码、Unity Editor 功能、配置表数据
 ```
 
@@ -528,6 +627,91 @@ Exclusions: 游戏逻辑代码、Lua 层实现、UI 组件细节
 
 ---
 
+**TaskCreate → researcher-godot**（仅 `tech_stack_report.engine.name == godot` 时派出）
+
+```
+Task Kind: investigate
+Expected Owner Role: researcher
+Deliverable: Godot 调查报告（SendMessage 给 builder-godot）
+Done Definition: 报告涵盖 Godot 项目结构、Scene/Node 约定、GDScript 编码规范、Signal 使用、导出配置等维度
+Dependencies: none
+Risk Level: low
+Leader Ack Required: false
+Original User Intent: 分析项目 Godot 技术栈，为生成 skill 文件提供依据
+Scope Coverage: Godot 项目结构、Scene/Node 命名组织、GDScript 编码规范、Signal 使用规范、C# 集成（如有）、导出配置
+Exclusions: 非 Godot 引擎相关内容
+```
+
+扫描指令：
+```
+扫描 Godot 项目代码和配置，提炼：
+- 项目目录结构和节点组织方式
+- Scene/Node 命名和层级约定
+- GDScript 编码风格和命名规范
+- Signal 使用模式和事件通信约定
+- C# 集成方式（如有 .csproj）
+- 导出配置（export_presets.cfg）
+产出：Godot 调查报告
+```
+
+---
+
+**TaskCreate → researcher-unreal**（仅 `tech_stack_report.engine.name == unreal` 时派出）
+
+```
+Task Kind: investigate
+Expected Owner Role: researcher
+Deliverable: Unreal 调查报告（SendMessage 给 builder-unreal）
+Done Definition: 报告涵盖 Unreal 项目结构、Blueprint 约定、C++ 模块划分、Gameplay Framework 使用等维度
+Dependencies: none
+Risk Level: low
+Leader Ack Required: false
+Original User Intent: 分析项目 Unreal 技术栈，为生成 skill 文件提供依据
+Scope Coverage: Unreal 项目结构、Blueprint 命名组织、C++ 编码规范和模块划分、GameMode/GameState/PlayerController 使用约定、插件使用
+Exclusions: 非 Unreal 引擎相关内容
+```
+
+扫描指令：
+```
+扫描 Unreal 项目代码和配置，提炼：
+- 项目目录结构和模块组织
+- Blueprint 命名和组织约定
+- C++ 编码规范（命名、模块划分、头文件约定）
+- Gameplay Framework 使用方式（GameMode/GameState/PlayerController）
+- 插件使用情况（Plugins/ 目录）
+产出：Unreal 调查报告
+```
+
+---
+
+**TaskCreate → researcher-cocos**（仅 `tech_stack_report.engine.name == cocos` 时派出）
+
+```
+Task Kind: investigate
+Expected Owner Role: researcher
+Deliverable: Cocos Creator 调查报告（SendMessage 给 builder-cocos）
+Done Definition: 报告涵盖 Cocos 项目结构、组件约定、TypeScript 规范、热更方案等维度
+Dependencies: none
+Risk Level: low
+Leader Ack Required: false
+Original User Intent: 分析项目 Cocos Creator 技术栈，为生成 skill 文件提供依据
+Scope Coverage: Cocos 项目结构、组件脚本命名和挂载约定、TypeScript/JavaScript 编码规范、热更方案、小游戏平台适配
+Exclusions: 非 Cocos 引擎相关内容
+```
+
+扫描指令：
+```
+扫描 Cocos Creator 项目代码和配置，提炼：
+- 项目目录结构和资源组织方式
+- 组件脚本命名和挂载约定
+- TypeScript/JavaScript 编码规范
+- 热更新方案配置和流程（如有）
+- 小游戏平台适配（如有）
+产出：Cocos Creator 调查报告
+```
+
+---
+
 ### 4.4 派出 Builder 落笔写文件
 
 各 builder 依赖对应 researcher 完成，builder 之间并行。
@@ -543,7 +727,7 @@ Dependencies: researcher-unity
 Risk Level: low
 Leader Ack Required: false
 Original User Intent: 生成项目专属的 Unity/C# domain skill 文件
-Scope Coverage: unity-project-structure, unity-scene-management, unity-lifecycle, unity-prefab-conventions, unity-serialization, csharp-coding-rules, csharp-architecture, csharp-patterns, csharp-async, csharp-testing, ugui-*, fairygui-*
+Scope Coverage: unity-project-structure, unity-scene-management, unity-lifecycle, unity-prefab-conventions, unity-serialization, csharp-coding-rules, csharp-architecture, csharp-patterns, csharp-async, csharp-testing, ugui-*, fairygui-*, ui-toolkit-*, ilruntime-*
 Exclusions: Lua 相关 skill、配置表 skill、基础设施 skill
 ```
 
@@ -633,14 +817,89 @@ source 字段：如果有充分依据填 "scanned"，如果信息不完整填 "i
 
 ---
 
-### 4.5 Leader Closeout（依赖所有 builder 完成）
+**TaskCreate → builder-godot**（依赖 researcher-godot 完成；仅 `tech_stack_report.engine.name == godot` 时派出）
+
+```
+Task Kind: implement
+Expected Owner Role: builder
+Deliverable: Godot 相关的 domain skill 文件，写入 .seed/skills/domain/
+Done Definition: 所有 Step 3 确认的 Godot 相关 skill 文件已创建，内容基于 researcher 报告
+Dependencies: researcher-godot
+Risk Level: low
+Leader Ack Required: false
+Original User Intent: 生成项目专属的 Godot domain skill 文件
+Scope Coverage: godot-project-structure, godot-scene-conventions, godot-signals, gdscript-coding-rules
+Exclusions: 非 Godot 引擎相关 skill
+```
+
+指令：
+```
+根据 researcher-godot 的报告，生成对应的 skill 文件。
+每个文件必须包含 YAML frontmatter（name, description, triggers, domain, scope, source）和正文内容。
+source 字段：如果有充分依据填 "scanned"，如果信息不完整填 "incomplete"。
+以及报告中发现的其他需要记录的方面，灵活创建对应 skill 文件。
+```
+
+---
+
+**TaskCreate → builder-unreal**（依赖 researcher-unreal 完成；仅 `tech_stack_report.engine.name == unreal` 时派出）
+
+```
+Task Kind: implement
+Expected Owner Role: builder
+Deliverable: Unreal 相关的 domain skill 文件，写入 .seed/skills/domain/
+Done Definition: 所有 Step 3 确认的 Unreal 相关 skill 文件已创建，内容基于 researcher 报告
+Dependencies: researcher-unreal
+Risk Level: low
+Leader Ack Required: false
+Original User Intent: 生成项目专属的 Unreal domain skill 文件
+Scope Coverage: unreal-project-structure, unreal-blueprint-conventions, unreal-cpp-coding-rules, unreal-gameplay-framework
+Exclusions: 非 Unreal 引擎相关 skill
+```
+
+指令：
+```
+根据 researcher-unreal 的报告，生成对应的 skill 文件。
+每个文件必须包含 YAML frontmatter（name, description, triggers, domain, scope, source）和正文内容。
+source 字段：如果有充分依据填 "scanned"，如果信息不完整填 "incomplete"。
+以及报告中发现的其他需要记录的方面，灵活创建对应 skill 文件。
+```
+
+---
+
+**TaskCreate → builder-cocos**（依赖 researcher-cocos 完成；仅 `tech_stack_report.engine.name == cocos` 时派出）
+
+```
+Task Kind: implement
+Expected Owner Role: builder
+Deliverable: Cocos Creator 相关的 domain skill 文件，写入 .seed/skills/domain/
+Done Definition: 所有 Step 3 确认的 Cocos 相关 skill 文件已创建，内容基于 researcher 报告
+Dependencies: researcher-cocos
+Risk Level: low
+Leader Ack Required: false
+Original User Intent: 生成项目专属的 Cocos Creator domain skill 文件
+Scope Coverage: cocos-project-structure, cocos-component-conventions, cocos-typescript-rules, cocos-hotupdate
+Exclusions: 非 Cocos 引擎相关 skill
+```
+
+指令：
+```
+根据 researcher-cocos 的报告，生成对应的 skill 文件。
+每个文件必须包含 YAML frontmatter（name, description, triggers, domain, scope, source）和正文内容。
+source 字段：如果有充分依据填 "scanned"，如果信息不完整填 "incomplete"。
+以及报告中发现的其他需要记录的方面，灵活创建对应 skill 文件。
+```
+
+---
+
+### 4.5 Leader Closeout（依赖所有实际派出的 builder 完成）
 
 ```
 Task Kind: closeout
 Expected Owner Role: leader
 Deliverable: 完成摘要（发送给用户）
 Done Definition: 所有 skill 文件已检查，内容不完整的已标注 source: incomplete，输出完成摘要
-Dependencies: builder-unity, builder-lua, builder-config, builder-infra
+Dependencies: 所有实际派出的 builder（根据引擎和技术栈动态决定，如 builder-unity, builder-lua, builder-godot 等）
 Risk Level: low
 Leader Ack Required: true
 Original User Intent: 确认所有 domain skill 文件已正确生成
@@ -663,16 +922,24 @@ Exclusions: 无
 ```
 SendMessage → leader：
   目标：分析项目技术栈，生成 domain skill 文件
-  researcher 分工：
-    researcher-unity  → Unity/C# 方向
-    researcher-lua    → Lua 方向
-    researcher-config → 配置/策划方向
-    researcher-infra  → 基础设施方向
-  builder 分工：
-    builder-unity   → 依赖 researcher-unity，生成 Unity/C# skill
-    builder-lua     → 依赖 researcher-lua，生成 Lua skill
-    builder-config  → 依赖 researcher-config，生成配置/策划 skill
-    builder-infra   → 依赖 researcher-infra，生成基础设施 skill
+
+  researcher 分工（按需派出）：
+    researcher-unity  → Unity/C# 方向（engine == unity）
+    researcher-lua    → Lua 方向（lua_bridge != none）
+    researcher-config → 配置/策划方向（所有项目）
+    researcher-infra  → 基础设施方向（所有项目）
+    researcher-godot  → Godot 方向（engine == godot）
+    researcher-unreal → Unreal 方向（engine == unreal）
+    researcher-cocos  → Cocos 方向（engine == cocos）
+
+  builder 分工（按需派出，依赖对应 researcher）：
+    builder-unity   → 生成 Unity/C# skill
+    builder-lua     → 生成 Lua skill
+    builder-config  → 生成配置/策划 skill
+    builder-infra   → 生成基础设施 skill
+    builder-godot   → 生成 Godot skill
+    builder-unreal  → 生成 Unreal skill
+    builder-cocos   → 生成 Cocos skill
   Closeout 标准：
     所有 skill 文件已落盘
     内容不完整的标注 source: incomplete
