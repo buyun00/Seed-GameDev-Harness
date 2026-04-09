@@ -6,6 +6,15 @@ triggers:
   - server
   - tool_call
   - gamedev-knowledge
+version: 1.0
+domain:
+  - ai-pipeline
+scope:
+  - agent-inject
+tags:
+  - mcp
+  - tool
+source: manual
 ---
 
 ## Seed MCP 工具

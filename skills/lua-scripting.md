@@ -9,6 +9,17 @@ triggers:
   - table
   - coroutine
   - require
+version: 1.0
+domain:
+  - lua-gameplay
+scope:
+  - user-chat
+  - agent-inject
+tags:
+  - lua
+  - xlua
+  - hotfix
+source: manual
 ---
 
 ## Lua 脚本开发模式

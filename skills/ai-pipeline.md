@@ -8,6 +8,17 @@ triggers:
   - pipeline
   - tool
   - prompt
+version: 1.0
+domain:
+  - ai-pipeline
+scope:
+  - user-chat
+  - agent-inject
+tags:
+  - agent
+  - mcp
+  - workflow
+source: manual
 ---
 
 ## AI Pipeline 设计原则

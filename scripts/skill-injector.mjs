@@ -54,7 +54,7 @@ function saveInjectedSet(cwd, sessionId, set) {
 
 /**
  * 解析 skill 文件的 YAML frontmatter。
- * 返回 { name, triggers, content } 或 null。
+ * 返回 { name, triggers, scope, domain, content } 或 null。
  */
 function parseSkillFrontmatter(content) {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
@@ -73,10 +73,33 @@ function parseSkillFrontmatter(content) {
     }
   }
 
+  const scope = [];
+  const scopeMatch = yamlContent.match(/scope:\s*\n((?:\s+-\s*.+\n?)*)/);
+  if (scopeMatch) {
+    const lines = scopeMatch[1].split('\n');
+    for (const line of lines) {
+      const itemMatch = line.match(/^\s+-\s*["']?([^"'\n]+)["']?\s*$/);
+      if (itemMatch) scope.push(itemMatch[1].trim().toLowerCase());
+    }
+  }
+  if (scope.length === 0) {
+    scope.push('user-chat', 'agent-inject');
+  }
+
+  const domain = [];
+  const domainMatch = yamlContent.match(/domain:\s*\n((?:\s+-\s*.+\n?)*)/);
+  if (domainMatch) {
+    const lines = domainMatch[1].split('\n');
+    for (const line of lines) {
+      const itemMatch = line.match(/^\s+-\s*["']?([^"'\n]+)["']?\s*$/);
+      if (itemMatch) domain.push(itemMatch[1].trim().toLowerCase());
+    }
+  }
+
   const nameMatch = yamlContent.match(/name:\s*["']?([^"'\n]+)["']?/);
   const name = nameMatch ? nameMatch[1].trim() : '未命名 Skill';
 
-  return { name, triggers, content: body };
+  return { name, triggers, scope, domain, content: body };
 }
 
 /**
@@ -131,6 +154,8 @@ function findMatchingSkills(prompt, cwd, sessionId) {
       const skill = parseSkillFrontmatter(content);
       if (!skill) continue;
 
+      if (!skill.scope.includes('user-chat')) continue;
+
       let score = 0;
       for (const trigger of skill.triggers) {
         if (promptLower.includes(trigger)) {
@@ -145,7 +170,8 @@ function findMatchingSkills(prompt, cwd, sessionId) {
           content: skill.content,
           score,
           scope: candidate.scope,
-          triggers: skill.triggers
+          triggers: skill.triggers,
+          domain: skill.domain
         });
       }
     } catch { /* 忽略文件读取错误 */ }

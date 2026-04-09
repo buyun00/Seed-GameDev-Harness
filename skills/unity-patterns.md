@@ -10,6 +10,17 @@ triggers:
   - animator
   - animation
   - coroutine
+version: 1.0
+domain:
+  - unity-runtime
+scope:
+  - user-chat
+  - agent-inject
+tags:
+  - unity
+  - physics
+  - animation
+source: manual
 ---
 
 ## Unity 开发模式

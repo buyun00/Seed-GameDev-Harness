@@ -116,3 +116,22 @@
    - 某些领域始终包含 reviewer
    - 需要 Editor 验证的领域添加 unity-pilot
    - 移除不需要的 agent（如项目没有 Lua）
+
+---
+
+## Domain 与 Skill 映射
+
+/seed:bud 启动 team 时，根据识别出的 domain 从 .seed/skills/ 和
+$CLAUDE_PLUGIN_ROOT/skills/ 中选取 scope 包含 agent-inject 且
+domain 匹配的 skill，注入到对应 teammate 的 system prompt。
+
+| domain | 典型注入 skill |
+|---|---|
+| unity-runtime | unity-patterns.md、unity-ui-workflow.md |
+| lua-gameplay | lua-scripting.md、lua-conventions.md、lua-xlua-bridge.md |
+| ai-pipeline | ai-pipeline.md、mcp-tools.md |
+| architecture | 视具体任务从多个 domain 选取 |
+| cross-domain | 合并相关 domain 的 skill |
+
+每个 teammate 最多注入 3 个 skill，避免 system prompt 过大。
+实际注入以磁盘上存在的文件为准。
