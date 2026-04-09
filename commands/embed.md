@@ -73,49 +73,39 @@ argument-hint: "[--update]"
 
 ## Step 1：大方向确认（扫描后一次性确认）
 
-把 Step 0 的推断结果整理成一张确认表，用 `AskUserQuestion` 一次性展示：
+把 Step 0 的推断结果整理成一张确认表， 一次性展示：
 
 ```
-根据项目扫描，Seed 推断了以下技术栈，请确认是否正确：
+根据项目扫描，Seed 检测到以下技术栈，请确认是否正确：
 
-  引擎：      Unity 2022.3
-  语言：      C# / Lua
-  项目阶段：  开发中
+  引擎：          Unity 2022.3.15f1
+  语言：          C#（主）/ Lua（辅）
+  项目阶段：      开发中（共 6 个 commits，有 README）
+
+  Lua 桥接：      tolua（证据：Assets/ToLua/ 目录存在）
+  UI 框架：       FairyGUI / UGUI
+  热更方案：      tolua 热更新
+  资源管理：      Addressables
+  配置表：        Excel 导出
+  网络层：        自研网络框架
+  其他集成：      MCP 集成 / CI/CD（GitHub Actions）
+
+  ⚠️ 冲突项（需要你确认）：
+    lua_bridge：同时找到 Assets/XLua/ 和 Assets/ToLua/，请告知实际使用哪个
+
+  未检测到：UI Toolkit / HybridCLR / ILRuntime / Netcode / Mirror
 
 [确认正确，继续]  [有需要修改的地方]
 ```
 
-如果 `AskUserQuestion` 不可用，改为普通文本：
-
-```text
-根据项目扫描，Seed 推断了以下技术栈，请确认是否正确：
-
-  引擎：      Unity 2022.3
-  语言：      C# / Lua
-  项目阶段：  开发中
-
-请直接回复：
-  1. 确认正确，继续
-  2. 有需要修改的地方
-```
-
-如果用户选"有需要修改的地方"，展示可选项让用户一次性修正：
-
-```
-请修正以下信息：
-
-引擎
-  ( ) Unity    ( ) Godot    ( ) Unreal    ( ) Cocos Creator    ( ) 无引擎    ( ) 其他
-
-语言（可多选）
-  [ ] C#    [ ] Lua    [ ] Python    [ ] TypeScript    [ ] GDScript    [ ] C++    [ ] 其他
-
-项目阶段
-  ( ) 原型/立项    ( ) 开发中    ( ) 运营中    ( ) 重构/迁移
-```
-
 确认后进入 Step 2。
+### Step 1 展示规则
 
+- 所有 tech_stack_report 中值不为 none / false / [] 的字段全部展示
+- 每项附带检测证据（括号内简短说明）
+- conflicts 字段非空时，必须在确认表中单独列出「⚠️ 冲突项」区块
+- 值为 none / false / [] 的字段归入「未检测到」一行统一列出，不单独占行
+- 引擎版本从 tech_stack_report.engine.version 读取，读不到显示「版本未知」
 ---
 
 ## Step 2：技术细节勾选
