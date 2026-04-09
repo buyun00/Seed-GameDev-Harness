@@ -526,11 +526,18 @@ TeamCreate("seed-embed")
 
 以下是完整的分工表（按需裁剪）：
 
+- **实际执行顺序必须是：先创建所有按需 builder task，再创建所有按需 researcher task。**
+- 原因：写 skill 文件的责任需要先被明确绑定到 builder；researcher 只负责调查，不负责落笔。
+- 原因：researcher 的调查报告需要有明确接收方，避免因为 builder 尚未创建而让执行端自行补出别的写作者。
+- builder 可以提前创建，但保持 `Dependencies: researcher-*`；这样它会等待对应 researcher 完成后再开始写文件。
+
 ---
 
 ### 4.3 派出 Researcher 并行扫描
 
-所有 researcher 使用 `disallowedTools: Write, Edit, MultiEdit`，只读不写，产出调查报告交给对应 builder。
+下面先给出 researcher 的任务模板，但**实际创建顺序仍按上一节要求：builder 先创建，researcher 后创建**。
+
+所有 researcher 使用 `disallowedTools: Write, Edit, MultiEdit`，只读不写，产出调查报告发送给 leader 和对应 builder。
 
 所有 researcher 任务 **无依赖**，全部并行。
 
@@ -541,7 +548,7 @@ TeamCreate("seed-embed")
 ```
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: Unity/C# 调查报告（SendMessage 给 builder-unity）
+Deliverable: Unity/C# 调查报告（SendMessage 给 leader 与 builder-unity）
 Done Definition: 报告涵盖目录结构、MonoBehaviour 约定、Prefab 规范、C# 架构、UI 框架、序列化约定、异步处理、设计模式等维度
 Dependencies: none
 Risk Level: low
@@ -572,7 +579,7 @@ Exclusions: Lua 层代码、配置表数据、基础设施
 ```
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: Lua 调查报告（SendMessage 给 builder-lua）
+Deliverable: Lua 调查报告（SendMessage 给 leader 与 builder-lua）
 Done Definition: 报告涵盖 Lua 模块组织、桥接层约定、热更模式、互调方式、错误处理等维度
 Dependencies: none
 Risk Level: low
@@ -601,7 +608,7 @@ Exclusions: 纯 C# 层代码、Unity Editor 功能、配置表数据
 ```
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: 配置/策划调查报告（SendMessage 给 builder-config）
+Deliverable: 配置/策划调查报告（SendMessage 给 leader 与 builder-config）
 Done Definition: 报告涵盖配置表格式、导出工具链、策划文档规范、数据校验规则等维度
 Dependencies: none
 Risk Level: low
@@ -628,7 +635,7 @@ Exclusions: 运行时代码逻辑、Unity 场景配置、网络协议
 ```
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: 基础设施调查报告（SendMessage 给 builder-infra）
+Deliverable: 基础设施调查报告（SendMessage 给 leader 与 builder-infra）
 Done Definition: 报告涵盖资源管理、构建流程、CI/CD、网络层、其他工具链等维度
 Dependencies: none
 Risk Level: low
@@ -658,7 +665,7 @@ Exclusions: 游戏逻辑代码、Lua 层实现、UI 组件细节
 ```
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: Godot 调查报告（SendMessage 给 builder-godot）
+Deliverable: Godot 调查报告（SendMessage 给 leader 与 builder-godot）
 Done Definition: 报告涵盖 Godot 项目结构、Scene/Node 约定、GDScript 编码规范、Signal 使用、导出配置等维度
 Dependencies: none
 Risk Level: low
@@ -687,7 +694,7 @@ Exclusions: 非 Godot 引擎相关内容
 ```
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: Unreal 调查报告（SendMessage 给 builder-unreal）
+Deliverable: Unreal 调查报告（SendMessage 给 leader 与 builder-unreal）
 Done Definition: 报告涵盖 Unreal 项目结构、Blueprint 约定、C++ 模块划分、Gameplay Framework 使用等维度
 Dependencies: none
 Risk Level: low
@@ -715,7 +722,7 @@ Exclusions: 非 Unreal 引擎相关内容
 ```
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: Cocos Creator 调查报告（SendMessage 给 builder-cocos）
+Deliverable: Cocos Creator 调查报告（SendMessage 给 leader 与 builder-cocos）
 Done Definition: 报告涵盖 Cocos 项目结构、组件约定、TypeScript 规范、热更方案等维度
 Dependencies: none
 Risk Level: low
@@ -741,6 +748,9 @@ Exclusions: 非 Cocos 引擎相关内容
 ### 4.4 派出 Builder 落笔写文件
 
 各 builder 依赖对应 researcher 完成，builder 之间并行。
+
+这些 builder task 在**执行顺序上必须先于 researcher task 创建**，即使它们依赖的 researcher 结果还没就绪也一样。
+不要等 researcher 完成后才临时创建 builder，更不要让 researcher 或 leader 临时承担写 skill 文件的职责。
 
 **TaskCreate → builder-unity**（依赖 researcher-unity 完成）
 
@@ -948,6 +958,10 @@ Exclusions: 无
 ```
 SendMessage → leader：
   目标：分析项目技术栈，生成 domain skill 文件
+
+  创建顺序要求：
+    先创建所有按需 builder task（带 Dependencies）
+    再创建所有按需 researcher task
 
   researcher 分工（按需派出）：
     researcher-unity  → Unity/C# 方向（engine == unity）
