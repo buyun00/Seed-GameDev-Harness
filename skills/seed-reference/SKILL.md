@@ -1,6 +1,21 @@
 ---
 name: seed-reference
 description: Seed GameDev AI 工作流系统参考指南
+triggers:
+  - seed
+  - /seed
+  - setup
+  - embed
+  - agent team
+  - bud
+  - 路由
+  - skill 注入
+domain:
+  - cross-domain
+scope:
+  - user-chat
+  - agent-inject
+source: manual
 ---
 
 # Seed Reference

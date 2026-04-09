@@ -9,15 +9,11 @@ triggers:
   - 确认
   - QA
   - 回归
-version: 1.0
 domain:
   - cross-domain
 scope:
   - user-chat
   - agent-inject
-tags:
-  - method
-  - workflow
 source: manual
 ---
 

@@ -39,10 +39,6 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup-claude-md.sh" <SCOPE>
 
 如果已存在，保留现有内容不覆盖。
 
-**迁移检查**：如果 config 中存在旧的 `dispatch` 键，自动迁移：
-1. 将 `dispatch.mode` 的值复制到 `bud.mode`
-2. 删除 `dispatch` 键
-3. 写回 config 文件
 
 ### 2b. 启用 Agent Teams 环境变量
 

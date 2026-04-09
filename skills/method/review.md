@@ -9,15 +9,11 @@ triggers:
   - PR
   - pull request
   - 检查
-version: 1.0
 domain:
   - cross-domain
 scope:
   - user-chat
   - agent-inject
-tags:
-  - method
-  - workflow
 source: manual
 ---
 

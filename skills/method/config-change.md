@@ -8,15 +8,11 @@ triggers:
   - setting
   - 参数调整
   - 配置修改
-version: 1.0
 domain:
   - cross-domain
 scope:
   - user-chat
   - agent-inject
-tags:
-  - method
-  - workflow
 source: manual
 ---
 

@@ -10,15 +10,11 @@ triggers:
   - 崩溃
   - error
   - 异常
-version: 1.0
 domain:
   - cross-domain
 scope:
   - user-chat
   - agent-inject
-tags:
-  - method
-  - workflow
 source: manual
 ---
 
