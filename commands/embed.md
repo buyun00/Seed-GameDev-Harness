@@ -95,17 +95,32 @@ argument-hint: "[--update]"
 
   未检测到：UI Toolkit / HybridCLR / ILRuntime / Netcode / Mirror
 
-[确认正确，继续]  [有需要修改的地方]
+[确认正确，继续]  [检测结果有误，我来描述]
 ```
 
-确认后进入 Step 2。
+如有修改，直接让用户用自然语言描述需要修正的内容：
+
+```text
+检测结果有误？请直接描述需要修正的地方，例如：
+"热更方案不对，实际是 HybridCLR"
+"UI 框架还有 FairyGUI，不只是 UGUI"
+"引擎版本是 2021.3，不是 2022.3"
+
+描述完成后直接回复即可，Seed 会更新检测结果并继续。
+```
+
+收到用户描述后，直接更新 `tech_stack_report` 中对应字段，然后进入 Step 2 检查是否还有遗漏项。
+不要把用户刚刚已经口头修正过的内容再做一次问卷确认。
+
+用户选择「确认正确，继续」后也进入 Step 2。
 
 ### Step 1 确认结果的生效规则
 
 - 用户选择「确认正确，继续」后，Step 1 中已展示且用户未提出异议的分组，全部视为**已确认**。
-- 用户选择「有需要修改的地方」后，必须先询问「你要修改哪些分组？」并列出 Step 1 中已展示的分组供用户勾选；只有这些分组进入 Step 2，其余已展示分组仍视为**已确认**。
+- 用户用自然语言描述修正内容后，先把对应字段直接写回 `tech_stack_report`；这些已修正字段立即视为**已确认**。
 - `conflicts` 中的冲突项如果已在 Step 1 得到用户答案，视为**已解决**，Step 2 **禁止**再次询问同一冲突。
-- Step 2 的职责是补充未确认信息或承接用户明确提出的修正，**不是**把 Step 1 已确认内容重新问一遍。
+- Step 2 的职责是检查**遗漏项 / 未检测到项 / 仍不确定项**，**不是**把 Step 1 已确认或刚修正完的内容重新问一遍。
+- 如果用户在 Step 1 中补充了新事实（例如“还有 FairyGUI”），先合并进 `tech_stack_report`，再基于更新后的结果决定 Step 2 还要不要补问其他遗漏项。
 
 ### Step 1 展示规则
 
@@ -116,147 +131,138 @@ argument-hint: "[--update]"
 - 引擎版本从 tech_stack_report.engine.version 读取，读不到显示「版本未知」
 ---
 
-## Step 2：技术细节补充（只问未确认项）
+## Step 2：遗漏项补充（只问缺口，不重复确认）
 
-Step 2 只负责两类事情：
+Step 2 只负责补充当前 `tech_stack_report` 里仍然缺失的内容：
 
-- 补充 Step 1 中**未确认 / 未检测到 / 仍不确定**的技术细节
-- 收集用户在 Step 1 中明确提出的**修正项**
+- Step 1 没检测到、但对后续 skill 生成有影响的分组
+- Step 1 冲突未解决、仍然没有答案的分组
+- Step 1 自然语言修正后，仍然存在空白或不确定值的分组
 
-**禁止**把 Step 1 已确认无误的分组重新逐个问一遍。进入 Step 2 前，先建立以下状态：
+**禁止**把 Step 1 已确认正确的内容重新做问卷。
+**禁止**把用户刚刚已经自然语言修正过的字段，再用同一题目重新确认一次。
 
-- `confirmed_groups`：Step 1 已展示且用户确认正确的分组
-- `pending_revision_groups`：用户在 Step 1 明确要求修改的分组
-- `unresolved_groups`：Step 1 后仍没有答案的冲突项或空白项
+进入 Step 2 前，先基于最新的 `tech_stack_report` 建立：
 
-只有 `pending_revision_groups` 和 `unresolved_groups` 可以进入 Step 2。**只展示与当前技术栈相关的分组，不相关的跳过。**
+- `confirmed_groups`：Step 1 已确认或已通过自然语言修正写回的分组
+- `missing_groups`：当前仍为 `none / false / [] / unknown`，且会影响 skill 生成判断的分组
+- `unresolved_groups`：冲突仍未解决、或证据不足以决定的分组
 
-如果用户在 Step 1 选择「有需要修改的地方」，Step 2 开始前先调用一次：
-
-```
-AskUserQuestion(
-  type: multi_select,
-  question: "你要修改哪些分组？",
-  options: ["Lua 桥接", "UI 框架", "热更方案", "资源管理", "配置表", "策划文档", "网络层", "其他集成", "暂未确定"]
-  # 仅展示 Step 1 实际出现过的分组；引擎专属分组按当前项目动态追加
-)
-```
-
-然后仅根据用户勾选结果填充 `pending_revision_groups`，不要把未勾选分组带入 Step 2。
+只有 `missing_groups` 和 `unresolved_groups` 可以进入 Step 2。**只展示与当前技术栈相关的分组，不相关的跳过。**
 
 每个分组独立调用一次 `AskUserQuestion`（type: multi_select），选项末尾统一加上「暂未确定」供用户跳过。
 
 ### Step 2 提问文案规则
 
-- 如果是**补充未确认项**，题目写成「{分组名}（当前未确认，可补充）」。
-- 如果是**修改已确认项**，题目写成「{分组名}（按你的反馈修正；当前值：{current_value}）」。
-- 只有在 `pending_revision_groups` 中的分组，才展示当前值作为修正参考；纯补充题不要把 Step 1 已确认内容再作为默认答案重复确认。
-- `tech_stack_report` 中已检测到但尚未确认的选项，可以标注为「检测到：{evidence}」；已在 Step 1 确认过的选项不要在 Step 2 里再次标注成预选项。
+- 题目统一写成「{分组名}（当前未检测到或仍不确定，可补充）」。
+- 如果某个选项有物理证据但在 Step 1 没得到最终确认，可以标注为「检测到：{evidence}」。
+- 已在 Step 1 确认过、或已被用户自然语言修正过的选项，不要在 Step 2 再标成默认预选，也不要再单独提问。
+- Step 2 的目标是补遗漏，不是重跑一遍完整技术栈问卷。
 
 ### 各分组触发规则
 
-**如果 `lua_bridge` 属于 `pending_revision_groups` 或 `unresolved_groups`，调用：**
+**如果 `lua_bridge` 属于 `missing_groups` 或 `unresolved_groups`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "Lua 桥接方式（当前未确认或需要修正）",
+  question: "Lua 桥接方式（当前未检测到或仍不确定，可补充）",
   options: ["xLua", "tolua", "SLua", "自研桥接层", "暂未确定"]
 )
 ```
 
-**如果 `tech_stack_report.engine.name == unity` 且 `ui_frameworks` 属于 `pending_revision_groups` 或 `unresolved_groups`，调用：**
+**如果 `tech_stack_report.engine.name == unity` 且 `ui_frameworks` 属于 `missing_groups` 或 `unresolved_groups`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "UI 框架（当前未确认或需要修正）",
+  question: "UI 框架（当前未检测到或仍不确定，可补充）",
   options: ["UGUI", "FairyGUI", "UI Toolkit", "自研 UI 框架", "暂未确定"]
 )
 ```
 
-**如果 `tech_stack_report.engine.name == unity` 且 `hot_update` 属于 `pending_revision_groups` 或 `unresolved_groups`，调用：**
+**如果 `tech_stack_report.engine.name == unity` 且 `hot_update` 属于 `missing_groups` 或 `unresolved_groups`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "热更方案（当前未确认或需要修正）",
+  question: "热更方案（当前未检测到或仍不确定，可补充）",
   options: ["xLua 热更新", "tolua 热更新", "HybridCLR", "ILRuntime", "无热更需求", "暂未确定"]
 )
 ```
 
-**如果 `tech_stack_report.engine.name == unity` 且 `asset_management` 属于 `pending_revision_groups` 或 `unresolved_groups`，调用：**
+**如果 `tech_stack_report.engine.name == unity` 且 `asset_management` 属于 `missing_groups` 或 `unresolved_groups`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "资源管理方式（当前未确认或需要修正）",
+  question: "资源管理方式（当前未检测到或仍不确定，可补充）",
   options: ["Addressables", "AssetBundle 自管理", "自研资源系统", "暂未确定"]
 )
 ```
 
-**如果 `config_format` 属于 `pending_revision_groups` 或 `unresolved_groups`，调用：**
+**如果 `config_format` 属于 `missing_groups` 或 `unresolved_groups`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "配置表方案（当前未确认或需要修正）",
+  question: "配置表方案（当前未检测到或仍不确定，可补充）",
   options: ["Excel 导出", "Proto / FlatBuffers", "自定义 JSON/YAML", "无配置表", "暂未确定"]
 )
 ```
 
-**如果 `planning_docs` 属于 `pending_revision_groups` 或 `unresolved_groups`，调用：**
+**如果 `planning_docs` 属于 `missing_groups` 或 `unresolved_groups`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "策划文档规范现状（当前未确认，可补充）",
+  question: "策划文档规范现状（当前未检测到或仍不确定，可补充）",
   options: ["有规范化的文档体系", "有但不规范", "无", "暂未确定"]
 )
 ```
 
-**如果 `network` 属于 `pending_revision_groups` 或 `unresolved_groups`，调用：**
+**如果 `network` 属于 `missing_groups` 或 `unresolved_groups`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "网络层方案（当前未确认或需要修正）",
+  question: "网络层方案（当前未检测到或仍不确定，可补充）",
   options: ["自研网络框架", "Mirror / Netcode", "Godot 内置多人游戏", "无网络需求", "暂未确定"]
 )
 ```
 
-**如果 `tech_stack_report.engine.name == godot` 且 `godot_extra` 属于 `pending_revision_groups` 或 `unresolved_groups`，调用：**
+**如果 `tech_stack_report.engine.name == godot` 且 `godot_extra` 属于 `missing_groups` 或 `unresolved_groups`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "Godot 项目特有配置（当前未确认，可补充）",
+  question: "Godot 项目特有配置（当前未检测到或仍不确定，可补充）",
   options: ["纯 GDScript", "GDScript + C#", "使用 Godot 内置多人游戏", "有导出配置（export_presets.cfg）", "暂未确定"]
 )
 ```
 
-**如果 `tech_stack_report.engine.name == unreal` 且 `unreal_extra` 属于 `pending_revision_groups` 或 `unresolved_groups`，调用：**
+**如果 `tech_stack_report.engine.name == unreal` 且 `unreal_extra` 属于 `missing_groups` 或 `unresolved_groups`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "Unreal 项目特有配置（当前未确认，可补充）",
+  question: "Unreal 项目特有配置（当前未检测到或仍不确定，可补充）",
   options: ["主要用 Blueprint", "主要用 C++", "Blueprint + C++ 混合", "使用了插件（Plugins/ 目录）", "暂未确定"]
 )
 ```
 
-**如果 `tech_stack_report.engine.name == cocos` 且 `cocos_extra` 属于 `pending_revision_groups` 或 `unresolved_groups`，调用：**
+**如果 `tech_stack_report.engine.name == cocos` 且 `cocos_extra` 属于 `missing_groups` 或 `unresolved_groups`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "Cocos Creator 项目配置（当前未确认，可补充）",
+  question: "Cocos Creator 项目配置（当前未检测到或仍不确定，可补充）",
   options: ["TypeScript", "JavaScript", "微信小游戏平台", "有热更新方案", "暂未确定"]
 )
 ```
 
-**如果 `integrations` 属于 `pending_revision_groups` 或 `unresolved_groups`，调用：**
+**如果 `integrations` 属于 `missing_groups` 或 `unresolved_groups`，调用：**
 ```
 AskUserQuestion(
   type: multi_select,
-  question: "其他集成（当前未确认，可补充）",
+  question: "其他集成（当前未检测到或仍不确定，可补充）",
   options: ["MCP 工具集成", "AI pipeline / agent 工作流", "自动化测试框架", "CI/CD 流程", "无"]
 )
 ```
 
 ---
 
-所有未确认分组问完后直接进入 Step 3，不再对已确认分组追问。
+所有遗漏项问完后直接进入 Step 3，不再对已确认分组追问。
 
 ---
 
