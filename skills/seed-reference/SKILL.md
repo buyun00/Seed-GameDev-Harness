@@ -33,7 +33,7 @@ Seed 是一个基于 Claude Code plugin 的游戏研发 AI 工作流系统，提
 5. 写入完成标记
 
 ### /seed:embed
-分析项目技术栈，生成项目专属 domain skill。可随时重跑。
+按双轴矩阵分析项目技术栈，生成项目专属 domain skill。可随时重跑。
 
 用法：
 ```
@@ -41,9 +41,9 @@ Seed 是一个基于 Claude Code plugin 的游戏研发 AI 工作流系统，提
 /seed:embed --update   # 增量模式：只生成缺失的 skill，已有文件保留
 ```
 
-流程：扫描项目结构 → 用户确认技术栈 → 勾选技术细节 → 确认文件列表 → Agent Team 并行生成 → 输出完成摘要。
+流程：扫描项目结构 → 确认主引擎与矩阵项 → 补问未确认方向 → 确认文件列表 → Agent Team 并行生成 → 输出完成摘要。
 
-生成的 skill 文件存放在 `.seed/skills/domain/`。
+生成的 skill 文件存放在 `.seed/skills/domain/`，命名统一为 `domain/<engine>-<direction>.md` 或 `domain/common-<capability>.md`。
 
 ### /seed
 日常入口命令——分析任务并自动组装 agent team 执行（项目快捷命令，由 `/seed:setup` 自动创建，转发到 `/seed:bud`）。
@@ -92,4 +92,4 @@ Seed 是一个基于 Claude Code plugin 的游戏研发 AI 工作流系统，提
 
 在 `.seed/skills/` 下放置 `.md` 文件可以创建项目级 learned skills。支持子目录（如 `domain/`、`method/`、`tooling/`），skill-injector 会递归扫描。文件需包含 YAML frontmatter 的 `triggers` 字段，当用户 prompt 命中触发词时自动注入。
 
-运行 `/seed:embed` 可自动生成项目专属的 domain skill 到 `.seed/skills/domain/`。
+运行 `/seed:embed` 可自动生成项目专属的矩阵化 domain skill 到 `.seed/skills/domain/`。

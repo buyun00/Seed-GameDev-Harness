@@ -1,10 +1,10 @@
 ---
 name: embed-researcher-lua
-description: /seed:embed Lua researcher 扫描剧本
+description: /seed:embed Lua capability researcher 扫描剧本
 triggers:
   - embed lua researcher
   - lua scan
-  - bridge scan
+  - lua embedding scan
 domain:
   - project-analysis
 scope:
@@ -17,60 +17,51 @@ scope:
 
 1. `seed/skills/embed/researcher-common.md`
 2. `seed/skills/embed/researcher-runtime-common.md`
-3. `seed/skills/embed/researcher-lua.md`
+3. `seed/skills/embed/taxonomy-registry.md`
+4. `seed/skills/embed/researcher-lua.md`
 
 ## TaskCreate 模板
 
 ```text
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: Lua 调查报告（SendMessage 给 leader 与 builder-lua）
-Done Definition: 报告先输出通用规则执行结果，再输出运行时必查项结果，最后输出 Lua 领域发现；每条结论附证据路径；若运行时必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
+Deliverable: Lua 跨引擎能力调查报告（SendMessage 给 leader 与 builder-lua）
+Done Definition: 报告按 researcher-common 的三段格式输出；覆盖 capability.lua_embedding；如 Lua 层承担运行时主路径但必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
 Dependencies: none
 Risk Level: low
 Leader Ack Required: false
-Original User Intent: 分析项目 Lua 技术栈，为生成 skill 文件提供依据
-Scope Coverage: Lua 模块组织、桥接层（xLua/tolua/SLua）、热更新模式、C#-Lua 互调、错误处理、日志规范
-Exclusions: 纯 C# 层代码、Unity Editor 功能、配置表数据
+Original User Intent: 分析项目 Lua 跨引擎嵌入能力，为生成 common-lua-embedding.md 提供依据
+Scope Coverage: lua_embedding
+Exclusions: 任意引擎主线方向、配置表、网络、CI/CD、工具链
 ```
 
 ## 扫描剧本
 
-### Lua 模块组织
+### 识别 Lua runtime / bridge 变体
 
-- 先找 Lua 根目录，如 `Lua/`、`Scripts/Lua/`、`Assets/Lua/`
-- 搜索 `require(`、`dofile(`、模块返回表、模块初始化入口
-- 只有在定位到实际模块入口与依赖写法后，才能总结模块系统
+- 搜索 `Assets/XLua/`、`Assets/ToLua/`、`Assets/Slua/`、`GDLua`、`UnLua`
+- 搜索 `using XLua;`、`using LuaInterface;`、`using SLua;`、`LuaEnv`、`DoString`
+- 搜索各引擎宿主侧的 Lua 初始化入口、绑定生成入口、脚本根目录
+- 如果命中多套互斥方案，必须输出冲突，不自行裁决
 
-### 桥接层
+### Lua 模块与入口
 
-- 搜索 `XLua`、`LuaInterface`、`SLua`、`DoString`、`LuaEnv`、`CSharpCallLua`、`LuaCallCSharp`
-- 同时回查 C# 侧桥接入口与 Lua 侧调用点
-- 若只有 detect-tech-stack 的框架命中，没有实际互调代码，不得写互调约定
+- 搜索 `require(`、`dofile(`、模块返回表、`Main.lua`、启动入口、Facade/Manager 代理
+- 只有定位到实际入口与模块加载方式，才能写模块系统结论
 
-### 热更新模式
+### 双向互调 / 热修 / 错误处理
 
-- 搜索 `Hotfix`、`patch`、`reload`、`hotupdate`、Lua 重载入口
-- 只有命中实际热更入口、发布脚本或补丁加载流程，才能写热更新规范
+- 搜索 `CSharpCallLua`、`LuaCallCSharp`、委托注册、回调桥接、绑定配置
+- 搜索 `Hotfix`、`patch`、`reload`、`hotupdate`
+- 搜索 `pcall`、`xpcall`、`error(`、`LogError`、日志封装
+- 如果只找到框架依赖，没有互调调用点，写 `unknown`，不要补写 bridge 规则
 
-### Lua 与 C# 互调方式
+### 运行时五问中的 Lua 落点
 
-- 追踪“Lua 调 C#”和“C# 调 Lua”各自的实际实现
-- 重点找：委托注册、桥接配置、函数绑定、回调入口
-- 没找到双向互调证据时，不要补写通用桥接知识
-
-### 错误处理与日志
-
-- 搜索 `pcall`、`xpcall`、`error(`、`print(`、`logger`、`LogError`
-- 记录项目里真实存在的错误封装和日志前缀
-
-### Lua 对外 API
-
-- 搜索启动入口、业务模块公共表、事件注册函数、Facade/Manager 层的 Lua 代理
-- 只记录被实际调用的对外 API，不列猜测中的接口
+- 如果按钮绑定、UI 开关、系统通信、场景切换、资源加载释放主要落在 Lua 层，必须把 Lua 侧实现路径写清楚
+- 如果这些行为主要在宿主引擎层，则标明“Lua 不承担主路径”，不要强行补写
 
 ## 输出要求
 
-- 必须先回答运行时必查项，再写 Lua 领域发现
-- 若按钮/UI/资源等实现主要在 Lua 层，优先给出 Lua 实现路径
-- 若实现横跨 Lua 和 C#，两侧证据都要记录
+- `common-lua-embedding.md` 只写 Lua 跨引擎能力，不复写引擎主线方向
+- 如果命中 GDLua / UnLua，也要保留与对应引擎侧桥接入口的证据

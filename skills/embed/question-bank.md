@@ -1,184 +1,251 @@
 ---
 name: embed-question-bank
-description: /seed:embed Step 2 遗漏项补充题库
+description: /seed:embed Step 2 双轴矩阵补问题库
 triggers:
   - embed step2
-  - 遗漏项补充
-  - 技术栈问卷
+  - matrix question bank
+  - direction 补问
 domain:
   - project-analysis
 scope:
   - agent-inject
 ---
 
-## 用途
+# /seed:embed Step 2 Question Bank
 
-本文件承接 `/seed:embed` Step 2 的遗漏项补充逻辑。
-`embed.md` 只负责判断何时进入 Step 2；具体提问规则与题库都以本文件为准。
+本文件负责 `/seed:embed` Step 2 的补问逻辑。执行前必须先加载 [`seed/skills/embed/taxonomy-registry.md`](seed/skills/embed/taxonomy-registry.md)。
 
 ## Step 2 目标
 
-Step 2 只负责补充当前 `tech_stack_report` 里仍然缺失的内容：
+Step 2 不再围绕旧字段提问，而是围绕 registry 的矩阵项提问：
 
-- Step 1 没检测到、但对后续 skill 生成有影响的分组
-- Step 1 冲突未解决、仍然没有答案的分组
-- Step 1 自然语言修正后，仍然存在空白或不确定值的分组
+- `engine` 轴：只看当前主引擎的 13 个方向
+- `capability` 轴：只看当前项目的活跃跨引擎能力
 
-禁止：
+## 进入 Step 2 前必须建立的集合
 
-- 把 Step 1 已确认正确的内容重新做问卷
-- 把用户刚刚已经自然语言修正过的字段，再用同一题目确认一次
+- `confirmed_directions`
+  - Step 1 已确认，或已由用户自然语言修正回写的引擎方向
+- `missing_directions`
+  - 当前主引擎方向中，`status = missing`
+- `unresolved_directions`
+  - 当前主引擎方向中，`status = unknown` 或进入 `conflicts`
+- `active_capabilities`
+  - 当前 `capabilities` 中 `status = detected | unknown`
+  - 或 Step 1 用户明确补充“项目还有这项能力”
+- `confirmed_capabilities`
+  - 已确认的跨引擎能力
+- `unresolved_capabilities`
+  - 活跃跨引擎能力中 `status = unknown` 或进入 `conflicts`
 
-## 进入 Step 2 前必须建立的分组
+### 约束
 
-- `confirmed_groups`：Step 1 已确认或已通过自然语言修正写回的分组
-- `missing_groups`：当前仍为 `none / false / [] / unknown`，且会影响 skill 生成判断的分组
-- `unresolved_groups`：冲突仍未解决、或证据不足以决定的分组
+- Step 2 **默认不追问 `status = missing` 且完全没有证据的 capability**。
+- 只有当 Step 1 用户明确补充该能力存在，或检测到了部分证据时，才把它加入 `active_capabilities`。
+- `unsupported` 不进入 Step 2，除非用户在 Step 1 明确要求改判。
+- 已确认项禁止重复提问。
 
-只有 `missing_groups` 和 `unresolved_groups` 可以进入 Step 2。
-只展示与当前技术栈相关的分组，不相关的跳过。
+## 提问方式
 
-## 提问文案规则
+- 每个矩阵项只提一次。
+- 优先使用 `AskUserQuestion`；不可用时降级为普通文本。
+- 降级时必须明确写出用户要回复什么，例如：
+  - `回复 A/B/C`
+  - `或直接用自然语言补充实际方案`
 
-- 题目统一写成：`{分组名}（当前未检测到或仍不确定，可补充）`
-- 如果某个选项有物理证据但在 Step 1 没得到最终确认，可以标注为：`检测到：{evidence}`
-- 已在 Step 1 确认过、或已被用户自然语言修正过的选项，不要在 Step 2 再标成默认预选，也不要重复提问
-- 每个分组独立提一次，不要把所有缺口混成一题
+## 引擎方向题库
 
-## 题库
+以下题目都遵循命名规则：
 
-### `lua_bridge`
+- `question_set_id = qs-<engine>-<direction-kebab>`
 
-当 `lua_bridge` 属于 `missing_groups` 或 `unresolved_groups` 时，调用：
+### `project_structure`
 
-```text
-AskUserQuestion(
-  type: multi_select,
-  question: "Lua 桥接方式（当前未检测到或仍不确定，可补充）",
-  options: ["xLua", "tolua", "SLua", "自研桥接层", "暂未确定"]
-)
-```
+- 触发：当前主引擎的 `project_structure` 进入 `missing_directions` 或 `unresolved_directions`
+- 问题模板：`{Engine} 项目的目录结构 / 模块划分当前未确认，实际更接近哪种组织方式？`
+- 选项参考：
+  - Unity：`Assets 分层 + asmdef`、`UPM / Package 模块化`、`插件/子模块混合`、`自研目录规范`、`暂未确定`
+  - Godot：`scene + script 分层`、`autoload + feature folder`、`addons 驱动`、`混合组织`、`暂未确定`
+  - Unreal：`Source/Content/Config 标准结构`、`多模块 Source`、`插件主导`、`混合组织`、`暂未确定`
+  - Cocos：`assets + bundle 分层`、`feature folder`、`extensions/原生扩展混合`、`混合组织`、`暂未确定`
 
-### `ui_frameworks`
+### `scene_graph_and_lifecycle`
 
-当 `tech_stack_report.engine.name == unity` 且 `ui_frameworks` 属于 `missing_groups` 或 `unresolved_groups` 时，调用：
+- 问题模板：`{Engine} 的场景 / 节点 / 生命周期主路径当前未确认，主要依赖哪套入口？`
+- 选项参考：
+  - Unity：`SceneManager + MonoBehaviour 生命周期`、`自研场景流转封装`、`Prefab 驱动`、`暂未确定`
+  - Godot：`Scene/Node + _ready/_process`、`autoload 统一入口`、`继承 scene 体系`、`暂未确定`
+  - Unreal：`Level + BeginPlay`、`GameMode/GameState 主导`、`Subsystem 主导`、`暂未确定`
+  - Cocos：`director.loadScene + Component 生命周期`、`自研 scene flow`、`bundle/预制体主导`、`暂未确定`
 
-```text
-AskUserQuestion(
-  type: multi_select,
-  question: "UI 框架（当前未检测到或仍不确定，可补充）",
-  options: ["UGUI", "FairyGUI", "UI Toolkit", "自研 UI 框架", "暂未确定"]
-)
-```
+### `native_code_architecture`
 
-### `hot_update`
+- 问题模板：`{Engine} 的原生代码架构当前未确认，项目主要按什么方式组织？`
+- 选项参考：
+  - Unity：`C# 分层架构`、`Manager/Service 模式`、`MVC/MVVM`、`ECS/runtime framework`、`暂未确定`
+  - Godot：`GDScript 主导`、`GDScript + C# 混合`、`autoload service`、`暂未确定`
+  - Unreal：`C++ Gameplay Framework`、`Subsystem + Module`、`GAS / ability framework`、`暂未确定`
+  - Cocos：`TypeScript 分层架构`、`Component + Manager`、`service/module 模式`、`暂未确定`
 
-当 `tech_stack_report.engine.name == unity` 且 `hot_update` 属于 `missing_groups` 或 `unresolved_groups` 时，调用：
+### `script_layer`
 
-```text
-AskUserQuestion(
-  type: multi_select,
-  question: "热更方案（当前未检测到或仍不确定，可补充）",
-  options: ["xLua 热更新", "tolua 热更新", "HybridCLR", "ILRuntime", "无热更需求", "暂未确定"]
-)
-```
+- 问题模板：`{Engine} 的脚本层当前未确认，项目主要使用哪类脚本运行时？`
+- 选项参考：
+  - Unity：`Lua 层`、`DSL / 表驱动脚本`、`没有独立脚本层`、`暂未确定`
+  - Godot：`GDScript`、`GDScript + C# 混用`、`没有独立脚本层`、`暂未确定`
+  - Unreal：`Blueprint`、`Blueprint + C++`、`没有独立脚本层`、`暂未确定`
+  - Cocos：`TypeScript`、`JavaScript`、`TypeScript + JavaScript`、`暂未确定`
 
-### `asset_management`
+### `bridge_layer`
 
-当 `tech_stack_report.engine.name == unity` 且 `asset_management` 属于 `missing_groups` 或 `unresolved_groups` 时，调用：
+- 问题模板：`{Engine} 的桥接层当前未确认，项目主要通过什么边界和宿主/插件互通？`
+- 选项参考：
+  - Unity：`Lua bridge`、`原生 SDK / DllImport`、`双边都有`、`没有显式桥接层`、`暂未确定`
+  - Godot：`GDExtension / GDNative`、`addon/plugin bridge`、`C# bridge`、`没有显式桥接层`、`暂未确定`
+  - Unreal：`Blueprint <-> C++ bridge`、`plugin bridge`、`双边都有`、`没有显式桥接层`、`暂未确定`
+  - Cocos：`JSB / 原生桥接`、`plugin bridge`、`SDK wrapper`、`没有显式桥接层`、`暂未确定`
 
-```text
-AskUserQuestion(
-  type: multi_select,
-  question: "资源管理方式（当前未检测到或仍不确定，可补充）",
-  options: ["Addressables", "AssetBundle 自管理", "自研资源系统", "暂未确定"]
-)
-```
+### `ui_system`
 
-### `config_format`
+- 问题模板：`{Engine} 的 UI 系统当前未确认，实际主要使用哪套 UI 栈？`
+- 选项参考：
+  - Unity：`UGUI`、`FairyGUI`、`UI Toolkit`、`多套共存`、`自研 UI`、`暂未确定`
+  - Godot：`Control`、`Theme + 自定义控件`、`addon UI`、`多套共存`、`暂未确定`
+  - Unreal：`UMG`、`Slate`、`CommonUI`、`多套共存`、`暂未确定`
+  - Cocos：`Widget/Layout`、`自研 UI 框架`、`FairyGUI 或第三方`、`多套共存`、`暂未确定`
 
-当 `config_format` 属于 `missing_groups` 或 `unresolved_groups` 时，调用：
+### `hot_reload`
 
-```text
-AskUserQuestion(
-  type: multi_select,
-  question: "配置表方案（当前未检测到或仍不确定，可补充）",
-  options: ["Excel 导出", "Proto / FlatBuffers", "自定义 JSON/YAML", "无配置表", "暂未确定"]
-)
-```
+- 问题模板：`{Engine} 的热更新 / 热重载方向当前未确认，项目实际采用什么方案？`
+- 选项参考：
+  - Unity：`HybridCLR`、`ILRuntime`、`xLua Hotfix`、`tolua Hotupdate`、`无独立热更`、`暂未确定`
+  - Godot：`addon/plugin 热重载`、`自定义脚本重载`、`无独立方案（视为 unsupported）`、`暂未确定`
+  - Unreal：`Live Coding`、`Hot Reload`、`插件热更`、`无独立方案`、`暂未确定`
+  - Cocos：`hotupdate/patch`、`bundle patch`、`无独立方案`、`暂未确定`
 
-### `planning_docs`
+### `asset_pipeline`
 
-当 `planning_docs` 属于 `missing_groups` 或 `unresolved_groups` 时，调用：
+- 问题模板：`{Engine} 的资源管线当前未确认，项目主要通过哪套方案组织与加载资源？`
+- 选项参考：
+  - Unity：`Addressables`、`AssetBundle 自管`、`自研资源系统`、`默认资源方式`、`暂未确定`
+  - Godot：`ResourceLoader / preload`、`PackedScene 动态加载`、`自研资源封装`、`暂未确定`
+  - Unreal：`Primary Asset`、`StreamableManager`、`AssetManager`、`自研封装`、`暂未确定`
+  - Cocos：`assetManager`、`resources.load`、`bundle 管线`、`自研封装`、`暂未确定`
 
-```text
-AskUserQuestion(
-  type: multi_select,
-  question: "策划文档规范现状（当前未检测到或仍不确定，可补充）",
-  options: ["有规范化的文档体系", "有但不规范", "无", "暂未确定"]
-)
-```
+### `event_and_message_system`
 
-### `network`
+- 问题模板：`{Engine} 的模块通信方向当前未确认，项目主要通过什么方式通信？`
+- 选项参考：
+  - Unity：`EventBus / Signal`、`消息中心`、`直接引用 + Manager`、`暂未确定`
+  - Godot：`Signal`、`autoload event bus`、`直接引用`、`暂未确定`
+  - Unreal：`Delegates`、`Gameplay Message / GAS`、`Replication 事件`、`暂未确定`
+  - Cocos：`EventTarget`、`消息中心`、`直接引用`、`暂未确定`
 
-当 `network` 属于 `missing_groups` 或 `unresolved_groups` 时，调用：
+### `animation_system`
 
-```text
-AskUserQuestion(
-  type: multi_select,
-  question: "网络层方案（当前未检测到或仍不确定，可补充）",
-  options: ["自研网络框架", "Mirror / Netcode", "Godot 内置多人游戏", "无网络需求", "暂未确定"]
-)
-```
+- 问题模板：`{Engine} 的动画系统当前未确认，项目主要使用哪套动画栈？`
+- 选项参考：
+  - Unity：`Animator`、`Timeline`、`Spine`、`DragonBones`、`多套共存`、`暂未确定`
+  - Godot：`AnimationPlayer`、`AnimationTree`、`Tween`、`多套共存`、`暂未确定`
+  - Unreal：`Anim Blueprint`、`Montage`、`Sequencer`、`多套共存`、`暂未确定`
+  - Cocos：`Animation/Tween`、`Spine`、`DragonBones`、`多套共存`、`暂未确定`
 
-### `godot_extra`
+### `physics_navigation_or_runtime_framework`
 
-当 `tech_stack_report.engine.name == godot` 且 `godot_extra` 属于 `missing_groups` 或 `unresolved_groups` 时，调用：
+- 问题模板：`{Engine} 的物理 / 导航 / runtime framework 当前未确认，项目更偏向哪类运行时框架？`
+- 选项参考：
+  - Unity：`Physics + NavMesh`、`CharacterController`、`ECS/runtime framework`、`暂未确定`
+  - Godot：`Physics2D/3D`、`NavigationServer`、`自研 runtime system`、`暂未确定`
+  - Unreal：`CharacterMovement + Navigation`、`Replication / GAS`、`Chaos physics`、`暂未确定`
+  - Cocos：`Physics2D/3D`、`自研 runtime system`、`导航/寻路封装`、`暂未确定`
 
-```text
-AskUserQuestion(
-  type: multi_select,
-  question: "Godot 项目特有配置（当前未检测到或仍不确定，可补充）",
-  options: ["纯 GDScript", "GDScript + C#", "使用 Godot 内置多人游戏", "有导出配置（export_presets.cfg）", "暂未确定"]
-)
-```
+### `plugin_extension`
 
-### `unreal_extra`
+- 问题模板：`{Engine} 的插件 / 扩展方向当前未确认，项目主要通过什么方式扩展引擎？`
+- 选项参考：
+  - Unity：`UPM / package`、`Plugins/SDK`、`Editor extension`、`没有显式插件层`、`暂未确定`
+  - Godot：`addons`、`GDExtension`、`editor plugin`、`没有显式插件层`、`暂未确定`
+  - Unreal：`Plugins`、`engine module`、`editor plugin`、`没有显式插件层`、`暂未确定`
+  - Cocos：`extensions`、`原生扩展`、`editor extension`、`没有显式插件层`、`暂未确定`
 
-当 `tech_stack_report.engine.name == unreal` 且 `unreal_extra` 属于 `missing_groups` 或 `unresolved_groups` 时，调用：
+### `platform_adaptation`
 
-```text
-AskUserQuestion(
-  type: multi_select,
-  question: "Unreal 项目特有配置（当前未检测到或仍不确定，可补充）",
-  options: ["主要用 Blueprint", "主要用 C++", "Blueprint + C++ 混合", "使用了插件（Plugins/ 目录）", "暂未确定"]
-)
-```
+- 问题模板：`{Engine} 的平台适配方向当前未确认，项目主要面向哪些平台或适配层？`
+- 选项参考：
+  - Unity：`Android/iOS`、`小游戏平台`、`PC/Console`、`多平台混合`、`暂未确定`
+  - Godot：`桌面导出`、`移动导出`、`Web/平台插件`、`多平台混合`、`暂未确定`
+  - Unreal：`PC/Console`、`移动平台`、`多平台混合`、`暂未确定`
+  - Cocos：`微信小游戏`、`原生平台`、`Web`、`多平台混合`、`暂未确定`
 
-### `cocos_extra`
+## 跨引擎能力题库
 
-当 `tech_stack_report.engine.name == cocos` 且 `cocos_extra` 属于 `missing_groups` 或 `unresolved_groups` 时，调用：
+以下题目都遵循命名规则：
 
-```text
-AskUserQuestion(
-  type: multi_select,
-  question: "Cocos Creator 项目配置（当前未检测到或仍不确定，可补充）",
-  options: ["TypeScript", "JavaScript", "微信小游戏平台", "有热更新方案", "暂未确定"]
-)
-```
+- `question_set_id = qs-common-<capability-kebab>`
 
-### `integrations`
+### `lua_embedding`
 
-当 `integrations` 属于 `missing_groups` 或 `unresolved_groups` 时，调用：
+- 触发：`lua_embedding` 位于 `active_capabilities` 且进入 `unresolved_capabilities`
+- 问题模板：`Lua 嵌入方案当前未确认，项目实际使用哪套 Lua runtime / bridge？`
+- 选项参考：
+  - `xLua`
+  - `tolua`
+  - `SLua`
+  - `GDLua`
+  - `UnLua`
+  - `自研 Lua bridge`
+  - `暂未确定`
 
-```text
-AskUserQuestion(
-  type: multi_select,
-  question: "其他集成（当前未检测到或仍不确定，可补充）",
-  options: ["MCP 工具集成", "AI pipeline / agent 工作流", "自动化测试框架", "CI/CD 流程", "无"]
-)
-```
+### `data_config_pipeline`
+
+- 触发：`data_config_pipeline` 位于 `active_capabilities` 且进入 `unresolved_capabilities`
+- 问题模板：`配置表 / Schema / 导表流程当前未确认，项目主要采用哪套数据管线？`
+- 选项参考：
+  - `Excel / CSV 导表`
+  - `Proto / FlatBuffers`
+  - `JSON / YAML 数据驱动`
+  - `多套共存`
+  - `暂未确定`
+
+### `network_protocol_and_sync`
+
+- 触发：`network_protocol_and_sync` 位于 `active_capabilities` 且进入 `unresolved_capabilities`
+- 问题模板：`网络协议 / 同步方案当前未确认，项目主要采用哪条链路？`
+- 选项参考：
+  - `自研 Socket / KCP / TCP`
+  - `Mirror / Netcode`
+  - `Godot Multiplayer`
+  - `Unreal Replication`
+  - `WebSocket / HTTP mixed`
+  - `暂未确定`
+
+### `build_release_and_cicd`
+
+- 触发：`build_release_and_cicd` 位于 `active_capabilities` 且进入 `unresolved_capabilities`
+- 问题模板：`构建 / 发布 / CI/CD 当前未确认，项目实际依赖哪类流水线？`
+- 选项参考：
+  - `GitHub Actions`
+  - `GitLab CI`
+  - `Jenkins`
+  - `本地脚本为主`
+  - `多套共存`
+  - `暂未确定`
+
+### `tooling_and_ai_pipeline`
+
+- 触发：`tooling_and_ai_pipeline` 位于 `active_capabilities` 且进入 `unresolved_capabilities`
+- 问题模板：`工具链 / MCP / AI pipeline 当前未确认，项目主要有哪些工程级工具能力？`
+- 选项参考：
+  - `MCP`
+  - `Agent / AI pipeline`
+  - `Editor / custom tools`
+  - `自动化脚本`
+  - `多套共存`
+  - `暂未确定`
 
 ## 退出条件
 
-所有遗漏项问完后直接进入 Step 3，不再对已确认分组追问。
+- 当前主引擎的 `missing_directions` 与 `unresolved_directions` 都已检查
+- `active_capabilities` 中的 `unresolved_capabilities` 都已检查
+- 所有用户补充信息都已写回 `tech_stack_report`
+- 不对 `confirmed_*` 项重复提问

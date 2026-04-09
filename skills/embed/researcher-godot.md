@@ -4,7 +4,7 @@ description: /seed:embed Godot researcher 扫描剧本
 triggers:
   - embed godot researcher
   - godot scan
-  - gdscript scan
+  - godot matrix scan
 domain:
   - project-analysis
 scope:
@@ -17,51 +17,49 @@ scope:
 
 1. `seed/skills/embed/researcher-common.md`
 2. `seed/skills/embed/researcher-runtime-common.md`
-3. `seed/skills/embed/researcher-godot.md`
+3. `seed/skills/embed/taxonomy-registry.md`
+4. `seed/skills/embed/researcher-godot.md`
 
 ## TaskCreate 模板
 
 ```text
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: Godot 调查报告（SendMessage 给 leader 与 builder-godot）
-Done Definition: 报告先输出通用规则执行结果，再输出运行时必查项结果，最后输出 Godot 领域发现；每条结论附证据路径；若运行时必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
+Deliverable: Godot 引擎主线调查报告（SendMessage 给 leader 与 builder-godot）
+Done Definition: 报告按 researcher-common 的三段格式输出；仅覆盖 Godot 主线方向；如运行时必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
 Dependencies: none
 Risk Level: low
 Leader Ack Required: false
-Original User Intent: 分析项目 Godot 技术栈，为生成 skill 文件提供依据
-Scope Coverage: Godot 项目结构、Scene/Node 命名组织、GDScript 编码规范、Signal 使用规范、C# 集成（如有）、导出配置
-Exclusions: 非 Godot 引擎相关内容
+Original User Intent: 分析项目 Godot 主线方向，为生成 v2 矩阵 skill 提供依据
+Scope Coverage: project_structure, scene_graph_and_lifecycle, native_code_architecture, script_layer, bridge_layer, ui_system, hot_reload, asset_pipeline, event_and_message_system, animation_system, physics_navigation_or_runtime_framework, plugin_extension, platform_adaptation
+Exclusions: common-lua-embedding、common-data-config-pipeline、common-network-protocol-and-sync、common-build-release-and-cicd、common-tooling-and-ai-pipeline
 ```
 
 ## 扫描剧本
 
-### 项目结构
+### 项目结构 / 场景生命周期 / 原生架构
 
-- 搜索 `project.godot`、`*.tscn`、`*.gd`、`addons/`、`autoload`
-- 关注场景目录、脚本目录、资源目录、插件目录
+- 搜索 `project.godot`、`addons/`、`autoload`、`*.tscn`、`*.gd`、`*.cs`
+- 搜索 `_ready()`、`_process()`、`_physics_process()`、scene inheritance、autoload 单例
+- 搜索 `class_name`、基础脚本、`.csproj`、服务脚本、异步调用
 
-### Scene/Node 组织
+### 脚本层 / 桥接层 / UI
 
-- 搜索关键 scene 文件、节点命名、继承 scene、autoload 配置
-- 只有命中具体 scene 树或脚本引用，才能写节点组织约定
+- 搜索 GDScript 主脚本层、GDScript 与 C# 混用入口
+- 搜索 `GDExtension`、`GDNative`、addon/plugin bridge、native binding
+- 搜索 `Control`、`Theme`、UI scene、`CanvasLayer`、自定义控件
+- 如果命中 Lua 插件或 GDLua，只写 Godot 宿主桥接证据，并标注交给 `researcher-lua`
 
-### GDScript 规范
+### 热重载 / 资源 / 事件 / 动画 / 物理 / 插件 / 平台
 
-- 搜索 `class_name`、`signal`、`@export`、`@onready`、常用基类
-- 记录项目真实存在的命名与脚本结构
-
-### Signal 与事件通信
-
-- 搜索 `signal`、`connect(`、`emit_signal`、`Callable`
-- 追到信号定义和订阅/发射落点，不能只看到 `signal` 声明就总结通信模式
-
-### C# 集成与导出配置
-
-- 搜索 `.csproj`、`*.cs`、`export_presets.cfg`
-- 未找到时明确写未找到
+- 搜索 addon/plugin hot reload、自定义 reload 逻辑
+- 搜索 `load(`、`preload(`、`ResourceLoader`、`PackedScene`
+- 搜索 `signal`、`connect(`、`Callable`
+- 搜索 `AnimationPlayer`、`AnimationTree`、`Tween`
+- 搜索 `CharacterBody`、`RigidBody`、`NavigationServer`
+- 搜索 `addons/`、editor plugin、`export_presets.cfg`
 
 ## 输出要求
 
-- 运行时必查项必须优先从 scene 脚本、autoload、UI scene、资源加载脚本中寻找
-- 只有 Godot 项目内真实命中的节点/信号/资源路径才可写入报告
+- 如果只有默认 GDScript reload、没有项目级热更方案，可将 `hot_reload` 写为 `unsupported`
+- 只写 Godot 主线，不把 GDLua、网络、CI/CD 吞到 Godot 专属 skill 里

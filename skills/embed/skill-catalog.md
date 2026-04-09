@@ -1,225 +1,233 @@
 ---
 name: embed-skill-catalog
-description: /seed:embed Step 3 domain skill 生成映射表
+description: /seed:embed Step 3 双轴矩阵 skill 生成目录
 triggers:
   - embed step3
   - skill catalog
-  - domain skill 映射
+  - matrix skill catalog
 domain:
   - project-analysis
 scope:
   - agent-inject
 ---
 
-## 用途
+# /seed:embed Step 3 Skill Catalog
 
-本文件承接 `/seed:embed` Step 3 的长表逻辑。
-根据 Step 1 已确认的答案与 Step 2 的补充结果，动态决定需要生成哪些 skill 文件。
+本文件负责根据 `tech_stack_report` 生成目标 skill 文件列表。执行前必须先加载 [`seed/skills/embed/taxonomy-registry.md`](seed/skills/embed/taxonomy-registry.md)。
 
-## 各条件对应的 skill 文件
+## Step 3 目标
 
-### 所有项目（必选）
+Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展开：
 
-| 文件 | 说明 |
-|---|---|
-| `domain/project-structure.md` | 项目目录结构和模块划分 |
-| `domain/project-conventions.md` | 项目通用约定（命名、注释、提交规范等） |
+- 当前主引擎的 13 个 `directions`
+- 当前项目已激活的 `capabilities`
 
-### Unity 项目
+## 生成规则
 
-| 文件 | 说明 |
-|---|---|
-| `domain/unity-project-structure.md` | Unity 项目目录组织方式 |
-| `domain/unity-scene-management.md` | 场景管理和加载方式 |
-| `domain/unity-lifecycle.md` | MonoBehaviour 生命周期使用约定 |
-| `domain/unity-prefab-conventions.md` | Prefab 命名、组织、引用约定 |
-| `domain/unity-serialization.md` | 序列化字段约定和 SO 使用规范 |
+### 1. 引擎主线 skill
 
-### C# 层（Unity 或其他）
+对当前 `engine.name` 的 13 个方向逐一判断：
 
-| 文件 | 说明 |
-|---|---|
-| `domain/csharp-coding-rules.md` | 代码风格、命名规范、文件组织 |
-| `domain/csharp-architecture.md` | C# 层架构设计（框架选型、分层约定） |
-| `domain/csharp-patterns.md` | 项目常用设计模式和惯用写法 |
-| `domain/csharp-async.md` | 异步处理方式（async/await / coroutine 约定） |
-| `domain/csharp-testing.md` | 单元测试规范和测试组织方式 |
+- `status = detected`
+  - 生成对应 skill
+- `status = unknown`
+  - 生成对应 skill，但后续 builder 可能落为占位 skill
+- `status = missing`
+  - 不生成，除非用户在 Step 1 / Step 2 明确说“项目有，只是没扫到”
+- `status = unsupported`
+  - 不生成
 
-### Lua 层
+命名规则：
 
-| 文件 | 说明 |
-|---|---|
-| `domain/lua-architecture.md` | Lua 层模块组织和架构设计 |
-| `domain/lua-coding-rules.md` | Lua 编码规范（命名、注释、文件结构） |
-| `domain/lua-module-system.md` | 模块加载和依赖管理方式 |
-| `domain/lua-gameplay-api.md` | Lua 层对外暴露的主要 API 和接口约定 |
-| `domain/lua-error-handling.md` | 错误处理和日志规范 |
+- 文件：`domain/<engine>-<direction-kebab>.md`
+- `matrix_id`: `engine.<engine>.<direction_id>`
+- `question_set_id`: `qs-<engine>-<direction-kebab>`
+- `fixed_question_file`: `seed/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
 
-### xLua 桥接
+### 2. 跨引擎能力 skill
 
-| 文件 | 说明 |
-|---|---|
-| `domain/xlua-bridge-rules.md` | xLua 桥接层约定（哪些走桥接、如何组织） |
-| `domain/xlua-hotfix-patterns.md` | 热补丁使用规范和注意事项 |
-| `domain/xlua-interop-conventions.md` | C# 与 Lua 互调约定和最佳实践 |
+对 5 个 capability 逐一判断：
 
-### tolua 桥接
+- `status = detected`
+  - 生成对应 skill
+- `status = unknown`
+  - 如果已经进入 `active_capabilities`，生成对应 skill，但允许 builder 写成占位 skill
+- `status = missing`
+  - 默认不生成
+- `status = unsupported`
+  - 不生成
 
-| 文件 | 说明 |
-|---|---|
-| `domain/tolua-bridge-rules.md` | tolua 桥接层约定 |
-| `domain/tolua-coroutine.md` | tolua 协程使用规范 |
+命名规则：
 
-### SLua 桥接
+- 文件：`domain/common-<capability-kebab>.md`
+- `matrix_id`: `capability.<capability_id>`
+- `question_set_id`: `qs-common-<capability-kebab>`
+- `fixed_question_file`: `seed/skills/embed/fixed-questions/capability/<capability-kebab>.md`
 
-| 文件 | 说明 |
-|---|---|
-| `domain/slua-bridge-rules.md` | SLua 桥接层约定 |
+### 3. 不再生成的旧文件类型
 
-### UGUI
+以下旧命名和旧分类不再作为 v2 catalog 输出：
 
-| 文件 | 说明 |
-|---|---|
-| `domain/ugui-component-rules.md` | UI 组件命名和组织约定 |
-| `domain/ugui-layout-conventions.md` | 布局规范（锚点、自适应等） |
-| `domain/ugui-prefab-conventions.md` | UI Prefab 组织和复用约定 |
-| `domain/ugui-event-system.md` | 事件系统使用规范 |
+- `domain/project-structure.md`
+- `domain/project-conventions.md`
+- `domain/csharp-coding-rules.md`
+- `domain/lua-architecture.md`
+- `godot_extra`
+- `unreal_extra`
+- `cocos_extra`
 
-### FairyGUI
+它们统一被新的引擎矩阵文件或 `common-*` 文件替代。
 
-| 文件 | 说明 |
-|---|---|
-| `domain/fairygui-component-rules.md` | FairyGUI 组件命名和组织约定 |
-| `domain/fairygui-binding-patterns.md` | FairyGUI 与代码层绑定方式 |
-| `domain/fairygui-export-rules.md` | 导出设置和资源管理约定 |
+## V2 文件模式
 
-### UI Toolkit（Unity）
+### Engine 文件模式
 
-| 文件 | 说明 |
-|---|---|
-| `domain/ui-toolkit-conventions.md` | UXML/USS 命名和组织约定 |
-| `domain/ui-toolkit-binding-patterns.md` | 数据绑定方式 |
+| direction_id | 输出文件模式 | 作用说明 |
+|---|---|---|
+| `project_structure` | `domain/<engine>-project-structure.md` | 当前引擎在目录结构、模块划分和工程边界上的约定 |
+| `scene_graph_and_lifecycle` | `domain/<engine>-scene-graph-and-lifecycle.md` | 当前引擎的场景、节点/对象图和生命周期主路径 |
+| `native_code_architecture` | `domain/<engine>-native-code-architecture.md` | 当前引擎原生代码层的架构、模式、异步与分层 |
+| `script_layer` | `domain/<engine>-script-layer.md` | 当前引擎脚本层的组织方式与职责边界 |
+| `bridge_layer` | `domain/<engine>-bridge-layer.md` | 当前引擎与脚本层、插件或宿主之间的桥接边界 |
+| `ui_system` | `domain/<engine>-ui-system.md` | 当前引擎 UI 栈、界面组织和交互主路径 |
+| `hot_reload` | `domain/<engine>-hot-reload.md` | 当前引擎热更新/热重载方案及限制 |
+| `asset_pipeline` | `domain/<engine>-asset-pipeline.md` | 当前引擎资源组织、加载、释放和打包主路径 |
+| `event_and_message_system` | `domain/<engine>-event-and-message-system.md` | 当前引擎的事件、消息与系统通信方式 |
+| `animation_system` | `domain/<engine>-animation-system.md` | 当前引擎动画栈与项目动画组织约定 |
+| `physics_navigation_or_runtime_framework` | `domain/<engine>-physics-navigation-or-runtime-framework.md` | 当前引擎物理、导航或 runtime framework 的项目约定 |
+| `plugin_extension` | `domain/<engine>-plugin-extension.md` | 当前引擎插件、扩展和外部模块接入方式 |
+| `platform_adaptation` | `domain/<engine>-platform-adaptation.md` | 当前引擎平台适配、导出目标和平台桥接约定 |
 
-### HybridCLR
+### Capability 文件模式
 
-| 文件 | 说明 |
-|---|---|
-| `domain/hybridclr-setup.md` | HybridCLR 配置和构建流程 |
-| `domain/hybridclr-restrictions.md` | 热更代码限制和注意事项 |
-| `domain/hybridclr-update-flow.md` | 热更发布和回滚流程 |
+| capability_id | 输出文件 | 作用说明 |
+|---|---|---|
+| `lua_embedding` | `domain/common-lua-embedding.md` | Lua runtime、桥接、绑定生成、热修和双向互调约定 |
+| `data_config_pipeline` | `domain/common-data-config-pipeline.md` | 配置表、Schema、导表、校验与运行时消费链路 |
+| `network_protocol_and_sync` | `domain/common-network-protocol-and-sync.md` | 网络协议、传输层、同步框架和异常处理约定 |
+| `build_release_and_cicd` | `domain/common-build-release-and-cicd.md` | 构建、发布、热更产物生成和 CI/CD 流水线约定 |
+| `tooling_and_ai_pipeline` | `domain/common-tooling-and-ai-pipeline.md` | MCP、Agent、工具链、自动化和 AI workflow 约定 |
 
-### ILRuntime
+## Builder frontmatter 契约
 
-| 文件 | 说明 |
-|---|---|
-| `domain/ilruntime-setup.md` | ILRuntime 配置和初始化 |
-| `domain/ilruntime-restrictions.md` | 热更代码约束和注意事项 |
+所有生成的 skill 必须至少包含以下 frontmatter：
 
-### Addressables
+### Engine skill
 
-| 文件 | 说明 |
-|---|---|
-| `domain/addressables-organization.md` | 资源分组和标签组织约定 |
-| `domain/addressables-loading.md` | 加载和释放规范 |
-
-### AssetBundle 自管理
-
-| 文件 | 说明 |
-|---|---|
-| `domain/assetbundle-build-pipeline.md` | AssetBundle 构建流程和分包策略 |
-| `domain/assetbundle-loading.md` | 运行时加载和卸载规范 |
-
-### 配置表（Excel 导出）
-
-| 文件 | 说明 |
-|---|---|
-| `domain/config-schema.md` | 配置表字段规范和类型约定 |
-| `domain/config-workflow.md` | 配置表制作、导出、热更流程 |
-| `domain/config-validation.md` | 配置数据校验规范 |
-
-### 策划文档
-
-| 文件 | 说明 |
-|---|---|
-| `domain/design-document-format.md` | 策划文档格式规范 |
-| `domain/design-review-process.md` | 策划评审和变更流程 |
-
-### 网络层
-
-| 文件 | 说明 |
-|---|---|
-| `domain/network-protocol.md` | 网络协议设计约定 |
-| `domain/network-error-handling.md` | 网络异常处理规范 |
-
-### MCP 集成
-
-| 文件 | 说明 |
-|---|---|
-| `domain/mcp-integration.md` | MCP 工具使用规范和接口约定 |
-
-### AI pipeline
-
-| 文件 | 说明 |
-|---|---|
-| `domain/ai-pipeline-conventions.md` | AI 工作流设计约定 |
-| `domain/agent-collaboration.md` | Agent 协作规范 |
-
-### Godot 项目
-
-| 文件 | 说明 |
-|---|---|
-| `domain/godot-project-structure.md` | Godot 项目目录和节点组织方式 |
-| `domain/godot-scene-conventions.md` | Scene/Node 命名和组织约定 |
-| `domain/godot-signals.md` | Signal 使用规范和事件通信约定 |
-| `domain/gdscript-coding-rules.md` | GDScript 编码规范 |
-
-### Unreal 项目
-
-| 文件 | 说明 |
-|---|---|
-| `domain/unreal-project-structure.md` | Unreal 项目目录和模块组织 |
-| `domain/unreal-blueprint-conventions.md` | Blueprint 命名和组织约定 |
-| `domain/unreal-cpp-coding-rules.md` | C++ 编码规范（命名、模块划分） |
-| `domain/unreal-gameplay-framework.md` | GameMode/GameState/PlayerController 使用约定 |
-
-### Cocos Creator 项目
-
-| 文件 | 说明 |
-|---|---|
-| `domain/cocos-project-structure.md` | Cocos 项目目录和资源组织方式 |
-| `domain/cocos-component-conventions.md` | 组件脚本命名和挂载约定 |
-| `domain/cocos-typescript-rules.md` | TypeScript 编码规范 |
-| `domain/cocos-hotupdate.md` | 热更新方案配置和流程（如有） |
-
-## 灵活性原则
-
-1. 根据项目实际扫描结果，判断哪些 skill 真正有必要创建
-2. 如果扫描发现了上表未列出的技术方案或项目特有约定，主动创建对应 skill，不要因为没在列表里就跳过
-3. 如果某个 skill 在当前项目中找不到对应代码或文档，创建占位文件，并在 frontmatter 中标注 `source: incomplete`
-4. skill 粒度保持单一职责，一个文件只覆盖一个具体知识点
-
-## 展示给用户确认
-
-整理出完整的文件列表，标注每个文件的状态，用 `AskUserQuestion` 确认：
-
-- 展示格式必须同时包含：`文件名 | 作用说明 | 状态`
-- `作用说明` 优先复用上面各表中的说明列；执行时动态新增的 skill 也必须补一句用途说明
-- `状态` 至少区分：`新建`、`已存在，将覆盖`、`已存在，--update 下跳过`
-
-示例：
-
-```text
-根据你的选择，将生成以下 skill 文件：
-
-.seed/skills/domain/
-  project-structure.md        | 项目目录结构和模块划分               | 新建
-  project-conventions.md      | 项目通用约定（命名、注释、提交规范等） | 新建
-  unity-project-structure.md  | Unity 项目目录组织方式               | 新建
-  unity-prefab-conventions.md | Prefab 命名、组织、引用约定          | 新建
-  csharp-coding-rules.md      | 代码风格、命名规范、文件组织          | 新建
-  ...
-
-共 N 个文件。预计需要 3-5 分钟。
+```yaml
+---
+name: unity-project-structure
+description: 当前项目在 Unity / project_structure 方向的约定
+triggers:
+  - unity project structure
+  - unity directory layout
+domain:
+  - project-domain
+scope:
+  - runtime
+matrix_id: engine.unity.project_structure
+axis: engine
+engine: unity
+direction_id: project_structure
+question_set_id: qs-unity-project-structure
+fixed_question_file: seed/skills/embed/fixed-questions/engine/unity/project-structure.md
+source: scanned | incomplete
+---
 ```
 
-`AskUserQuestion` 不可用时，降级为普通文本确认。
+### Capability skill
+
+```yaml
+---
+name: common-lua-embedding
+description: 当前项目的 Lua 跨引擎嵌入约定
+triggers:
+  - lua embedding
+  - lua bridge
+domain:
+  - project-domain
+scope:
+  - runtime
+matrix_id: capability.lua_embedding
+axis: capability
+capability: lua_embedding
+capability_id: lua_embedding
+question_set_id: qs-common-lua-embedding
+fixed_question_file: seed/skills/embed/fixed-questions/capability/lua-embedding.md
+source: scanned | incomplete
+---
+```
+
+## 正文结构契约
+
+每个 skill 的正文至少包含以下段落：
+
+1. `## 结论`
+   - 写项目里真实命中的实现和入口
+2. `## 证据`
+   - 列路径、命中串、调用落点
+3. `## 使用约定`
+   - 只写从项目里反推出的约定
+4. `## 固定问题`
+   - 从对应 `fixed_question_file` 载入矩阵项固定问题
+   - 如存在匹配的 composite 文件，追加其问题
+   - 文件缺失时明确写缺失路径，不补写猜测内容
+
+其中 capability skill 的 `## 结论` 必须明确写出：
+
+- 当前项目命中了哪些宿主引擎
+- 每个宿主引擎对应的实现变体
+
+`## 固定问题` 写法：
+
+```markdown
+## 固定问题
+
+- fixed_question_file: seed/skills/embed/fixed-questions/...
+- composite_fixed_question_files:
+  - seed/skills/embed/fixed-questions/composite/...
+- status: loaded | missing
+- questions:
+  - Q1 ...
+  - Q2 ...
+```
+
+如果对应文件不存在，改写为：
+
+```markdown
+## 固定问题
+
+- fixed_question_file: seed/skills/embed/fixed-questions/...
+- status: missing
+- note: 对应矩阵项的固定问题文件尚未创建，禁止补写推断性问题。
+```
+
+## 生成列表展示规则
+
+展示给用户的确认表必须同时包含：
+
+- `文件名`
+- `matrix_id`
+- `作用说明`
+- `状态`
+  - `新建`
+  - `已存在，将覆盖`
+  - `已存在，--update 下跳过`
+
+### 示例
+
+```text
+根据当前矩阵结果，将生成以下 domain skill：
+
+.seed/skills/domain/
+  unity-project-structure.md                        | engine.unity.project_structure                     | 当前引擎目录结构与模块划分 | 新建
+  unity-ui-system.md                               | engine.unity.ui_system                            | 当前引擎 UI 栈与界面组织   | 新建
+  common-lua-embedding.md                          | capability.lua_embedding                          | Lua runtime 与桥接约定     | 新建
+  common-build-release-and-cicd.md                 | capability.build_release_and_cicd                 | 构建发布与 CI/CD           | 已存在，将覆盖
+```
+
+## 扩展规则
+
+1. 如果项目命中了 registry 未覆盖的**同层级方向变体**，允许在既有矩阵文件中追加一节，不新增新的顶层分类轴。
+2. 如果项目确实需要新增 capability，先补 registry，再补 question set，再允许 catalog 生成。
+3. 如果证据不足，不要取消生成；保留该 skill，让 builder 依据 researcher 报告决定是否写成占位 skill。

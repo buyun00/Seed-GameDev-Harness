@@ -1,6 +1,6 @@
 ---
 name: detect-tech-stack
-description: 确定性技术栈指纹检测规则，供 /seed:embed Step 0 调用。所有检测结论必须基于物理证据（文件存在 / 字符串匹配），禁止模型自行推断。
+description: 确定性技术栈指纹检测规则，供 /seed:embed Step 0 调用
 triggers:
   - 技术栈检测
   - 引擎识别
@@ -12,383 +12,260 @@ scope:
   - agent-inject
 ---
 
+# Detect Tech Stack
+
+本文件负责 `/seed:embed` Step 0 的结构化检测。执行前必须先加载 [`seed/skills/embed/taxonomy-registry.md`](seed/skills/embed/taxonomy-registry.md)，所有方向命名、owner、状态语义、文件命名都以 registry 为准。
+
 ## 核心原则
 
-1. **只做物理查找**：每条规则的结论来自「文件是否存在」或「字符串是否出现」，不做语义推断。
-2. **找到即记录证据路径**：结论格式为 `找到（证据：Assets/XLua/ 目录存在）`，或 `未找到`，禁止写「可能是」「疑似」。
-3. **互斥项按优先级顺序检查**：找到第一个匹配即停止，不继续查后续选项。
-4. **证据冲突时全部保留**：如同时找到 xLua 和 tolua 的证据，两个都列出，在 Step 1 交给用户确认，不自行裁决。
-5. **输出格式固定**：必须输出结构化报告（见末尾模板），不允许自由发挥描述。
+1. **只做物理查找**：所有结论都来自文件存在、目录存在、字符串命中、配置字段读取。
+2. **找到即记录证据路径**：`evidence` 只能写真实路径或命中串，禁止写“推测”“常见做法”。
+3. **先引擎、后方向**：先确定主引擎，再只展开该引擎的 13 个主线方向。
+4. **跨引擎能力独立检测**：Lua、配置、网络、CI/CD、工具链必须写入 `capabilities`，不能借道某个引擎方向。
+5. **冲突全部保留**：如果同一矩阵项命中多个互斥变体，写入 `conflicts`，交给 Step 1 用户确认。
 
----
+## 状态规则
 
-## Phase 1：引擎识别
+- `detected`：命中足够证据，能确认该方向存在项目实现。
+- `missing`：该方向在当前引擎有直接对应，但扫描后未找到项目实现。
+- `unknown`：命中零散证据，但不足以确认变体或真实入口。
+- `unsupported`：registry 认定无直接项目级方案，或当前只有引擎默认机制且不计入项目方案。
 
-**规则（互斥，按顺序检查，找到即停）**
+## Phase 1：识别主引擎
 
-```
-检查 1：ProjectSettings/ProjectVersion.txt 是否存在
-  → 存在 → 引擎 = Unity
-  → 记录版本：读取该文件第一行 m_EditorVersion 字段值
+按顺序检查，找到即停：
 
-检查 2：project.godot 是否存在（项目根目录）
-  → 存在 → 引擎 = Godot
-  → 记录版本：读取 project.godot 中 config_version 字段值
+1. `ProjectSettings/ProjectVersion.txt`
+   - 命中 → `engine.name = unity`
+   - 版本 → 读取 `m_EditorVersion`
+2. `project.godot`
+   - 命中 → `engine.name = godot`
+   - 版本 → 读取 `config_version`
+3. 项目根目录 `*.uproject`
+   - 命中 → `engine.name = unreal`
+   - 版本 → 读取 `EngineAssociation`
+4. `package.json` 中包含 `creator` 或 `cocos`
+   - 命中 → `engine.name = cocos`
+   - 版本 → 读取 `package.json` 的 `version`
+5. 以上全未命中
+   - `engine.name = none`
 
-检查 3：*.uproject 文件是否存在（项目根目录）
-  → 存在 → 引擎 = Unreal
-  → 记录版本：读取该 .uproject 文件中 EngineAssociation 字段值
+## Phase 2：统计语言分布
 
-检查 4：package.json 是否存在 AND 其内容是否含 "creator"
-  → 满足 → 引擎 = Cocos Creator
-  → 记录版本：读取 package.json 中 version 字段
-
-检查 5：以上全不满足
-  → 引擎 = 无引擎（工具链 / 纯代码项目）
-```
-
----
-
-## Phase 2：主要语言分布
-
-**统计以下扩展名的文件数量（使用 glob 全量统计，排除 Library/、Temp/、node_modules/）**
+统计以下扩展名数量，排除 `Library/`、`Temp/`、`node_modules/`、`.git/`、常见三方缓存目录：
 
 | 扩展名 | 语言 |
 |---|---|
-| *.cs | C# |
-| *.lua | Lua |
-| *.gd | GDScript |
-| *.ts | TypeScript |
-| *.js | JavaScript |
-| *.py | Python |
-| *.cpp / *.h | C++ |
+| `*.cs` | C# |
+| `*.lua` | Lua |
+| `*.gd` | GDScript |
+| `*.ts` | TypeScript |
+| `*.js` | JavaScript |
+| `*.cpp` `*.h` | C++ |
+| `*.py` | Python |
 
-**输出规则**：
-- 数量最多的为「主语言」
-- 数量 > 0 的其余语言全部列入「辅助语言」
-- 数量 = 0 的语言不出现在报告中
+输出规则：
 
----
+- 数量最多的为 `primary`
+- 数量大于 0 的其余语言进入 `secondary`
+- `file_counts` 只列数量大于 0 的语言
 
-## Phase 3：各框架指纹查找
+## Phase 3：当前引擎的 13 个主线方向
 
-### 3-A：Lua 桥接（互斥，按优先级顺序检查）
+对 registry 中当前引擎对应的 13 个 `direction_id` 全量输出到 `directions`。每项都必须填：
 
-仅在 Phase 2 检测到 *.lua 文件数量 > 0 时执行此 Phase。
+- `matrix_id`
+- `axis`
+- `engine`
+- `direction_id`
+- `owner`
+- `question_set_id`
+- `status`
+- `variant`
+- `evidence`
 
-```
-优先级 1：xLua
-  证据 A：Assets/XLua/ 目录是否存在
-  证据 B：Packages/manifest.json 中是否含字符串 "com.tencent.xlua"
-  证据 C：任意 *.cs 文件中是否含字符串 "using XLua;"
-  → 任意一条满足 → lua_bridge = xlua，记录命中的证据
+### 检测规则
 
-优先级 2：tolua
-  证据 A：Assets/ToLua/ 目录是否存在
-  证据 B：Assets/LuaFramework/ 目录是否存在
-  证据 C：任意 *.cs 文件中是否含字符串 "using LuaInterface;"
-  → 任意一条满足 → lua_bridge = tolua，记录命中的证据
+- 命中明确项目入口、管理器、资源目录、配置文件、核心 API 或宿主封装 → `detected`
+- 只命中零散 API、命名词、单个资源或单个目录，无法确认工程级约定 → `unknown`
+- 当前引擎该方向本应存在，但未命中实现 → `missing`
+- registry 允许 `unsupported` 的格子，且项目中未找到独立方案 → `unsupported`
 
-优先级 3：SLua
-  证据 A：Assets/Slua/ 目录是否存在
-  证据 B：任意 *.cs 文件中是否含字符串 "using SLua;"
-  → 任意一条满足 → lua_bridge = slua，记录命中的证据
+### Unity 方向线索
 
-优先级 4：自研桥接
-  → 以上三条全部未找到，但 *.lua 文件数量 > 0
-  → lua_bridge = custom，证据 = "存在 Lua 文件但未找到已知桥接特征"
+| direction_id | 主要物理证据 |
+|---|---|
+| `project_structure` | `Assets/` 一级目录、`Packages/manifest.json`、`*.asmdef`、`Editor/`、`Runtime/` |
+| `scene_graph_and_lifecycle` | `*.unity`、`SceneManager`、`: MonoBehaviour`、`Awake(`、`Start(`、`OnEnable(`、`DontDestroyOnLoad` |
+| `native_code_architecture` | `Manager`、`Service`、`System`、`Controller`、`Facade`、`UniTask`、`async`、`await` |
+| `script_layer` | `*.lua`、脚本入口、表驱动 DSL、脚本加载器；纯 C# 项目可为 `missing` |
+| `bridge_layer` | `LuaEnv`、`DoString`、`CSharpCallLua`、`LuaCallCSharp`、原生 SDK 封装、`DllImport` |
+| `ui_system` | `UnityEngine.UI`、`using FairyGUI;`、`UnityEngine.UIElements`、`.uxml`、`.uss`、UI 基类 |
+| `hot_reload` | `HybridCLR`、`ILRuntime`、`[Hotfix]`、热更发布脚本、patch loader |
+| `asset_pipeline` | `com.unity.addressables`、`AddressableAssetsData/`、`BuildAssetBundles`、自研 loader/provider |
+| `event_and_message_system` | `EventBus`、`Signal`、`Message`、`Dispatch`、`Broadcast`、`Notify` |
+| `animation_system` | `Animator`、`AnimationClip`、`Timeline`、`PlayableDirector`、`Spine`、`DragonBones` |
+| `physics_navigation_or_runtime_framework` | `Rigidbody`、`Collider`、`NavMesh`、`CharacterController`、ECS/runtime framework |
+| `plugin_extension` | `Packages/`、`Plugins/`、Editor extension、SDK wrapper、package manifests |
+| `platform_adaptation` | `Android/`、`iOS/`、小游戏 SDK、`#if UNITY_`、构建 target 脚本 |
 
-兜底：
-  → *.lua 文件数量 = 0
-  → lua_bridge = none
-```
+### Godot 方向线索
 
-### 3-B：UI 框架（可多选，各自独立检查，全部检查完再汇总）
+| direction_id | 主要物理证据 |
+|---|---|
+| `project_structure` | `project.godot`、`addons/`、`autoload`、`*.tscn`、`*.gd`、`*.cs` |
+| `scene_graph_and_lifecycle` | `*.tscn`、`_ready()`、`_process()`、`_physics_process()`、autoload 单例 |
+| `native_code_architecture` | `class_name`、基础脚本、`.csproj`、C# partial、服务脚本、异步调用 |
+| `script_layer` | `*.gd`、GDScript 业务入口、GDScript 与 C# 混用脚本 |
+| `bridge_layer` | `GDExtension`、`GDNative`、`addons/` 插件、宿主桥接类、native bindings |
+| `ui_system` | `Control`、`Theme`、UI scene、`CanvasLayer`、addon UI |
+| `hot_reload` | addon/plugin hot reload、脚本 reload 管理；仅默认 GDScript reload 时可 `unsupported` |
+| `asset_pipeline` | `load(`、`preload(`、`ResourceLoader`、`PackedScene`、动态资源路径 |
+| `event_and_message_system` | `signal`、`connect(`、`Callable`、autoload event bus |
+| `animation_system` | `AnimationPlayer`、`AnimationTree`、`Tween` |
+| `physics_navigation_or_runtime_framework` | `CharacterBody`、`RigidBody`、`NavigationServer`、physics layers |
+| `plugin_extension` | `addons/`、plugin config、GDExtension modules |
+| `platform_adaptation` | `export_presets.cfg`、平台导出目录、平台专用脚本 |
 
-仅在引擎为 Unity 时执行此 Phase。
+### Unreal 方向线索
 
-```
-FairyGUI：
-  证据 A：Assets/FairyGUI/ 目录是否存在
-  证据 B：Packages/manifest.json 中是否含 "com.fairygui"
-  证据 C：任意 *.cs 中是否含 "using FairyGUI;"
-  → 任意满足 → ui_frameworks 列表加入 fairygui
+| direction_id | 主要物理证据 |
+|---|---|
+| `project_structure` | `*.uproject`、`Source/`、`Content/`、`Config/`、模块目录 |
+| `scene_graph_and_lifecycle` | `Map`、`Level`、`BeginPlay`、`GameMode`、`WorldSubsystem`、关卡加载入口 |
+| `native_code_architecture` | `Subsystem`、`ActorComponent`、`GameInstance`、`PlayerController`、模块规则 |
+| `script_layer` | Blueprint 资产、蓝图父类命名、Blueprint 函数库 |
+| `bridge_layer` | `BlueprintCallable`、`BlueprintImplementableEvent`、插件桥接、C++/Blueprint 边界 |
+| `ui_system` | `Widget`、`UMG`、`Slate`、`CommonUI`、UI manager |
+| `hot_reload` | `Live Coding` 配置、Hot Reload、插件热更脚本 |
+| `asset_pipeline` | `PrimaryAsset`、`StreamableManager`、`AssetManager`、异步加载 |
+| `event_and_message_system` | delegates、message subsystem、GAS ability/event、replication event |
+| `animation_system` | `AnimBlueprint`、`Montage`、`Sequencer`、`StateMachine` |
+| `physics_navigation_or_runtime_framework` | `CharacterMovement`、`NavigationSystem`、`Replication`、GAS、Chaos |
+| `plugin_extension` | `Plugins/`、`.uplugin`、插件模块依赖 |
+| `platform_adaptation` | `Target.cs`、平台模块、SDK 接入、打包脚本 |
 
-UI Toolkit：
-  证据 A：项目中是否存在任意 *.uxml 文件
-  证据 B：项目中是否存在任意 *.uss 文件
-  证据 C：任意 *.cs 中是否含 "UnityEngine.UIElements"
-  → 任意满足 → ui_frameworks 列表加入 ui_toolkit
+### Cocos 方向线索
 
-UGUI：
-  证据 A：任意 *.cs 中是否含 "UnityEngine.UI"
-  证据 B：Assets/UI/ 或 Assets/UGUI/ 目录是否存在
-  → 任意满足 → ui_frameworks 列表加入 ugui
+| direction_id | 主要物理证据 |
+|---|---|
+| `project_structure` | `assets/`、`settings/`、`extensions/`、`bundle` 目录、工具脚本 |
+| `scene_graph_and_lifecycle` | `*.scene`、`*.prefab`、`onLoad()`、`start()`、`update()`、`director.loadScene` |
+| `native_code_architecture` | `@ccclass`、基础 `Component`、服务层、TS/JS 工程组织、异步封装 |
+| `script_layer` | `*.ts` / `*.js` 业务层、脚本入口、脚本模块划分 |
+| `bridge_layer` | `jsb`、原生插件桥接、SDK wrapper、平台桥接脚本 |
+| `ui_system` | `Button`、`Widget`、`Layout`、UI manager、自研 view/panel |
+| `hot_reload` | `hotupdate`、manifest、patch 脚本、`jsb.AssetsManager` |
+| `asset_pipeline` | `assetManager`、`resources.load`、bundle 加载、自定义资源封装 |
+| `event_and_message_system` | `EventTarget`、消息中心、广播封装、全局事件 |
+| `animation_system` | `Tween`、`Animation`、`Spine`、`DragonBones` |
+| `physics_navigation_or_runtime_framework` | Physics2D/3D、导航或 runtime system、碰撞回调 |
+| `plugin_extension` | `extensions/`、自定义插件、原生扩展、编辑器扩展 |
+| `platform_adaptation` | 微信小游戏、平台宏、构建脚本、原生平台目录 |
 
-注意：三个 UI 框架可以共存，不互斥。
-如果三者都未找到证据 → ui_frameworks = unknown
-```
+## Phase 4：跨引擎能力线
 
-### 3-C：热更方案（可多选，各自独立检查）
+对 registry 中 5 个 capability 全量输出到 `capabilities`。每项都必须填：
 
-仅在引擎为 Unity 时执行此 Phase。
+- `matrix_id`
+- `axis`
+- `capability_id`
+- `owner`
+- `question_set_id`
+- `status`
+- `variant`
+- `evidence`
 
-```
-HybridCLR：
-  证据 A：Assets/HybridCLR/ 目录是否存在
-  证据 B：Packages/manifest.json 中是否含 "com.code-philosophy.hybridclr"
-  → 任意满足 → hot_update 列表加入 hybridclr
+### Capability 检测规则
 
-ILRuntime：
-  证据 A：Assets/ILRuntime/ 目录是否存在
-  证据 B：任意 *.cs 中是否含 "using ILRuntime;"
-  → 任意满足 → hot_update 列表加入 ilruntime
+| capability_id | 主要物理证据 |
+|---|---|
+| `lua_embedding` | `Assets/XLua/`、`Assets/ToLua/`、`Assets/Slua/`、`using XLua;`、`using LuaInterface;`、`using SLua;`、`GDLua`、`UnLua`、Lua plugin/addon、`LuaEnv`、`DoString` |
+| `data_config_pipeline` | `*.xlsx`、`*.xls`、`*.csv`、`*.proto`、`*.fbs`、`ExcelExport`、`TableExport`、`GenerateConfig`、批量 JSON/YAML 数据目录、校验脚本 |
+| `network_protocol_and_sync` | `Mirror`、`Netcode`、`System.Net.Sockets`、`KCP`、`WebSocket`、`*.proto`、Godot `MultiplayerAPI`、Unreal replication/network subsystem |
+| `build_release_and_cicd` | `.github/workflows/`、`.gitlab-ci.yml`、`Jenkinsfile`、Unity build scripts、Godot export、Unreal UAT、Cocos build/release scripts |
+| `tooling_and_ai_pipeline` | `.mcp.json`、`.seed/`、`mcp` 目录、`agent`、`pipeline`、自动化脚本、editor tools、custom tooling |
 
-xLua 热补丁：
-  前置条件：lua_bridge = xlua（Phase 3-A 已确认）
-  证据 A：任意 *.cs 中是否含字符串 "[Hotfix]"
-  → 满足 → hot_update 列表加入 xlua_hotfix
+### Capability 结果约束
 
-tolua 热更新：
-  前置条件：lua_bridge = tolua（Phase 3-A 已确认）
-  → tolua 框架本身即含热更能力，无需额外证据
-  → 直接加入 hot_update 列表：tolua_hotupdate
+- `lua_embedding`
+  - 命中多个互斥实现（如 xLua + tolua）→ `conflicts`
+  - 只有 Lua 文件但无已知桥接特征 → `unknown`，`variant = "custom_or_unconfirmed"`
+- `data_config_pipeline`
+  - 可多方案共存，`variant` 可写为组合值，如 `excel + proto`
+- `network_protocol_and_sync`
+  - 框架依赖和实际项目封装要尽量同时命中；只有依赖、无入口可写 `unknown`
+- `build_release_and_cicd`
+  - 只要构建脚本或 CI 任一存在即可 `detected`
+- `tooling_and_ai_pipeline`
+  - 只记录项目级工具链，不把引擎自带工具当项目能力
 
-无热更：
-  → 以上全部未找到 → hot_update = none
-```
+## Phase 5：冲突整理
 
-### 3-D：资源管理（可多选，各自独立检查）
+以下情况必须写入 `conflicts`：
 
-仅在引擎为 Unity 时执行此 Phase。
+- 同一 capability 命中多个互斥实现：
+  - `xLua` 与 `tolua`
+  - `GDLua` 与另一套 Lua bridge
+  - `UnLua` 与另一套 Lua bridge
+- 同一 engine direction 命中多个互斥变体，且无法确认主入口：
+  - `ui_system` 同时命中多个 UI 栈，但主 UI 管理入口不清晰
+  - `hot_reload` 同时命中多套热更方案
+  - `script_layer` 同时命中多套脚本层，但无法确认主要运行时
 
-```
-Addressables：
-  证据 A：Packages/manifest.json 中是否含 "com.unity.addressables"
-  证据 B：Assets/AddressableAssetsData/ 目录是否存在
-  → 任意满足 → asset_management 列表加入 addressables
+冲突格式：
 
-AssetBundle 自管理：
-  证据 A：任意 *.cs 中是否含 "BuildPipeline.BuildAssetBundles"
-  证据 B：是否存在包含 "AssetBundle" 关键字的构建脚本目录（如 Editor/Build/、Tools/AB/）
-  → 任意满足 → asset_management 列表加入 assetbundle_manual
-
-无特殊资源管理：
-  → 两者全未找到 → asset_management = default_resources
-```
-
-### 3-E：配置表
-
-```
-Excel 导出：
-  证据 A：项目中是否存在 *.xlsx 或 *.xls 文件（排除 Library/）
-  证据 B：是否存在包含 "ExcelExport" / "TableExport" 关键字的脚本
-  → 任意满足 → config_format 列表加入 excel
-
-Proto / FlatBuffers：
-  证据 A：项目中是否存在 *.proto 文件
-  证据 B：项目中是否存在 *.fbs 文件
-  → 任意满足 → config_format 列表加入 proto_flatbuffers
-
-自定义 JSON / YAML：
-  证据 A：Assets/ 或 Resources/ 下是否存在批量 *.json 文件（数量 > 10）
-  证据 B：是否存在 *.yaml 数据文件目录
-  → 任意满足 → config_format 列表加入 custom_json_yaml
-
-无配置表：
-  → 以上全未找到 → config_format = none
-```
-
-### 3-F：网络层
-
-```
-Mirror：
-  证据：Packages/manifest.json 含 "com.unity.mirror"
-  OR Assets/Mirror/ 目录存在
-  → network 列表加入 mirror
-
-Netcode for GameObjects：
-  证据：Packages/manifest.json 含 "com.unity.netcode.gameobjects"
-  → network 列表加入 netcode
-
-Godot 内置多人游戏：
-  前置条件：引擎 = Godot
-  证据：任意 *.gd 中含 "MultiplayerAPI" 或 "NetworkedVar"
-  → network 列表加入 godot_multiplayer
-
-自研网络框架：
-  证据 A：存在包含 "Socket" / "Protobuf" / "KCP" / "TCP" 关键字的自定义网络目录
-  证据 B：任意 *.cs 含 "System.Net.Sockets"（非第三方库内）
-  → network 列表加入 custom_network
-
-无网络：
-  → 以上全未找到 → network = none
+```yaml
+- field: capability.lua_embedding
+  found: [xlua, tolua]
+  reason: "Assets/XLua/ 与 Assets/ToLua/ 都存在"
 ```
 
-### 3-G：Godot 特有检测（仅引擎 = Godot 时执行）
+## 输出结构
 
-```
-GDScript 版本：
-  检查 project.godot 中 config_version 值
-    4 → Godot 4.x，GDScript 2.0 语法
-    3 → Godot 3.x，GDScript 1.0 语法
-
-C# 支持：
-  证据：*.csproj 文件是否存在于项目根目录
-  → 存在 → godot_csharp = true
-
-导出配置：
-  证据：export_presets.cfg 文件是否存在
-  → 存在 → has_export_config = true
-```
-
-### 3-H：Unreal 特有检测（仅引擎 = Unreal 时执行）
-
-```
-Blueprint 使用：
-  证据：Content/ 目录下是否存在 *.uasset 文件（Blueprint 资产）
-  → 存在 → unreal_blueprint = true
-
-C++ 模块：
-  证据：Source/ 目录是否存在 AND 其中是否有 *.cpp 文件
-  → 存在 → unreal_cpp = true
-
-插件：
-  证据：Plugins/ 目录是否存在
-  → 存在 → 列出 Plugins/ 下的一级子目录名称
-```
-
-### 3-I：Cocos Creator 特有检测（仅引擎 = Cocos 时执行）
-
-```
-语言确认：
-  证据 A：是否存在 *.ts 文件 → language = typescript
-  证据 B：是否存在 *.js 文件（且无 .ts）→ language = javascript
-
-热更方案：
-  证据 A：是否存在 hot-update / hotupdate 相关目录
-  证据 B：package.json 中是否含 "jszip"（热更常用依赖）
-  → 任意满足 → cocos_hotupdate = true
-
-小游戏平台：
-  检查 package.json 中 dependencies / devDependencies 是否含：
-    "minigame-canvas-engine" 或 wx / wechat 相关关键字
-  → 满足 → platform 列表加入 wechat_minigame
-```
-
-### 3-J：其他集成（所有项目都执行）
-
-```
-MCP 集成：
-  证据 A：.mcp.json 文件是否存在
-  证据 B：项目中是否存在 mcp-server / mcp_server 目录
-  → 任意满足 → mcp_integration = true
-
-AI Pipeline：
-  证据 A：.seed/ 目录是否存在
-  证据 B：是否存在 agent / pipeline 相关目录
-  → 任意满足 → ai_pipeline = true
-
-CI/CD：
-  证据 A：.github/workflows/ 目录是否存在
-  证据 B：.gitlab-ci.yml 文件是否存在
-  证据 C：Jenkinsfile 是否存在
-  → 任意满足 → cicd = true，记录类型
-
-自动化测试：
-  证据 A：Assets/Tests/ 目录是否存在（Unity）
-  证据 B：*.test.ts / *.spec.ts 文件是否存在
-  → 任意满足 → has_tests = true
-```
-
----
-
-## Phase 4：输出结构化检测报告
-
-**所有 Phase 执行完毕后，必须输出以下格式的报告，字段全部填写，未找到的填 none 或 false，禁止省略字段。**
+必须输出以下结构，禁止省略字段：
 
 ```yaml
 tech_stack_report:
   engine:
     name: unity | godot | unreal | cocos | none
-    version: "2022.3.15f1"         # 从文件读取，读不到填 unknown
+    version: "2022.3.15f1"
     evidence: "ProjectSettings/ProjectVersion.txt 存在"
 
   languages:
-    primary: cs                    # 文件数最多的
-    secondary: [lua]               # 其余有文件的语言列表
+    primary: cs
+    secondary: [lua]
     file_counts:
       cs: 342
       lua: 187
-      # 只列出数量 > 0 的
 
-  lua_bridge:
-    type: xlua | tolua | slua | custom | none
-    evidence: "Assets/XLua/ 目录存在"
+  directions:
+    - matrix_id: engine.unity.project_structure
+      axis: engine
+      engine: unity
+      direction_id: project_structure
+      owner: unity
+      question_set_id: qs-unity-project-structure
+      status: detected | missing | unknown | unsupported
+      variant: "Assets + Packages + asmdef 分层"
+      evidence: "Assets/Scripts/、Packages/manifest.json、*.asmdef"
 
-  ui_frameworks:
-    - type: fairygui
-      evidence: "using FairyGUI; 出现在 UIManager.cs"
-    - type: ugui
-      evidence: "UnityEngine.UI 出现在多个文件"
-    # 空列表填 []
-
-  hot_update:
-    - type: hybridclr | ilruntime | xlua_hotfix | tolua_hotupdate | none
-      evidence: "Assets/HybridCLR/ 目录存在"
-    # 空列表填 []
-
-  asset_management:
-    - type: addressables | assetbundle_manual | default_resources
-      evidence: "com.unity.addressables 在 manifest.json 中"
-    # 空列表填 []
-
-  config_format:
-    types: [excel, proto_flatbuffers, custom_json_yaml, none]
-    evidence: "Assets/Config/ 下存在 47 个 .xlsx 文件"
-
-  network:
-    types: [mirror, netcode, godot_multiplayer, custom_network, none]
-    evidence: "com.unity.mirror 在 manifest.json 中"
-
-  integrations:
-    mcp: true | false
-    ai_pipeline: true | false
-    cicd: true | false
-    cicd_type: github_actions | gitlab_ci | jenkins | none
-    has_tests: true | false
-
-  # 仅当对应引擎时出现
-  godot_extra:
-    gdscript_version: "2.0"
-    has_csharp: true | false
-    has_export_config: true | false
-
-  unreal_extra:
-    has_blueprint: true | false
-    has_cpp: true | false
-    plugins: ["OnlineSubsystem", "Wwise"]
-
-  cocos_extra:
-    language: typescript | javascript
-    has_hotupdate: true | false
-    platforms: [wechat_minigame]
+  capabilities:
+    - matrix_id: capability.lua_embedding
+      axis: capability
+      capability_id: lua_embedding
+      owner: lua
+      question_set_id: qs-common-lua-embedding
+      status: detected | missing | unknown | unsupported
+      variant: "xLua"
+      evidence: "Assets/XLua/ 目录存在"
 
   conflicts: []
-  # 如果同一分类找到多个互斥证据，在此列出，例如：
-  # - field: lua_bridge
-  #   found: [xlua, tolua]
-  #   reason: "Assets/XLua/ 和 Assets/ToLua/ 都存在"
 ```
 
----
+## 额外要求
 
-## 异常处理规则
-
-| 情况 | 处理方式 |
-|---|---|
-| 项目根目录无法确定 | 停止检测，输出错误：`root_error: 无法确定项目根目录` |
-| manifest.json 解析失败 | 跳过所有依赖 manifest.json 的检查，在对应字段标注 `evidence: manifest.json 读取失败` |
-| 某个 Phase 整体失败 | 该 Phase 所有字段填 `unknown`，不影响其他 Phase |
-| 找到互斥证据 | 全部保留，写入 `conflicts` 字段，Step 1 交用户确认 |
-| 文件数量巨大（>5000 .cs）| 字符串搜索改为只扫描 Assets/ 一级子目录的 *.cs，不递归 |
+- `directions` 必须包含当前主引擎的 13 个方向，不能少项。
+- `capabilities` 必须包含 5 个能力项，不能少项。
+- `unsupported` 只能用于 registry 明确允许的格子，不得滥用。
+- 物理证据不够时宁可写 `unknown`，不要用通用知识补全。

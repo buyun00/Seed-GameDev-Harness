@@ -1,10 +1,10 @@
 ---
 name: embed-researcher-cocos
-description: /seed:embed Cocos Creator researcher 扫描剧本
+description: /seed:embed Cocos researcher 扫描剧本
 triggers:
   - embed cocos researcher
   - cocos scan
-  - typescript gameplay scan
+  - cocos matrix scan
 domain:
   - project-analysis
 scope:
@@ -17,51 +17,49 @@ scope:
 
 1. `seed/skills/embed/researcher-common.md`
 2. `seed/skills/embed/researcher-runtime-common.md`
-3. `seed/skills/embed/researcher-cocos.md`
+3. `seed/skills/embed/taxonomy-registry.md`
+4. `seed/skills/embed/researcher-cocos.md`
 
 ## TaskCreate 模板
 
 ```text
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: Cocos Creator 调查报告（SendMessage 给 leader 与 builder-cocos）
-Done Definition: 报告先输出通用规则执行结果，再输出运行时必查项结果，最后输出 Cocos 领域发现；每条结论附证据路径；若运行时必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
+Deliverable: Cocos 引擎主线调查报告（SendMessage 给 leader 与 builder-cocos）
+Done Definition: 报告按 researcher-common 的三段格式输出；仅覆盖 Cocos 主线方向；如运行时必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
 Dependencies: none
 Risk Level: low
 Leader Ack Required: false
-Original User Intent: 分析项目 Cocos Creator 技术栈，为生成 skill 文件提供依据
-Scope Coverage: Cocos 项目结构、组件脚本命名和挂载约定、TypeScript/JavaScript 编码规范、热更方案、小游戏平台适配
-Exclusions: 非 Cocos 引擎相关内容
+Original User Intent: 分析项目 Cocos 主线方向，为生成 v2 矩阵 skill 提供依据
+Scope Coverage: project_structure, scene_graph_and_lifecycle, native_code_architecture, script_layer, bridge_layer, ui_system, hot_reload, asset_pipeline, event_and_message_system, animation_system, physics_navigation_or_runtime_framework, plugin_extension, platform_adaptation
+Exclusions: common-lua-embedding、common-data-config-pipeline、common-network-protocol-and-sync、common-build-release-and-cicd、common-tooling-and-ai-pipeline
 ```
 
 ## 扫描剧本
 
-### 项目结构与资源组织
+### 项目结构 / 场景生命周期 / 原生架构
 
-- 搜索 `assets/`、`settings/`、`project.json`、`package.json`、`*.ts`、`*.js`
-- 记录脚本目录、prefab 目录、bundle 目录、工具目录
+- 搜索 `assets/`、`settings/`、`extensions/`、`*.ts`、`*.js`
+- 搜索 `*.scene`、`*.prefab`、`onLoad()`、`start()`、`update()`、`director.loadScene`
+- 搜索 `@ccclass`、基础 `Component`、service/module、异步封装
 
-### 组件脚本与挂载约定
+### 脚本层 / 桥接层 / UI
 
-- 搜索 `@ccclass`、`Component`、`property`、`Prefab`
-- 只有命中真实组件脚本和场景/prefab 引用时，才能写挂载约定
+- 搜索 TypeScript / JavaScript 主脚本层与入口
+- 搜索 `jsb`、原生桥接、plugin bridge、SDK wrapper
+- 搜索 `Button`、`Widget`、`Layout`、UI manager、自研 view/panel
+- 如果命中 Lua 插件，只写 Cocos 宿主桥接证据，并把 Lua-specific 细节交给 `researcher-lua`
 
-### TypeScript / JavaScript 规范
+### 热更新 / 资源 / 事件 / 动画 / 物理 / 插件 / 平台
 
-- 搜索项目主语言、公共基类、命名模式、工具函数目录
-- 不要只因存在 `tsconfig.json` 就断言项目主语言是 TypeScript
-
-### 热更新与平台适配
-
-- 搜索 `hotupdate`、`manifest`、`jsb`、小游戏平台关键字
-- 只有命中发布脚本、平台适配代码或配置后，才能写流程规范
-
-### UI / 场景 / 资源
-
-- 搜索 `onClick`、`Button`、`director.loadScene`、`assetManager`、`resources.load`
-- 必查项要继续追到项目自定义封装和调用落点
+- 搜索 `hotupdate`、manifest、patch script、`jsb.AssetsManager`
+- 搜索 `assetManager`、`resources.load`、bundle 加载、自研封装
+- 搜索 `EventTarget`、消息中心、广播封装
+- 搜索 `Tween`、`Animation`、`Spine`、`DragonBones`
+- 搜索 Physics2D/3D、导航或 runtime systems
+- 搜索 `extensions/`、原生扩展、微信小游戏、平台宏、构建脚本
 
 ## 输出要求
 
-- 运行时必查项优先写项目自定义组件、管理器、资源封装
-- 不得把 Cocos 官方 API 默认用法当作项目结论
+- 只写 Cocos 主线，不把跨引擎能力写进 Cocos 专属 skill
+- 资源加载与释放必须追到项目封装或调用落点，不能只停在官方 API

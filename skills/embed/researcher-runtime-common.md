@@ -13,16 +13,25 @@ scope:
 
 ## 适用范围
 
-本文件只给以下 researcher 使用：
+按 `taxonomy-registry.md` 的双轴矩阵，本文件服务的是“需要回答运行时固定问题”的 owner，而不是“所有与运行时相关的分类”。
+
+### 引擎主线 owner
 
 - `researcher-unity`
-- `researcher-lua`
-- `researcher-infra`
 - `researcher-godot`
 - `researcher-unreal`
 - `researcher-cocos`
 
-`researcher-config` 不加载本文件。
+### 跨引擎能力 owner
+
+- `researcher-lua`
+
+说明：
+
+- `researcher-lua` 属于 capability owner，不是 engine owner。
+- 它加载本文件，不代表它与 Unity / Godot / Unreal / Cocos 属于同一分类层级；只代表 Lua 嵌入能力经常直接承载这 5 个运行时实现问题，必须按同一硬约束输出证据。
+- `researcher-config` 不加载本文件。
+- `researcher-infra` 也不加载本文件；基础设施能力改由独立 capability researcher 处理，不再承担 UI / 场景 / 资源这 5 个运行时主线必查项。
 
 ## 运行时必查项
 

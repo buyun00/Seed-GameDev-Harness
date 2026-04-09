@@ -1,10 +1,10 @@
 ---
 name: embed-researcher-infra
-description: /seed:embed 基础设施 researcher 扫描剧本
+description: /seed:embed 基础设施 capability researcher 扫描剧本
 triggers:
   - embed infra researcher
   - infrastructure scan
-  - pipeline scan
+  - network cicd tooling scan
 domain:
   - project-analysis
 scope:
@@ -16,52 +16,47 @@ scope:
 创建 `researcher-infra` 前，必须先加载：
 
 1. `seed/skills/embed/researcher-common.md`
-2. `seed/skills/embed/researcher-runtime-common.md`
+2. `seed/skills/embed/taxonomy-registry.md`
 3. `seed/skills/embed/researcher-infra.md`
+
+`researcher-infra` 不加载 `researcher-runtime-common.md`。
 
 ## TaskCreate 模板
 
 ```text
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: 基础设施调查报告（SendMessage 给 leader 与 builder-infra）
-Done Definition: 报告先输出通用规则执行结果，再输出运行时必查项结果，最后输出基础设施领域发现；每条结论附证据路径；若运行时必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
+Deliverable: 基础设施能力调查报告（SendMessage 给 leader 与 builder-infra）
+Done Definition: 报告输出通用规则执行结果、运行时必查项结果 N/A、以及 capability.network_protocol_and_sync / capability.build_release_and_cicd / capability.tooling_and_ai_pipeline 的领域发现；每条结论附证据路径
 Dependencies: none
 Risk Level: low
 Leader Ack Required: false
-Original User Intent: 分析项目基础设施，为生成 skill 文件提供依据
-Scope Coverage: 资源管理方式（Addressables/AssetBundle）、构建和热更发布流程、CI/CD 配置、网络层协议、其他工具链
-Exclusions: 游戏逻辑代码、Lua 层实现、UI 组件细节
+Original User Intent: 分析项目跨引擎基础设施能力，为生成 common-network-protocol-and-sync.md、common-build-release-and-cicd.md、common-tooling-and-ai-pipeline.md 提供依据
+Scope Coverage: network_protocol_and_sync, build_release_and_cicd, tooling_and_ai_pipeline
+Exclusions: 引擎主线方向、Lua、配置表
 ```
 
 ## 扫描剧本
 
-### 资源管理
+### 网络协议与同步
 
-- 搜索 `com.unity.addressables`、`AddressableAssetsData/`、`BuildAssetBundles`、`AssetBundle`、自定义 Loader/Provider
-- 同时回查加载与释放调用点，不能只看构建脚本
+- 搜索 `Socket`、`KCP`、`TCP`、`UDP`、`WebSocket`、`Protobuf`、`Mirror`、`Netcode`
+- 搜索 Godot `MultiplayerAPI`、Unreal replication/network subsystem、自研传输层
+- 必须追到协议定义、封装 API 或发送/接收入口
 
-### 构建与热更发布
+### 构建发布与 CI/CD
 
-- 搜索 `BuildPipeline`、`BuildPlayer`、`BuildScript`、`hotupdate`、`release`、CI 配置
-- 关注从资源构建到发布的完整链路
+- 搜索 `.github/workflows/`、`.gitlab-ci.yml`、`Jenkinsfile`
+- 搜索 build/release/hotupdate 脚本、Unity build pipeline、Godot export、Unreal UAT、Cocos build script
+- 关注从构建到发布的完整链路，不只看单个 workflow 文件名
 
-### CI/CD
+### 工具链与 AI pipeline
 
-- 搜索 `.github/workflows/`、`gitlab-ci.yml`、`Jenkinsfile`、构建批处理/PowerShell
-- 记录实际运行的检查、构建、发布步骤
-
-### 网络层
-
-- 搜索 `Socket`、`KCP`、`TCP`、`UDP`、`Protobuf`、`Mirror`、`Netcode`
-- 必须定位到协议定义或传输封装，不要只因为依赖存在就写网络规范
-
-### MCP / AI pipeline / 工具链
-
-- 搜索 `mcp`、`agent`、`pipeline`、自动化工具目录、脚本入口
-- 只记录项目内真实存在的工具链整合方式
+- 搜索 `.mcp.json`、`.seed/`、`mcp`、`agent`、`pipeline`
+- 搜索 custom tooling、editor tools、自动化脚本入口
+- 只记录项目级工具链，不把引擎自带工具当项目能力
 
 ## 输出要求
 
-- 资源加载/释放既属于基础设施维度，也属于运行时必查项；两处都要给证据
-- 若网络层只有依赖声明、没有实际协议或传输实现，不得补写网络约定
+- 报告第二段固定写：`运行时必查项结果：N/A（infra capabilities 不直接承担运行时五问）`
+- `asset_pipeline` 不归 `researcher-infra`，发现相关证据只作为旁注交给对应引擎 researcher

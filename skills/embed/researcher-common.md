@@ -19,7 +19,9 @@ scope:
 
 1. 先加载 `seed/skills/embed/researcher-common.md`
 2. 运行时 researcher 再加载 `seed/skills/embed/researcher-runtime-common.md`
-3. 最后加载各自的 `seed/skills/embed/researcher-<domain>.md`
+3. 再加载 `seed/skills/embed/taxonomy-registry.md`
+4. 再加载各自的 `seed/skills/embed/researcher-<domain>.md`
+5. 最后按本次负责的 `matrix_id` 加载对应的 fixed question 文件；如存在匹配的 composite fixed question 文件，再追加加载
 
 ## 核心元规则
 
@@ -65,6 +67,22 @@ scope:
 4. 扩大搜索时排除明显的三方、缓存、生成产物目录
    常见排除项：`Library/`、`Temp/`、`Logs/`、`Obj/`、`node_modules/`、`DerivedDataCache/`、`.git/`
 5. 仍没找到时，记录已搜索范围和关键词，再输出 `未找到` 或对应错误
+
+## 固定问题加载规则
+
+researcher 不仅要扫描领域剧本，还必须按本次负责的矩阵项加载对应固定问题文件。
+
+加载顺序：
+
+1. 先加载矩阵项自己的 `fixed_question_file`
+2. 如存在匹配的 composite fixed question 文件，再追加加载
+3. 用这些固定问题驱动本次具体搜索
+
+约束：
+
+- 固定问题文件缺失时，必须在报告里明确写出缺失路径
+- 固定问题文件缺失，不等于 researcher 可以自由补写问题
+- 如果领域剧本与固定问题冲突，以固定问题文件为准；领域剧本只提供搜索范围和追踪方式
 
 ## 证据记录格式
 

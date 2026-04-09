@@ -13,7 +13,7 @@
 
 Seed 是一个专为游戏研发场景设计的 Claude Code 插件。它的核心能力是根据任务特征（类型、领域、复杂度）自动选择合适的 Agent 组合，通过 Claude Code 原生 Agent Team 机制协调执行，并跨 session 保持项目上下文。
 
-Seed **不是**通用 AI 编排框架——它专注于游戏开发领域，内置了 Unity Runtime、Lua Gameplay、AI Pipeline 等领域知识。
+Seed **不是**通用 AI 编排框架——它专注于游戏开发领域，内置了面向 Unity / Godot / Unreal / Cocos 的引擎主线知识，以及 Lua、配置表、网络、CI/CD、工具链等跨引擎能力知识。
 
 ### 核心特性
 
@@ -70,7 +70,7 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 |------|------|------|
 | `/seed` | 日常入口 | 项目快捷命令，转发到 `/seed:bud`。由 `/seed:setup` 自动创建到 `.claude/commands/seed.md` |
 | `/seed:setup` | 一次性初始化 | 语言选择、CLAUDE.md 安装、默认配置写入、引导运行 embed |
-| `/seed:embed` | 项目分析 | 分析项目技术栈，生成项目专属 domain skill。可随时重跑（`--update` 增量模式） |
+| `/seed:embed` | 项目分析 | 按双轴矩阵分析项目技术栈，生成项目专属 domain skill。可随时重跑（`--update` 增量模式） |
 | `/seed:bud` | 底层引擎 | 实际的 bud 命令实现（通常通过 `/seed` 调用，无需直接使用） |
 
 > **提示**：如果输入包含"配置/config/设置/改一下"等关键词，`/seed` 会提示你运行 `/seed:setup`，不会继续执行任务组装。
@@ -112,7 +112,17 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 /seed:embed --update   # 增量模式：只生成缺失的 skill
 ```
 
-扫描项目结构，推断引擎类型、语言、技术方案，经用户确认后通过 Agent Team 并行生成项目专属的 domain skill 文件到 `.seed/skills/domain/`。可随时重跑，项目中途换方案、新增模块都可以。
+扫描项目结构后，Seed 会按**双轴矩阵**整理结果：
+
+- 引擎主线方向：Unity / Godot / Unreal / Cocos 各自的项目结构、场景生命周期、脚本层、桥接层、UI、热更新、资源管线等方向
+- 跨引擎能力：Lua 嵌入、配置/Protobuf、网络协议与同步、构建发布/CI/CD、工具链与 AI pipeline
+
+经用户确认后，通过 Agent Team 并行生成项目专属的 domain skill 文件到 `.seed/skills/domain/`。新产物统一命名为：
+
+- `domain/<engine>-<direction>.md`
+- `domain/common-<capability>.md`
+
+可随时重跑，项目中途换方案、新增模块都可以。
 
 #### `/seed:setup` — 初始化配置
 
@@ -218,7 +228,7 @@ triggers:
 这里是 skill 正文内容...
 ```
 
-运行 `/seed:embed` 可自动分析项目技术栈并生成 domain skill 到 `.seed/skills/domain/`。
+运行 `/seed:embed` 可自动分析项目技术栈，并生成按矩阵命名的 domain skill 到 `.seed/skills/domain/`。
 
 ---
 
@@ -280,7 +290,7 @@ seed/
 │       └── stdin.mjs             # 超时保护的 stdin 读取
 ├── commands/
 │   ├── setup.md                  # /seed:setup 命令定义
-│   ├── embed.md                  # /seed:embed 命令定义（项目技术栈分析 + domain skill 生成）
+│   ├── embed.md                  # /seed:embed 命令定义（双轴矩阵分析 + domain skill 生成）
 │   └── bud.md                    # /seed:bud 命令定义（通过 /seed 项目快捷命令调用）
 ├── agents/
 │   ├── leader.md                 # 协调者 Agent
@@ -293,6 +303,11 @@ seed/
 │   ├── lua-scripting.md          # Lua/xLua 脚本开发
 │   ├── ai-pipeline.md            # AI 工作流模式
 │   ├── mcp-tools.md              # MCP 工具开发
+│   ├── embed/
+│   │   ├── taxonomy-registry.md  # /seed:embed 双轴矩阵单一事实源
+│   │   ├── question-bank.md      # Step 2 矩阵补问题库
+│   │   ├── skill-catalog.md      # Step 3 矩阵 skill 目录
+│   │   └── builder-catalog.md    # Step 4 builder 生成规则
 │   ├── method/
 │   │   ├── implement.md          # 功能实现方法论
 │   │   ├── debug.md              # 系统化调试方法论
@@ -323,7 +338,7 @@ seed/
 │   ├── logs/                     # 日志
 │   ├── plans/                    # 计划文件
 │   └── skills/                   # 项目级 learned skills
-│       ├── domain/               # /seed:embed 生成的项目专属 domain skill
+│       ├── domain/               # /seed:embed 生成的矩阵化 domain skill（<engine>-* / common-*）
 │       ├── method/               # 项目特有工作方法（人工添加）
 │       └── tooling/              # 项目特有工具规范（人工添加）
 └── .claude/
@@ -399,7 +414,7 @@ Seed 目前专注于以下使用场景：
 
 - 通过 Claude Code Plugin 机制安装和运行
 - 使用 Claude Code 原生 Agent Team 进行多 Agent 协作
-- 针对游戏研发领域（Unity / Lua / AI Pipeline）的工作流优化
+- 针对游戏研发领域（Unity / Godot / Unreal / Cocos 主线 + 跨引擎能力矩阵）的工作流优化
 
 以下能力暂未纳入，后续可能根据需求扩展：
 
