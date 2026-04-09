@@ -65,9 +65,13 @@ scope:
 - 全部 capability 矩阵项模板
   - `capability.<capability_id>`
 
-目前仍按需创建的是：
+目前已预建第一批高价值 composite 模板，路径位于：
 
-- composite 叠加固定问题文件
+- `fixed-questions/composite/<engine>/<direction-kebab>/<capability-kebab>.md`
+
+其余仍按需创建的是：
+
+- 尚未进入首批高价值集合的 composite 叠加固定问题文件
   - `composite.<engine>.<direction_id>.<capability_id>`
 
 说明：
