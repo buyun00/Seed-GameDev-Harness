@@ -49,15 +49,14 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 | ------------------ | ----------------------- | --------------------------------------------------------------------------------------------- |
 | `plugin-setup.mjs` | `/plugin install` 后自动执行 | 保存 Node 路径到 `~/.claude/.seed-config.json`，将 `hooks.json` 的 `node` 替换为绝对路径（兼容 nvm/fnm/Windows） |
 | `setup-init.mjs`   | 首次打开 CC session         | 创建 `.seed/state`、`.seed/logs`、`.seed/plans` 目录结构                                              |
-| `/seed:setup`      | 用户手动运行                  | 安装 CLAUDE.md、配置 bud 模式、启用 Agent Teams、创建 `/seed` 快捷命令                                |
+| `/seed:setup`      | 用户手动运行                  | 安装 CLAUDE.md、写入默认配置、启用 Agent Teams、创建 `/seed` 快捷命令、引导运行 `/seed:embed`                |
 
 
-### `/seed:setup` 五阶段向导
+### `/seed:setup` 四阶段向导
 
-0. **语言选择** — 选择交互语言（English / 中文 / 日本語 / 한국어），后续所有提问、文档输出、注释均使用选定语言
-1. **CLAUDE.md 安装** — 选择 local（`.claude/CLAUDE.md`）或 global（`~/.claude/CLAUDE.md`），安装 Seed 核心指令
-2. **Bud 模式** — 选择默认执行模式（auto / confirm / guided）
-3. **Agent Teams & 快捷命令** — 启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`，创建 `.claude/commands/seed.md`（`/seed` → `/seed:bud` 转发）
+1. **CLAUDE.md 安装** — 唯一需要用户决策的步骤：选择 local（`.claude/CLAUDE.md`）或 global（`~/.claude/CLAUDE.md`）
+2. **默认配置写入（静默）** — 自动写入 `.seed/config.json`、启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`、创建 `/seed` 快捷命令
+3. **引导运行 /seed:embed** — 提示用户重启 Claude Code 后运行 `/seed:embed` 分析项目技术栈
 4. **完成确认** — 写入 `setupCompleted` 标记
 
 ---
@@ -68,8 +67,9 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 
 | 命令 | 性质 | 说明 |
 |------|------|------|
-| `/seed` | 日常入口 | 项目快捷命令，转发到 `/seed:bud`。由 `/seed:setup` 在阶段 3 自动创建到 `.claude/commands/seed.md` |
-| `/seed:setup` | 一次性初始化 | 语言选择、CLAUDE.md 安装、bud 模式配置、Agent Teams 启用、创建 `/seed` 快捷命令 |
+| `/seed` | 日常入口 | 项目快捷命令，转发到 `/seed:bud`。由 `/seed:setup` 自动创建到 `.claude/commands/seed.md` |
+| `/seed:setup` | 一次性初始化 | CLAUDE.md 安装、默认配置写入、引导运行 embed |
+| `/seed:embed` | 项目分析 | 分析项目技术栈，生成项目专属 domain skill。可随时重跑（`--update` 增量模式） |
 | `/seed:bud` | 底层引擎 | 实际的 bud 命令实现（通常通过 `/seed` 调用，无需直接使用） |
 
 > **提示**：如果输入包含"配置/config/设置/改一下"等关键词，`/seed` 会提示你运行 `/seed:setup`，不会继续执行任务组装。
@@ -91,8 +91,8 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 
 | 模式        | 行为            | 适用场景                   |
 | --------- | ------------- | ---------------------- |
-| `auto`    | 分析后直接启动，不打断用户 | 对 Seed 路由规则已经熟悉，信任自动决策 |
-| `confirm` | 展示方案，一次确认后启动  | 日常使用推荐                 |
+| `auto`    | 分析后直接启动，不打断用户 | 日常使用推荐（默认）             |
+| `confirm` | 展示方案，一次确认后启动  | 需要确认方案时使用               |
 | `guided`  | 逐步引导，可调整每个参数  | 首次使用，或需要精细控制 Agent 组合  |
 
 
@@ -103,6 +103,15 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 3. **查路由表** — 根据分析结果查 `.seed/team-router.md`，选择 Agent 组合
 4. **确认/调整** — 根据模式展示方案并确认
 5. **启动 Team** — 调用 `TeamCreate` → `TaskCreate` × N → `SendMessage` → leader
+
+#### `/seed:embed` — 分析项目技术栈
+
+```bash
+/seed:embed            # 全量模式：重新生成所有 domain skill
+/seed:embed --update   # 增量模式：只生成缺失的 skill
+```
+
+扫描项目结构，推断引擎类型、语言、技术方案，经用户确认后通过 Agent Team 并行生成项目专属的 domain skill 文件到 `.seed/skills/domain/`。可随时重跑，项目中途换方案、新增模块都可以。
 
 #### `/seed:setup` — 初始化配置
 
@@ -172,24 +181,29 @@ Compact 前会自动读取 `project-memory.json` 格式化为摘要，作为 `sy
 每次用户发送 prompt 时，`skill-injector` 会：
 
 1. 扫描 prompt（小写匹配）
-2. 遍历 `.seed/skills/`（项目级）和 `$PLUGIN_ROOT/skills/`（插件内置）下的 `.md` 文件
+2. **递归遍历** `.seed/skills/`（项目级）和 `$PLUGIN_ROOT/skills/`（插件内置）下的所有 `.md` 文件，支持任意深度子目录（如 `domain/`、`method/`、`tooling/`）
 3. 匹配 YAML frontmatter 中的 `triggers` 关键词
 4. 取分数最高的 skill 注入上下文（每 session 最多 5 个，已注入的不重复）
 
 ### 内置 Skills
 
 
-| Skill            | 触发词示例                                   | 内容                   |
-| ---------------- | --------------------------------------- | -------------------- |
-| `unity-patterns` | rigidbody, physics, animation, prefab   | Unity 引擎开发模式和最佳实践    |
-| `lua-scripting`  | lua, xlua, hotfix, require, table       | Lua / xLua 热更新脚本开发指南 |
-| `ai-pipeline`    | mcp, agent, prompt, pipeline, tool_call | AI 工作流和 MCP 集成模式     |
-| `mcp-tools`      | mcp server, tool, resource, stdio       | MCP 工具开发和调试指南        |
+| Skill            | 目录 | 触发词示例                                   | 内容                   |
+| ---------------- | ---- | --------------------------------------- | -------------------- |
+| `unity-patterns` | skills/ | rigidbody, physics, animation, prefab   | Unity 引擎开发模式和最佳实践    |
+| `lua-scripting`  | skills/ | lua, xlua, hotfix, require, table       | Lua / xLua 热更新脚本开发指南 |
+| `ai-pipeline`    | skills/ | mcp, agent, prompt, pipeline, tool_call | AI 工作流和 MCP 集成模式     |
+| `mcp-tools`      | skills/ | mcp server, tool, resource, stdio       | MCP 工具开发和调试指南        |
+| `implement`      | skills/method/ | 实现, 开发, feature, coding              | 功能实现方法论             |
+| `debug`          | skills/method/ | 调试, bug, crash, error                  | 系统化调试方法论             |
+| `review`         | skills/method/ | 审查, code review, PR                    | 代码审查方法论             |
+| `verify`         | skills/method/ | 验证, 测试, test, QA                      | 验证方法论               |
+| `config-change`  | skills/method/ | 配置, setting, 参数调整                     | 配置变更方法论             |
 
 
 ### 添加项目级 Skill
 
-在 `.seed/skills/` 下创建 `.md` 文件：
+在 `.seed/skills/` 下创建 `.md` 文件（支持子目录如 `domain/`、`method/`、`tooling/`）：
 
 ```markdown
 ---
@@ -202,6 +216,8 @@ triggers:
 
 这里是 skill 正文内容...
 ```
+
+运行 `/seed:embed` 可自动分析项目技术栈并生成 domain skill 到 `.seed/skills/domain/`。
 
 ---
 
@@ -263,6 +279,7 @@ seed/
 │       └── stdin.mjs             # 超时保护的 stdin 读取
 ├── commands/
 │   ├── setup.md                  # /seed:setup 命令定义
+│   ├── embed.md                  # /seed:embed 命令定义（项目技术栈分析 + domain skill 生成）
 │   └── bud.md                    # /seed:bud 命令定义（通过 /seed 项目快捷命令调用）
 ├── agents/
 │   ├── leader.md                 # 协调者 Agent
@@ -275,6 +292,12 @@ seed/
 │   ├── lua-scripting.md          # Lua/xLua 脚本开发
 │   ├── ai-pipeline.md            # AI 工作流模式
 │   ├── mcp-tools.md              # MCP 工具开发
+│   ├── method/
+│   │   ├── implement.md          # 功能实现方法论
+│   │   ├── debug.md              # 系统化调试方法论
+│   │   ├── review.md             # 代码审查方法论
+│   │   ├── verify.md             # 验证方法论
+│   │   └── config-change.md      # 配置变更方法论
 │   └── seed-reference/
 │       └── SKILL.md              # Seed 参考指南（setup 时安装到 .claude/skills/）
 ├── templates/
@@ -299,6 +322,9 @@ seed/
 │   ├── logs/                     # 日志
 │   ├── plans/                    # 计划文件
 │   └── skills/                   # 项目级 learned skills
+│       ├── domain/               # /seed:embed 生成的项目专属 domain skill
+│       ├── method/               # 项目特有工作方法（人工添加）
+│       └── tooling/              # 项目特有工具规范（人工添加）
 └── .claude/
     ├── CLAUDE.md                 # Seed 核心指令（setup 安装）
     └── commands/
@@ -334,9 +360,9 @@ Seed 通过 Claude Code Hook 机制在 session 生命周期的关键节点注入
 
 ```json
 {
-  "language": "中文",
+  "language": "",
   "bud": {
-    "mode": "confirm"
+    "mode": "auto"
   },
   "memory": {
     "autoLearn": true,
@@ -355,8 +381,8 @@ Seed 通过 Claude Code Hook 机制在 session 生命周期的关键节点注入
 
 | 配置项                           | 说明                     | 默认值       |
 | ----------------------------- | ---------------------- | --------- |
-| `language`                    | 交互语言（影响所有输出和注释）        | setup 时选择 |
-| `bud.mode`                    | 默认执行模式                 | `confirm` |
+| `language`                    | 交互语言（影响所有输出和注释）        | 空（未设置） |
+| `bud.mode`                    | 默认执行模式                 | `auto`    |
 | `memory.autoLearn`            | 自动学习项目知识               | `true`    |
 | `memory.rescanIntervalHours`  | 记忆重扫间隔（小时）             | `24`      |
 | `contextGuard.threshold`      | Context 使用率告警阈值（%）     | `75`      |

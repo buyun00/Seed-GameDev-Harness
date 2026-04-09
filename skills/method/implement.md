@@ -1,0 +1,42 @@
+---
+name: implement
+description: 功能实现方法论 — 从需求到代码落地的系统化流程
+triggers:
+  - implement
+  - 实现
+  - 开发
+  - 新功能
+  - feature
+  - 编码
+  - coding
+version: 1.0
+domain:
+  - cross-domain
+scope:
+  - user-chat
+  - agent-inject
+tags:
+  - method
+  - workflow
+source: manual
+---
+
+## 功能实现方法论
+
+### 实现前
+
+- **明确边界**：确认需要改什么、不改什么。写入 Scope Coverage 和 Exclusions。
+- **检查依赖**：识别受影响的模块和接口，判断是否需要先修改依赖方。
+- **确认测试策略**：实现前就确定如何验证，避免写完代码才发现无法测试。
+
+### 实现中
+
+- **最小增量**：每次提交一个独立可工作的变更，不要积攒大改动。
+- **接口先行**：先定义对外接口和数据结构，再填充实现细节。
+- **遵循项目约定**：命名、文件组织、注释风格遵循 `.seed/skills/domain/` 中的 coding rules。
+- **及时升级**：遇到多个可行方案、不确定是否该修改某处、发现不在计划内的工作时，升级给 leader。
+
+### 实现后
+
+- **自检清单**：编译通过、无新增 warning、关键路径手动验证通过。
+- **交付物明确**：告知 reviewer/leader 改了什么、为什么改、怎么验证。

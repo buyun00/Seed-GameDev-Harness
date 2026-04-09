@@ -5,36 +5,21 @@ description: 为当前项目初始化 Seed
 
 # /seed:setup
 
-你正在执行 Seed 设置向导。按以下阶段顺序进行。
-
-## 阶段 0：语言选择
-
-读取 `.seed/config.json`。如果 `language` 已设置且非空，跳过此阶段并告知用户当前语言。
-
-如果 `language` 未设置（空字符串或缺失），使用 `AskUserQuestion` 询问用户：
-
-"选择 Seed 的交互语言（影响所有交互、文档和代码注释）："
-- **English** — 英语
-- **中文** — 中文
-- **日本語** — 日语
-- **한국어** — 韩语
-
-将选择的值（如 `"English"`、`"中文"`、`"日本語"`、`"한국어"`）写入 `.seed/config.json` 的 `language` 字段。
-
-**从这一点开始，整个设置向导使用选定的语言进行。** 后续所有问题、说明和完成摘要都必须使用选定的语言。
+你正在执行 Seed 设置向导。按以下四个阶段顺序进行。
 
 ## 阶段 1：安装 CLAUDE.md
+
+这是唯一需要用户做决策的步骤。
 
 检查 `{{ARGUMENTS}}` 中是否传入了 `--local` 或 `--global`。
 
 - 如果传入了 `--local`，设置 SCOPE 为 `local`。
 - 如果传入了 `--global`，设置 SCOPE 为 `global`。
-- 如果都没有传入，询问用户：
+- 如果都没有传入，使用 `AskUserQuestion` 询问：
 
-使用 `AskUserQuestion`：
-- "Seed 应该将 CLAUDE.md 指令安装到哪里？"
-  - **local** — 本项目的 `.claude/CLAUDE.md`（推荐用于单项目配置）
-  - **global** — `~/.claude/CLAUDE.md`（适用于所有项目）
+"Seed 应该将 CLAUDE.md 指令安装到哪里？"
+  - **local** — 本项目的 `.claude/CLAUDE.md`（推荐，只影响当前项目）
+  - **global** — `~/.claude/CLAUDE.md`（影响所有项目）
 
 然后执行：
 
@@ -44,38 +29,22 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup-claude-md.sh" <SCOPE>
 
 向用户报告输出结果。
 
-## 阶段 2：配置 bud 模式
+## 阶段 2：写入默认配置（静默，不询问）
 
-读取 `.seed/config.json`。
+自动执行以下三步，不向用户提问：
 
-**迁移检查**：如果 config 中存在旧的 `dispatch` 键（来自旧版本 Seed），自动迁移：
+### 2a. 写入 `.seed/config.json`
+
+如果 `.seed/config.json` 不存在，从 `$CLAUDE_PLUGIN_ROOT/templates/config.json` 复制。
+
+如果已存在，保留现有内容不覆盖。
+
+**迁移检查**：如果 config 中存在旧的 `dispatch` 键，自动迁移：
 1. 将 `dispatch.mode` 的值复制到 `bud.mode`
 2. 删除 `dispatch` 键
 3. 写回 config 文件
-4. 告知用户："已自动将旧版 dispatch 配置迁移为 bud。"
 
-如果 `bud.mode` 已设置（包括刚迁移的），跳过此阶段并告知用户当前模式。
-
-如果 `bud.mode` 未设置，使用 `AskUserQuestion` 询问用户：
-
-"`/seed` 应该如何处理团队组装？"
-- **auto** — 分析后直接启动，无需确认
-- **confirm** — 展示方案，一次确认后启动（推荐）
-- **guided** — 逐步引导，可调整每个参数
-
-将选择的模式写入 `.seed/config.json` 的 `bud.mode`。
-
-## 阶段 3：启用 Agent Teams 与快捷命令
-
-使用 `AskUserQuestion` 询问用户：
-
-"是否启用 CC 原生 agent teams？这是 `/seed` 正常工作的必要条件。"
-- **是** — 启用（推荐）
-- **否** — 暂时跳过
-
-如果用户确认，执行以下两步：
-
-### 3a. 启用 Agent Teams 环境变量
+### 2b. 启用 Agent Teams 环境变量
 
 读取或创建项目根目录下的 `.claude/settings.json`，确保包含：
 
@@ -89,7 +58,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup-claude-md.sh" <SCOPE>
 
 如果文件已存在，与现有内容合并 — 不要覆盖其他设置。
 
-### 3b. 创建 `/seed` 项目快捷命令
+### 2c. 创建 `/seed` 项目快捷命令
 
 在项目根目录下创建 `.claude/commands/seed.md`（如果已存在则跳过），内容为：
 
@@ -101,24 +70,26 @@ description: Seed 日常入口 — 转发到 /seed:bud
 /seed:bud {{ARGUMENTS}}
 ```
 
-这样用户可以直接用 `/seed <任务描述>` 代替 `/seed:bud <任务描述>`。
+## 阶段 3：引导运行 /seed:embed
+
+输出以下提示：
+
+```
+✅ Seed 安装完成。
+
+⚠️  请先重启 Claude Code，让配置生效。
+
+重启后运行 /seed:embed 分析项目技术栈，
+生成项目专属的 domain skill，让 Seed 更了解你的项目。
+```
 
 ## 阶段 4：完成
 
 将 `setupCompleted` 及当前 ISO 时间戳写入 `.seed/config.json`。
 
-输出完成摘要：
-
-```
-Seed 设置完成！
-
-  CLAUDE.md:  已安装（{SCOPE}）
-  Bud:        {mode} 模式
-  Teams:      {已启用/未启用}
-  快捷命令:   /seed → /seed:bud
-
-重启 Claude Code 以使所有配置生效。
-
-快速开始：
-  /seed <描述你的任务>
+示例：
+```json
+{
+  "setupCompleted": "2025-01-15T10:30:00.000Z"
+}
 ```

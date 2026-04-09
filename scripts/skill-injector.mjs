@@ -103,7 +103,32 @@ function parseSkillFrontmatter(content) {
 }
 
 /**
- * 从指定目录中发现所有 .md skill 文件。
+ * 递归扫描目录，收集所有 .md skill 文件。
+ */
+function scanDir(dir, scope, candidates, seenPaths) {
+  if (!existsSync(dir)) return;
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        scanDir(fullPath, scope, candidates, seenPaths);
+      } else if (entry.isFile() && entry.name.endsWith(SKILL_EXTENSION)) {
+        try {
+          const realPath = realpathSync(fullPath);
+          if (!seenPaths.has(realPath)) {
+            seenPaths.add(realPath);
+            candidates.push({ path: fullPath, scope });
+          }
+        } catch { /* 忽略符号链接错误 */ }
+      }
+    }
+  } catch { /* 忽略目录读取错误 */ }
+}
+
+/**
+ * 从指定目录中递归发现所有 .md skill 文件。
+ * 支持 domain/、method/、tooling/ 等任意深度子目录。
  */
 function findSkillFiles(cwd) {
   const candidates = [];
@@ -116,21 +141,7 @@ function findSkillFiles(cwd) {
   ];
 
   for (const { dir, scope } of scanDirs) {
-    if (!existsSync(dir)) continue;
-    try {
-      const files = readdirSync(dir, { withFileTypes: true });
-      for (const file of files) {
-        if (!file.isFile() || !file.name.endsWith(SKILL_EXTENSION)) continue;
-        const fullPath = join(dir, file.name);
-        try {
-          const realPath = realpathSync(fullPath);
-          if (!seenPaths.has(realPath)) {
-            seenPaths.add(realPath);
-            candidates.push({ path: fullPath, scope });
-          }
-        } catch { /* 忽略符号链接错误 */ }
-      }
-    } catch { /* 忽略目录读取错误 */ }
+    scanDir(dir, scope, candidates, seenPaths);
   }
 
   return candidates;

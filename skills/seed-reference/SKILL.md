@@ -10,10 +10,24 @@ Seed 是一个基于 Claude Code plugin 的游戏研发 AI 工作流系统，提
 ## 命令
 
 ### /seed:setup
-初始化当前项目的 Seed 配置：
-- 安装 CLAUDE.md（local 或 global）
-- 配置 bud 默认模式（auto / confirm / guided）
-- 启用 CC native agent teams
+初始化当前项目的 Seed 配置（四阶段）：
+1. 安装 CLAUDE.md（local 或 global）
+2. 静默写入默认配置（config.json、agent teams、快捷命令）
+3. 引导运行 /seed:embed
+4. 写入完成标记
+
+### /seed:embed
+分析项目技术栈，生成项目专属 domain skill。可随时重跑。
+
+用法：
+```
+/seed:embed            # 全量模式：重新生成所有 domain skill
+/seed:embed --update   # 增量模式：只生成缺失的 skill，已有文件保留
+```
+
+流程：扫描项目结构 → 用户确认技术栈 → 勾选技术细节 → 确认文件列表 → Agent Team 并行生成 → 输出完成摘要。
+
+生成的 skill 文件存放在 `.seed/skills/domain/`。
 
 ### /seed
 日常入口命令——分析任务并自动组装 agent team 执行（项目快捷命令，由 `/seed:setup` 自动创建，转发到 `/seed:bud`）。
@@ -27,8 +41,8 @@ Seed 是一个基于 Claude Code plugin 的游戏研发 AI 工作流系统，提
 ```
 
 执行模式：
-- **auto**：分析完直接启动，不打断用户
-- **confirm**：展示方案，一次确认后启动（默认）
+- **auto**：分析完直接启动，不打断用户（默认）
+- **confirm**：展示方案，一次确认后启动
 - **guided**：逐步引导，可手动调整每个参数
 
 系统会自动分析任务的 task_kind（implement / investigate / fix / review / design / operate）、domain 和 complexity，然后查路由表选择最优 agent 组合。
@@ -60,4 +74,6 @@ Seed 是一个基于 Claude Code plugin 的游戏研发 AI 工作流系统，提
 
 ## 项目级 Skills
 
-在 `.seed/skills/` 下放置 `.md` 文件可以创建项目级 learned skills。文件需包含 YAML frontmatter 的 `triggers` 字段，当用户 prompt 命中触发词时自动注入。
+在 `.seed/skills/` 下放置 `.md` 文件可以创建项目级 learned skills。支持子目录（如 `domain/`、`method/`、`tooling/`），skill-injector 会递归扫描。文件需包含 YAML frontmatter 的 `triggers` 字段，当用户 prompt 命中触发词时自动注入。
+
+运行 `/seed:embed` 可自动生成项目专属的 domain skill 到 `.seed/skills/domain/`。

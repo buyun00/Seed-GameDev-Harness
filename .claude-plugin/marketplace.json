@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "seed",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "author": {
         "name": "Lin Buyun",
         "email": "buyun0@qq.com"
@@ -20,5 +20,5 @@
       "tags": ["gamedev", "multi-agent", "unity", "lua", "orchestration"]
     }
   ],
-  "version": "0.1.1"
+  "version": "1.0.0"
 }
