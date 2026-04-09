@@ -7,6 +7,13 @@ description: 为当前项目初始化 Seed
 
 你正在执行 Seed 设置向导。按以下五个阶段顺序进行。
 
+## 执行保障（必须遵守）
+
+- 如果当前环境**不支持** `AskUserQuestion`，或按钮/表单式交互没有成功弹出，**必须立即降级为普通文本提问**，并明确告诉用户该如何回复，例如：`回复 1 选择中文，回复 2 选择 English`。
+- 每次拿到用户输入后，都要继续推进到下一阶段；**不要**只问完问题就结束当前回复。
+- 阶段 3 是静默执行，但静默不等于终止。完成写入后，必须继续输出阶段 4 的重启提示。
+- 阶段 4 明确要求用户**先重启 Claude Code**。在同一会话里**不要假设** `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 已经生效。
+
 ## 阶段 1：语言选择
 
 读取 `.seed/config.json`。如果 `language` 已设置且非空，跳过此阶段并告知用户当前语言。
@@ -18,6 +25,8 @@ description: 为当前项目初始化 Seed
 - **中文** — 中文
 - **日本語** — 日语
 - **한국어** — 韩语
+
+如果 `AskUserQuestion` 不可用，改为普通文本，并要求用户直接回复语言名称或编号。
 
 将选择的值写入 `.seed/config.json` 的 `language` 字段。
 
@@ -34,6 +43,8 @@ description: 为当前项目初始化 Seed
 "Seed 应该将 CLAUDE.md 指令安装到哪里？"
   - **local** — 本项目的 `.claude/CLAUDE.md`（推荐，只影响当前项目）
   - **global** — `~/.claude/CLAUDE.md`（影响所有项目）
+
+如果 `AskUserQuestion` 不可用，改为普通文本，并要求用户直接回复 `local` 或 `global`。
 
 然后执行：
 
