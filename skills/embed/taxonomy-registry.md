@@ -174,6 +174,8 @@ tech_stack_report:
       status: detected
       variant: "Assets + Packages + asmdef 分层"
       evidence: "Assets/Scripts/、Packages/manifest.json、*.asmdef"
+      confirmed_by_user: false
+      user_supplied_evidence: ""
 
   capabilities:
     - matrix_id: capability.lua_embedding
@@ -185,6 +187,8 @@ tech_stack_report:
       status: detected
       variant: "xLua"
       evidence: "Assets/XLua/ 目录存在"
+      confirmed_by_user: false
+      user_supplied_evidence: ""
 
   conflicts: []
 ```
@@ -202,6 +206,17 @@ tech_stack_report:
   - `status`
   - `variant`
   - `evidence`
+- 用户在 Step 1 / Step 2 补全后允许追加以下字段：
+  - `confirmed_by_user`
+  - `user_supplied_evidence`
+
+### 用户补全字段语义
+
+- `confirmed_by_user: true` 表示该矩阵项已经由用户在 Step 1 / Step 2 确认或修正，Step 3 必须读取该状态。
+- `user_supplied_evidence` 保存用户补充的原始信息或整理后的信息，用于 researcher / builder 继续定位证据。
+- 用户补充路径、目录、文件名、类名、函数名、配置项或关键字符串时，该项应归一化为 `status: detected`。
+- 用户只补充方案名或自然语言描述时，该项应归一化为 `status: unknown`，但仍然可以进入生成列表。
+- 用户明确确认不存在时，该项保持 `status: missing`，并在 `evidence` 中写明用户确认不存在。
 
 ## 固定问题文件规则
 

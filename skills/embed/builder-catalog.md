@@ -25,6 +25,7 @@ scope:
    - `data_config_pipeline` → `builder-config`
    - `network_protocol_and_sync` / `build_release_and_cicd` / `tooling_and_ai_pipeline` → `builder-infra`
 4. 每个 skill 都必须写新的 frontmatter 契约和 `## 固定问题` 段，且固定问题来自对应 `fixed_question_file`。
+5. 如果目标矩阵项带有 `confirmed_by_user: true`，builder 必须读取 `user_supplied_evidence`，不能因为 researcher 未重新扫到同一证据就跳过该 skill。
 
 ## 占位 skill 规则
 
@@ -43,6 +44,14 @@ scope:
    - researcher 搜了哪些范围
    - 为什么当前不能把它写成项目规范
 3. 仍要保留矩阵 frontmatter 字段和 `## 固定问题` 段
+
+### 用户补全 skill 要求
+
+如果矩阵项由用户补全进入生成列表：
+
+- 用户提供了路径、目录、文件名、类名、函数名、配置项或关键字符串时，frontmatter 可写 `source: user-confirmed`，正文 `## 证据` 必须列出 `user_supplied_evidence`。
+- 用户只提供方案名或自然语言描述、但没有具体落点时，仍要生成 skill；如果 researcher 也未找到实现入口，则写 `source: incomplete` 并说明待补的具体证据。
+- 用户明确确认不存在的 `missing` 项不应进入 builder 目标列表。
 
 占位 skill 首段模板：
 

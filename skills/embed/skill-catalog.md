@@ -24,6 +24,21 @@ Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展
 
 ## 生成规则
 
+### 0. 输入前置条件
+
+进入 Step 3 前，`tech_stack_report` 必须已经完成用户补全状态归一化。Step 3 不允许只读取 Step 0 的原始扫描状态。
+
+已由用户在 Step 1 / Step 2 补全或确认的矩阵项必须写回对应项：
+
+- `confirmed_by_user: true`
+- `user_supplied_evidence: "<用户补充内容>"`（如有）
+- `status` 已从原始 `missing` 归一化为：
+  - `detected`：用户补充了路径、目录、文件名、类名、函数名、配置项或关键字符串
+  - `unknown`：用户只补充了方案名称或自然语言描述，但没有具体落点
+  - `missing`：用户明确确认该方向不存在或不使用该能力
+
+如果 Step 3 发现 `confirmed_by_user: true` 且用户并未确认不存在的项仍为 `missing`，这是流程错误，必须回到 Step 1 / Step 2 的归一化逻辑修正，禁止静默跳过。
+
 ### 1. 引擎主线 skill
 
 对当前 `engine.name` 的 13 个方向逐一判断：
@@ -33,7 +48,8 @@ Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展
 - `status = unknown`
   - 生成对应 skill，但后续 builder 可能落为占位 skill
 - `status = missing`
-  - 不生成，除非用户在 Step 1 / Step 2 明确说“项目有，只是没扫到”
+  - 仅当用户未补全 / 未确认，或用户明确确认该方向不存在时不生成
+  - 如果 `confirmed_by_user: true` 且用户并未确认不存在，不得不生成；必须先修正为 `detected` 或 `unknown`
 - `status = unsupported`
   - 不生成
 
@@ -51,9 +67,10 @@ Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展
 - `status = detected`
   - 生成对应 skill
 - `status = unknown`
-  - 如果已经进入 `active_capabilities`，生成对应 skill，但允许 builder 写成占位 skill
+  - 如果已经进入 `active_capabilities`，或 `confirmed_by_user: true`，生成对应 skill，但允许 builder 写成占位 skill
 - `status = missing`
-  - 默认不生成
+  - 仅当用户未补全 / 未确认，或用户明确确认该能力不存在时不生成
+  - 如果 `confirmed_by_user: true` 且用户并未确认不存在，不得不生成；必须先修正为 `detected` 或 `unknown`
 - `status = unsupported`
   - 不生成
 
@@ -131,7 +148,7 @@ engine: unity
 direction_id: project_structure
 question_set_id: qs-unity-project-structure
 fixed_question_file: $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/unity/project-structure.md
-source: scanned | incomplete
+source: scanned | user-confirmed | incomplete
 ---
 ```
 
@@ -154,7 +171,7 @@ capability: lua_embedding
 capability_id: lua_embedding
 question_set_id: qs-common-lua-embedding
 fixed_question_file: $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/capability/lua-embedding.md
-source: scanned | incomplete
+source: scanned | user-confirmed | incomplete
 ---
 ```
 
@@ -165,7 +182,7 @@ source: scanned | incomplete
 1. `## 结论`
    - 写项目里真实命中的实现和入口
 2. `## 证据`
-   - 列路径、命中串、调用落点
+   - 列路径、命中串、调用落点；如果来自用户补全，列 `user_supplied_evidence`
 3. `## 使用约定`
    - 只写从项目里反推出的约定
 4. `## 固定问题`

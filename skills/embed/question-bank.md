@@ -25,7 +25,7 @@ Step 2 不再围绕旧字段提问，而是围绕 registry 的矩阵项提问：
 ## 进入 Step 2 前必须建立的集合
 
 - `confirmed_directions`
-  - Step 1 已确认，或已由用户自然语言修正回写的引擎方向
+  - Step 1 已确认，或已由用户自然语言修正回写并完成状态归一化的引擎方向
 - `missing_directions`
   - 当前主引擎方向中，`status = missing`
 - `unresolved_directions`
@@ -34,9 +34,31 @@ Step 2 不再围绕旧字段提问，而是围绕 registry 的矩阵项提问：
   - 当前 `capabilities` 中 `status = detected | unknown`
   - 或 Step 1 用户明确补充“项目还有这项能力”
 - `confirmed_capabilities`
-  - 已确认的跨引擎能力
+  - 已确认并完成状态归一化的跨引擎能力
 - `unresolved_capabilities`
   - 活跃跨引擎能力中 `status = unknown` 或进入 `conflicts`
+
+### 用户补全归一化
+
+Step 2 中用户对任意矩阵项的回答都必须写回 `tech_stack_report` 的对应项，且必须影响 Step 3 的生成决策。禁止只把答案记录在 `confirmed_directions` / `confirmed_capabilities` 临时集合里。
+
+- 用户提供路径、目录、文件名、类名、函数名、配置项或关键字符串时：
+  - `status = detected`
+  - `evidence = "<用户提供的可验证线索>"`
+  - `confirmed_by_user = true`
+  - `user_supplied_evidence = "<用户回答原文或整理后的回答>"`
+- 用户只提供方案名或自然语言描述时：
+  - `status = unknown`
+  - `variant = "<用户确认的方案>"`
+  - `evidence = "用户确认：<用户回答>"`
+  - `confirmed_by_user = true`
+  - `user_supplied_evidence = "<用户回答原文或整理后的回答>"`
+- 用户明确选择“没有独立方案 / 不使用 / 不存在”时：
+  - `status = missing`
+  - `evidence = "用户确认不存在：<用户回答>"`
+  - `confirmed_by_user = true`
+
+对 Unity + tolua 手游，如果用户已补充 `script_layer`、`bridge_layer`、`hot_reload`、`asset_pipeline`、`event_and_message_system`、`animation_system`、`plugin_extension`、`platform_adaptation` 中任一方向，该方向必须按上述规则改写状态，并进入 Step 3 的生成输入。
 
 ### 约束
 
@@ -247,5 +269,6 @@ Step 2 不再围绕旧字段提问，而是围绕 registry 的矩阵项提问：
 
 - 当前主引擎的 `missing_directions` 与 `unresolved_directions` 都已检查
 - `active_capabilities` 中的 `unresolved_capabilities` 都已检查
-- 所有用户补充信息都已写回 `tech_stack_report`
+- 所有用户补充信息都已写回 `tech_stack_report`，并已完成 `status`、`variant`、`evidence`、`confirmed_by_user` 的归一化
+- `confirmed_directions` / `confirmed_capabilities` 中的每一项都能被 Step 3 读取，不能只存在于临时集合
 - 不对 `confirmed_*` 项重复提问

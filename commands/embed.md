@@ -129,6 +129,27 @@ argument-hint: "[--update]"
 - 用户修正过的矩阵项立即视为**已确认**
 - 已在 Step 1 得到答案的冲突项，Step 2 禁止重复询问
 
+### 用户补全状态归一化
+
+Step 1 中任何用户补充 / 修正都必须立即归一化到对应的 `directions[]` 或 `capabilities[]` 项，不能只记录在对话摘要或临时集合里。
+
+- 如果用户补充内容包含路径、目录、文件名、类名、函数名、配置项或关键字符串：
+  - 将该项 `status` 改为 `detected`
+  - 将用户提供的可验证线索写入 `evidence`
+  - 写入 `confirmed_by_user: true`
+  - 写入 `user_supplied_evidence: "<用户原始补充或整理后的补充>"`
+- 如果用户只补充方案名称、技术选型或自然语言描述，但没有具体落点：
+  - 将该项 `status` 改为 `unknown`
+  - 将方案名称写入 `variant`
+  - 将 `evidence` 写为 `用户确认：<补充内容>`
+  - 写入 `confirmed_by_user: true`
+  - 写入 `user_supplied_evidence: "<用户原始补充或整理后的补充>"`
+- 如果用户明确说明“没有此方向 / 不使用此能力 / 无独立方案”：
+  - 保持或改为 `missing`
+  - 写入 `confirmed_by_user: true`
+  - `evidence` 写为 `用户确认不存在：<补充内容>`
+- 用户已补全的矩阵项禁止以原始 `missing` 状态进入 Step 3；除非用户明确确认不存在。
+
 ---
 
 ## Step 2：补问未确认的矩阵项
@@ -151,13 +172,14 @@ argument-hint: "[--update]"
    - 当前主引擎的 `missing_directions` / `unresolved_directions`
    - 已激活 capability 中的 `unresolved_capabilities`
 3. 问题文案、候选项和提问顺序以 `question-bank.md` 为准
-4. 所有补问完成后立即进入 Step 3
+4. 所有补问完成后，先执行“用户补全状态归一化”
+5. 归一化完成后立即进入 Step 3
 
 ### Step 2 完成标准
 
 - 当前主引擎的缺口方向都已检查过
 - 活跃 capability 的未确认项都已检查过
-- 所有用户补充信息都已写回 `tech_stack_report`
+- 所有用户补充信息都已写回 `tech_stack_report`，且已完成 `status`、`variant`、`evidence`、`confirmed_by_user` 的归一化
 - 已确认项未被重复提问
 
 ---
@@ -174,8 +196,19 @@ argument-hint: "[--update]"
 1. 根据 `skill-catalog.md` 的规则，从 `tech_stack_report` 动态展开目标文件列表
 2. 引擎主线 skill 使用 `domain/<engine>-<direction-kebab>.md`
 3. 跨引擎能力 skill 使用 `domain/common-<capability-kebab>.md`
-4. `missing` 和 `unsupported` 默认不生成
-5. `unknown` 项允许进入生成列表，但后续 builder 可能写成占位 skill
+4. `detected`、`unknown`、`confirmed_by_user: true` 且非“用户确认不存在”的项必须进入生成列表
+5. `missing` 只有在用户未补全 / 未确认时才默认不生成
+6. `unsupported` 默认不生成，除非用户在 Step 1 / Step 2 明确要求改判
+7. `unknown` 项允许进入生成列表，但后续 builder 可能写成占位 skill
+
+### Step 3 前置校验
+
+展示生成列表前必须先检查：
+
+- `directions[]` 中是否存在 `confirmed_by_user: true`、用户并未确认不存在、但未进入目标文件列表的项
+- `capabilities[]` 中是否存在 `confirmed_by_user: true`、用户并未确认不存在、但未进入目标文件列表的项
+
+如果存在上述项，必须输出“已补全但未生成”的清单并停止 Step 3，先回到状态归一化修正。禁止继续展示残缺生成列表。
 
 ### 展示给用户确认
 
