@@ -170,7 +170,8 @@ fixed_question_results:
    - `report_path: <路径>`
    - `status: ok | missing | conflict | error`
    - `summary: <不超过 10 行的一句话摘要>`
-6. 禁止在 mailbox 里发送完整报告正文；builder 会直接读文件
+6. 该 SendMessage 是普通文本消息时，工具调用本身也必须带 `summary` 字段（短预览，例如 `researcher-unity ok`），否则 Claude Code 会拒绝发送
+7. 禁止在 mailbox 里发送完整报告正文；builder 会直接读文件
 
 ## 交付约束
 

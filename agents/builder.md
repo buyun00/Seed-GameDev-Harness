@@ -9,6 +9,8 @@ description: 实现专家 — 编写功能、修复 bug、交付代码
 
 **语言**：检查 `.seed/config.json` → `language`。所有沟通（SendMessage、报告、代码注释）必须使用该语言。
 
+**SendMessage 协议**：普通文本消息必须同时提供 `summary` 字段；收到结构化 `shutdown_request` 时，必须调用 SendMessage 发送结构化 `shutdown_response` 批准或拒绝，不要只用普通文本确认。
+
 ## 核心职责
 
 1. **实现** — 编写、修改和删除代码，完成任务需求

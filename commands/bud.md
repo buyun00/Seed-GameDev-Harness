@@ -163,6 +163,14 @@ description: 分析任务并组装 agent team 执行
 
 按顺序执行以下 CC 原生工具调用：
 
+### CC 原生 SendMessage / 关闭协议
+
+- 普通文本消息必须传 `summary`，即 `SendMessage({ "to": "leader", "message": "...", "summary": "短预览" })`
+- 不要只传 `to` + 字符串 `message`，否则会触发 `summary is required when message is a string`
+- 关闭 teammate 时必须使用结构化消息：`SendMessage({ "to": "{teammate}", "message": { "type": "shutdown_request", "reason": "..." } })`
+- teammate 必须用结构化 `shutdown_response` 批准或拒绝；批准后才视为该 teammate 已关闭
+- 所有 teammate 关闭后再调用 `TeamDelete`；`TeamDelete` 不接收 `team_name`、`message` 或最终摘要，最终摘要在删除成功后直接输出给用户
+
 ### 4.1 生成 team slug
 从任务描述创建 slug：取 3-4 个关键词，用 `-` 连接，全小写英文。示例：
 - "实现跳跃手感优化" → `jump-feel-optimization`

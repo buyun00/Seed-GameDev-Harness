@@ -16,6 +16,8 @@
 需要启动多 agent 协作时，使用 /seed 命令（项目快捷命令，由 /seed:setup 自动创建）。
 系统会根据任务特征自动选择 agent 组合。
 
+普通文本 `SendMessage` 必须带 `summary` 字段。关闭 teammate 时必须使用结构化 `shutdown_request` / `shutdown_response`，所有活跃 teammate 退出后再调用 `TeamDelete`；`TeamDelete` 不接收 `team_name`、`message` 或最终摘要，最终摘要在删除成功后输出给用户。
+
 ## 任务升级原则
 以下情况 teammate 必须升级给 leader，不得自行决策：
 - 实现方案有多个方向可选

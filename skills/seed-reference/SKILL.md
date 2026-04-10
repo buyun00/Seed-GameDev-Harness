@@ -73,6 +73,12 @@ Seed 是一个基于 Claude Code plugin 的游戏研发 AI 工作流系统，提
 | **reviewer** | 代码审查、方案审查 | 不能写/编辑文件 |
 | **unity-pilot** | Unity Editor 操作和实机验证 | 不写 C# 逻辑代码 |
 
+## CC Team 消息协议
+
+- 普通文本 `SendMessage` 必须带 `summary` 字段。
+- 关闭 teammate 时使用结构化 `shutdown_request` / `shutdown_response`，不要用普通文本模拟关闭。
+- 所有活跃 teammate 退出后再调用 `TeamDelete`；`TeamDelete` 不接收 `team_name`、`message` 或最终摘要，最终摘要在删除成功后输出给用户。
+
 ## 升级原则
 
 以下情况 teammate 必须升级给 leader，不得自行决策：

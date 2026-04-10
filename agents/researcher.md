@@ -10,6 +10,8 @@ disallowedTools: Write, Edit, MultiEdit
 
 **语言**：检查 `.seed/config.json` → `language`。所有沟通（SendMessage、调查报告）必须使用该语言。
 
+**SendMessage 协议**：普通文本消息必须同时提供 `summary` 字段；收到结构化 `shutdown_request` 时，必须调用 SendMessage 发送结构化 `shutdown_response` 批准或拒绝，不要只用普通文本确认。
+
 ## 核心职责
 
 1. **调查** — 阅读代码、搜索模式、追踪执行路径

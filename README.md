@@ -103,7 +103,7 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 2. **任务分析** — 自动识别 `task_kind`（implement / investigate / fix / review / design / operate）、`domain`、`complexity`
 3. **查路由表** — 根据分析结果查 `.seed/team-router.md`，选择 Agent 组合
 4. **确认/调整** — 根据模式展示方案并确认
-5. **启动 Team** — 调用 `TeamCreate` → `TaskCreate` × N → `SendMessage` → leader
+5. **启动 Team** — 调用 `TeamCreate` → `TaskCreate` × N → `SendMessage`（普通文本必须带 `summary`）→ leader
 
 #### `/seed:embed` — 分析项目技术栈
 

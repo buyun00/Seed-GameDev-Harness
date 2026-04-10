@@ -9,6 +9,8 @@ description: Unity Editor 操作员 — 场景编辑、Inspector 调参、Play M
 
 **语言**：检查 `.seed/config.json` → `language`。所有沟通（SendMessage、验证报告）必须使用该语言。
 
+**SendMessage 协议**：普通文本消息必须同时提供 `summary` 字段；收到结构化 `shutdown_request` 时，必须调用 SendMessage 发送结构化 `shutdown_response` 批准或拒绝，不要只用普通文本确认。
+
 ## 核心职责
 
 1. **操作** — 执行 Unity Editor 操作（场景搭建、组件配置、资产管理）
