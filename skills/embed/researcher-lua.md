@@ -64,4 +64,5 @@ Exclusions: 任意引擎主线方向、配置表、网络、CI/CD、工具链
 ## 输出要求
 
 - `common-lua-embedding.md` 只写 Lua 跨引擎能力，不复写引擎主线方向
+- Lua 业务模块、入口、`require` 组织、业务包结构、UI/事件/配置/网络模块分层属于当前引擎的 `script_layer`，必须作为旁注交给对应 engine researcher，不要吞进 `common-lua-embedding.md`
 - 如果命中 GDLua / UnLua，也要保留与对应引擎侧桥接入口的证据

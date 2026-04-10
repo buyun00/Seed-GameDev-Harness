@@ -132,6 +132,12 @@ scope:
 - `bridge_layer` 与 `lua_embedding`
   - `bridge_layer` 写当前引擎的桥接边界、宿主入口和工程组织。
   - `lua_embedding` 写 Lua 运行时、绑定生成、热修、双向互调和 Lua 工程约定。
+- `native_code_architecture` 与语言编码规范
+  - C# / C++ / TS 等宿主语言的命名、分层、生命周期、异步和模块边界写入当前引擎的 `native_code_architecture`。
+  - 不新增独立 language 轴。
+- `script_layer` 与 `lua_embedding`
+  - `script_layer` 写 Lua / GDScript / Blueprint / TS 等业务脚本层的目录、入口、模块组织和业务调用边界。
+  - `lua_embedding` 只写 Lua runtime、绑定生成、C#↔Lua 双向互调和热修能力，不吞并 Lua 业务脚本架构。
 - `asset_pipeline` 与 `build_release_and_cicd`
   - `asset_pipeline` 写引擎内资源组织、加载与释放。
   - `build_release_and_cicd` 写构建脚本、产物发布、流水线与自动化。
@@ -196,7 +202,7 @@ tech_stack_report:
 ### 输出要求
 
 - `directions` 必须输出**当前主引擎的 13 个主线方向全部项**。
-- `capabilities` 必须输出**5 个跨引擎能力全部项**。
+- `capabilities` 必须输出 registry 中定义的跨引擎能力全部项。
 - 每一项都必须填写：
   - `matrix_id`
   - `axis`

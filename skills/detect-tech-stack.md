@@ -287,6 +287,6 @@ tech_stack_report:
 ## 额外要求
 
 - `directions` 必须包含当前主引擎的 13 个方向，不能少项。
-- `capabilities` 必须包含 5 个能力项，不能少项。
+- `capabilities` 必须包含 registry 中定义的跨引擎能力项，不能少项。
 - `unsupported` 只能用于 registry 明确允许的格子，不得滥用。
 - 物理证据不够时宁可写 `unknown`，不要用通用知识补全。

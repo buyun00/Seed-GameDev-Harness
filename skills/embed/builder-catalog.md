@@ -25,6 +25,7 @@ scope:
 4. 每个 skill 都必须写新的 frontmatter 契约和 `## 固定问题` 段，且固定问题来自对应 `fixed_question_file`。
 5. 如果目标矩阵项带有 `confirmed_by_user: true`，builder 必须读取 `user_supplied_evidence`，不能因为 researcher 未重新扫到同一证据就跳过该 skill。
 6. 单个 builder 必须按报告内容为每个 `matrix_id` 独立迭代，不得把多个矩阵项混在一个文件里写。
+7. 语言层内容必须落在既有矩阵项中：C# 编码约定写入 `<engine>-native-code-architecture.md`；Lua 业务脚本组织写入 `<engine>-script-layer.md`；`common-lua-embedding.md` 只写 runtime / 绑定 / 双向互调 / 热修能力。
 
 ## 占位 skill 规则
 

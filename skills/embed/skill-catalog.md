@@ -87,8 +87,6 @@ Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展
 
 - `domain/project-structure.md`
 - `domain/project-conventions.md`
-- `domain/csharp-coding-rules.md`
-- `domain/lua-architecture.md`
 - `godot_extra`
 - `unreal_extra`
 - `cocos_extra`
@@ -103,8 +101,8 @@ Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展
 |---|---|---|
 | `project_structure` | `domain/<engine>-project-structure.md` | 当前引擎在目录结构、模块划分和工程边界上的约定 |
 | `scene_graph_and_lifecycle` | `domain/<engine>-scene-graph-and-lifecycle.md` | 当前引擎的场景、节点/对象图和生命周期主路径 |
-| `native_code_architecture` | `domain/<engine>-native-code-architecture.md` | 当前引擎原生代码层的架构、模式、异步与分层 |
-| `script_layer` | `domain/<engine>-script-layer.md` | 当前引擎脚本层的组织方式与职责边界 |
+| `native_code_architecture` | `domain/<engine>-native-code-architecture.md` | 当前引擎原生代码层的架构、C# / C++ / TS 等宿主语言编码约定、异步与分层 |
+| `script_layer` | `domain/<engine>-script-layer.md` | 当前引擎脚本层的组织方式、Lua / GDScript / Blueprint / TS 等业务脚本约定与职责边界 |
 | `bridge_layer` | `domain/<engine>-bridge-layer.md` | 当前引擎与脚本层、插件或宿主之间的桥接边界 |
 | `ui_system` | `domain/<engine>-ui-system.md` | 当前引擎 UI 栈、界面组织和交互主路径 |
 | `hot_reload` | `domain/<engine>-hot-reload.md` | 当前引擎热更新/热重载方案及限制 |
@@ -119,7 +117,7 @@ Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展
 
 | capability_id | 输出文件 | 作用说明 |
 |---|---|---|
-| `lua_embedding` | `domain/common-lua-embedding.md` | Lua runtime、桥接、绑定生成、热修和双向互调约定 |
+| `lua_embedding` | `domain/common-lua-embedding.md` | Lua runtime、桥接、绑定生成、热修和双向互调约定；不替代 `script_layer` 中的 Lua 业务脚本组织约定 |
 | `data_config_pipeline` | `domain/common-data-config-pipeline.md` | 配置表、Schema、导表、校验与运行时消费链路 |
 | `network_protocol_and_sync` | `domain/common-network-protocol-and-sync.md` | 网络协议、传输层、同步框架和异常处理约定 |
 | `build_release_and_cicd` | `domain/common-build-release-and-cicd.md` | 构建、发布、热更产物生成和 CI/CD 流水线约定 |
@@ -195,6 +193,13 @@ source: scanned | user-confirmed | incomplete
 - 当前项目命中了哪些宿主引擎
 - 每个宿主引擎对应的实现变体
 
+语言层边界：
+
+- C# 命名、分层、生命周期、异步和 Unity 宿主侧编码约定写入 `domain/unity-native-code-architecture.md`
+- Lua 业务模块、入口、`require` 组织、业务包结构、UI/事件/配置/网络模块分层写入 `domain/unity-script-layer.md`
+- toLua runtime、绑定生成、C#↔Lua 双向互调、热修入口写入 `domain/common-lua-embedding.md`
+- 不生成独立 `domain/csharp-coding-rules.md` 或 `domain/lua-architecture.md`；这些旧文件已被 v2 矩阵吸收
+
 `## 固定问题` 写法：
 
 ```markdown
@@ -245,6 +250,6 @@ source: scanned | user-confirmed | incomplete
 
 ## 扩展规则
 
-1. 如果项目命中了 registry 未覆盖的**同层级方向变体**，允许在既有矩阵文件中追加一节，不新增新的顶层分类轴。
+ 1. 如果项目命中了 registry 未覆盖的**同层级方向变体**，允许在既有矩阵文件中追加一节，不新增新的顶层分类轴。
 2. 如果项目确实需要新增 capability，先补 registry，再补 question set，再允许 catalog 生成。
 3. 如果证据不足，不要取消生成；保留该 skill，让 builder 依据 researcher 报告决定是否写成占位 skill。

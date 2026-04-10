@@ -42,12 +42,14 @@ Exclusions: common-lua-embedding、common-data-config-pipeline、common-network-
 - 搜索 `Assets/` 一级目录、`Packages/manifest.json`、`*.asmdef`
 - 搜索 `*.unity`、`SceneManager`、`: MonoBehaviour`、`Awake(`、`Start(`、`OnEnable(`
 - 搜索 `Manager`、`Service`、`System`、`Controller`、`Facade`、`async`、`await`、`UniTask`
+- `native_code_architecture` 必须输出 C# 层的命名、目录分层、asmdef/module 边界、生命周期和异步约定；不得只写“Manager/Service 模式”一句概括
 - 只有同时命中目录职责和实际实现入口，才能写成主线约定
 
 ### 脚本层 / 桥接层
 
 - 搜索 `*.lua`、脚本入口、脚本加载器、表驱动脚本目录
 - 搜索 `LuaEnv`、`DoString`、`CSharpCallLua`、`LuaCallCSharp`、`DllImport`、原生 SDK wrapper
+- `script_layer` 必须输出 Lua 业务脚本根目录、`basePackage` / `subPackage`、入口、`require` 组织、UI/事件/配置/网络等 Lua 模块边界；不得只写 toLua 绑定层
 - Unity 侧只写宿主入口和桥接边界；Lua-specific 绑定、热修、Lua 约定要交给 `researcher-lua`
 - 如果命中 Lua bridge，报告中要明确写“已命中 Lua 能力证据，供 researcher-lua 核对，并供 builder-engine 写 bridge_layer 时使用”
 
