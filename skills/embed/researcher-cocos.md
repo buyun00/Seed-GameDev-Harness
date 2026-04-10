@@ -25,7 +25,7 @@ scope:
 ```text
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: Cocos 引擎主线调查报告（SendMessage 给 leader 与 builder-cocos）
+Deliverable: Cocos 引擎主线调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/researcher-cocos.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + 状态摘要
 Done Definition: 报告按 researcher-common 的三段格式输出；仅覆盖 Cocos 主线方向；如运行时必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
 Dependencies: none
 Risk Level: low

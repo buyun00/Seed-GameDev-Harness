@@ -7,7 +7,7 @@ engine: cocos
 direction_id: hot_reload
 capability: build_release_and_cicd
 capability_id: build_release_and_cicd
-owner: builder-cocos
+owner: builder-engine
 researcher_owner: researcher-cocos
 capability_owner: researcher-infra
 scope:

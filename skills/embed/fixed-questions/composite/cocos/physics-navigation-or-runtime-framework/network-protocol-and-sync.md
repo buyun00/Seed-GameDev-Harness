@@ -7,7 +7,7 @@ engine: cocos
 direction_id: physics_navigation_or_runtime_framework
 capability: network_protocol_and_sync
 capability_id: network_protocol_and_sync
-owner: builder-cocos
+owner: builder-engine
 researcher_owner: researcher-cocos
 capability_owner: researcher-infra
 scope:

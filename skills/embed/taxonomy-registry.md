@@ -21,17 +21,17 @@ scope:
 1. 分类采用**双轴矩阵**：
    - `axis: engine`：当前主引擎的主线方向。
    - `axis: capability`：跨引擎复用的能力方向。
-2. 引擎 researcher / builder 只拥有当前引擎的主线方向：
-   - `researcher-unity` / `builder-unity`
-   - `researcher-godot` / `builder-godot`
-   - `researcher-unreal` / `builder-unreal`
-   - `researcher-cocos` / `builder-cocos`
+2. 引擎 researcher 只拥有当前引擎的主线方向；引擎主线 skill 统一由 `builder-engine` 落笔：
+   - `researcher-unity` / `builder-engine`
+   - `researcher-godot` / `builder-engine`
+   - `researcher-unreal` / `builder-engine`
+   - `researcher-cocos` / `builder-engine`
 3. 跨引擎能力 owner 固定：
-   - `lua_embedding` → `researcher-lua` / `builder-lua`
-   - `data_config_pipeline` → `researcher-config` / `builder-config`
-   - `network_protocol_and_sync` → `researcher-infra` / `builder-infra`
-   - `build_release_and_cicd` → `researcher-infra` / `builder-infra`
-   - `tooling_and_ai_pipeline` → `researcher-infra` / `builder-infra`
+   - `lua_embedding` → `researcher-lua` / `builder-common`
+   - `data_config_pipeline` → `researcher-config` / `builder-common`
+   - `network_protocol_and_sync` → `researcher-infra` / `builder-common`
+   - `build_release_and_cicd` → `researcher-infra` / `builder-common`
+   - `tooling_and_ai_pipeline` → `researcher-infra` / `builder-common`
 4. 文件命名固定：
    - 引擎主线：`domain/<engine>-<direction-kebab>.md`
    - 跨引擎能力：`domain/common-<capability-kebab>.md`
@@ -54,7 +54,7 @@ scope:
 - `question_set_id`: `qs-<engine>-<direction-kebab>`
 - `output_file`: `domain/<engine>-<direction-kebab>.md`
 - `fixed_question_file`: `$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
-- `owner`: `researcher-<engine>` / `builder-<engine>`
+- `owner`: `researcher-<engine>` / `builder-engine`
 
 ### Capability 方向
 

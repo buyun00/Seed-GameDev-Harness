@@ -122,6 +122,8 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 - `domain/<engine>-<direction>.md`
 - `domain/common-<capability>.md`
 
+/seed:embed 会分两阶段执行：Phase A 先按 wave 派出 researcher 调查并把 yaml 报告落盘到 `.seed/state/embed/<stamp>/reports/`，Phase B 再派出 `builder-engine` / `builder-common` 两个合并 builder 读取报告写 skill。默认配置下峰值并发 ≤ 5。
+
 可随时重跑，项目中途换方案、新增模块都可以。
 
 #### `/seed:setup` — 初始化配置
@@ -349,7 +351,7 @@ seed/
 │       └── SKILL.md              # Seed 参考指南（setup 时安装到 .claude/skills/）
 ├── templates/
 │   ├── config.json               # .seed/config.json 默认模板
-│   ├── task.md                   # TaskCreate 元数据模板（10 字段）
+│   ├── task.md                   # TaskCreate 元数据模板（11 字段）
 │   └── team-router.md            # Agent 路由表模板
 ├── docs/
 │   └── CLAUDE.md                 # 项目 CLAUDE.md 安装源
@@ -366,6 +368,7 @@ seed/
 │   ├── notepad.md                # 会话笔记（抗 compact）
 │   ├── team-router.md            # 路由表（可项目级定制）
 │   ├── state/                    # 运行态状态文件
+│   │   └── embed/<stamp>/reports/ # /seed:embed researcher yaml 报告
 │   ├── logs/                     # 日志
 │   ├── plans/                    # 计划文件
 │   └── skills/                   # 项目级 learned skills
@@ -411,6 +414,13 @@ Seed 通过 Claude Code Hook 机制在 session 生命周期的关键节点注入
   "bud": {
     "mode": "auto"
   },
+  "embed": {
+    "parallelism": {
+      "maxResearchersPerWave": 4,
+      "maxBuildersPerWave": 4,
+      "waveTimeoutSeconds": 600
+    }
+  },
   "memory": {
     "autoLearn": true,
     "rescanIntervalHours": 24
@@ -430,6 +440,9 @@ Seed 通过 Claude Code Hook 机制在 session 生命周期的关键节点注入
 | ----------------------------- | ---------------------- | --------- |
 | `language`                    | 交互语言（影响所有输出和注释）        | setup 时选择 |
 | `bud.mode`                    | 默认执行模式                 | `auto`    |
+| `embed.parallelism.maxResearchersPerWave` | 单 wave 最多并发 researcher 数 | `4`       |
+| `embed.parallelism.maxBuildersPerWave` | 单 wave 最多并发 builder 数 | `4`       |
+| `embed.parallelism.waveTimeoutSeconds` | 单 wave 超时（秒） | `600`     |
 | `memory.autoLearn`            | 自动学习项目知识               | `true`    |
 | `memory.rescanIntervalHours`  | 记忆重扫间隔（小时）             | `24`      |
 | `contextGuard.threshold`      | Context 使用率告警阈值（%）     | `75`      |

@@ -26,7 +26,7 @@ scope:
 ```text
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: 基础设施能力调查报告（SendMessage 给 leader 与 builder-infra）
+Deliverable: 基础设施能力调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/researcher-infra.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + 状态摘要
 Done Definition: 报告输出通用规则执行结果、运行时必查项结果 N/A、以及 capability.network_protocol_and_sync / capability.build_release_and_cicd / capability.tooling_and_ai_pipeline 的领域发现；每条结论附证据路径
 Dependencies: none
 Risk Level: low

@@ -7,7 +7,7 @@ engine: unity
 direction_id: hot_reload
 capability: build_release_and_cicd
 capability_id: build_release_and_cicd
-owner: builder-unity
+owner: builder-engine
 researcher_owner: researcher-unity
 capability_owner: researcher-infra
 scope:

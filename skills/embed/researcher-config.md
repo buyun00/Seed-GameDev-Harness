@@ -26,7 +26,7 @@ scope:
 ```text
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: 数据配置能力调查报告（SendMessage 给 leader 与 builder-config）
+Deliverable: 数据配置能力调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/researcher-config.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + 状态摘要
 Done Definition: 报告输出通用规则执行结果、运行时必查项结果 N/A、以及 capability.data_config_pipeline 领域发现；每条结论附证据路径
 Dependencies: none
 Risk Level: low

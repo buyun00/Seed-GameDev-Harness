@@ -7,7 +7,7 @@ engine: godot
 direction_id: event_and_message_system
 capability: network_protocol_and_sync
 capability_id: network_protocol_and_sync
-owner: builder-godot
+owner: builder-engine
 researcher_owner: researcher-godot
 capability_owner: researcher-infra
 scope:

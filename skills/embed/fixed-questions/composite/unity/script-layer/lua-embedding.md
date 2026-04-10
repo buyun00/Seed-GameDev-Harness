@@ -7,7 +7,7 @@ engine: unity
 direction_id: script_layer
 capability: lua_embedding
 capability_id: lua_embedding
-owner: builder-unity
+owner: builder-engine
 researcher_owner: researcher-unity
 capability_owner: researcher-lua
 scope:

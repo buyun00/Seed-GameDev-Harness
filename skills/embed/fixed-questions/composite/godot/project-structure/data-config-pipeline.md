@@ -7,7 +7,7 @@ engine: godot
 direction_id: project_structure
 capability: data_config_pipeline
 capability_id: data_config_pipeline
-owner: builder-godot
+owner: builder-engine
 researcher_owner: researcher-godot
 capability_owner: researcher-config
 scope:

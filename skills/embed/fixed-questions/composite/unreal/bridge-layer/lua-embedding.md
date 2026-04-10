@@ -7,7 +7,7 @@ engine: unreal
 direction_id: bridge_layer
 capability: lua_embedding
 capability_id: lua_embedding
-owner: builder-unreal
+owner: builder-engine
 researcher_owner: researcher-unreal
 capability_owner: researcher-lua
 scope:

@@ -7,7 +7,7 @@ engine: unreal
 direction_id: physics_navigation_or_runtime_framework
 capability: network_protocol_and_sync
 capability_id: network_protocol_and_sync
-owner: builder-unreal
+owner: builder-engine
 researcher_owner: researcher-unreal
 capability_owner: researcher-infra
 scope:

@@ -3,6 +3,13 @@
   "bud": {
     "mode": "auto"
   },
+  "embed": {
+    "parallelism": {
+      "maxResearchersPerWave": 4,
+      "maxBuildersPerWave": 4,
+      "waveTimeoutSeconds": 600
+    }
+  },
   "memory": {
     "autoLearn": true,
     "rescanIntervalHours": 24

@@ -7,7 +7,7 @@ engine: unreal
 direction_id: project_structure
 capability: data_config_pipeline
 capability_id: data_config_pipeline
-owner: builder-unreal
+owner: builder-engine
 researcher_owner: researcher-unreal
 capability_owner: researcher-config
 scope:

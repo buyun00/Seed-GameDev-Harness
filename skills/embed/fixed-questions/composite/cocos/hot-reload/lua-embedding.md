@@ -7,7 +7,7 @@ engine: cocos
 direction_id: hot_reload
 capability: lua_embedding
 capability_id: lua_embedding
-owner: builder-cocos
+owner: builder-engine
 researcher_owner: researcher-cocos
 capability_owner: researcher-lua
 scope:

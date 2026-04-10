@@ -120,8 +120,24 @@ researcher 不仅要扫描领域剧本，还必须按本次负责的矩阵项加
 3. **领域发现**
    仅写实际命中的项目实现与证据，不写框架常识总结。
 
+## 报告落盘协议
+
+所有 researcher 的最终报告必须写入文件，而不是通过 mailbox 内联传递：
+
+1. 路径：`.seed/state/embed/<embed_stamp>/reports/researcher-<domain>.yaml`
+   - `<embed_stamp>` 由 `/seed:embed` 主流程生成，leader 通过启动消息传递
+   - `<domain>` 是 researcher 本体名（unity/godot/unreal/cocos/lua/config/infra）
+2. 写入方式：原子写（先写 `<name>.yaml.tmp`，再 rename 为 `<name>.yaml`）
+3. 编码：UTF-8
+4. 顶层结构与现有“调查报告结构”三段格式一致，但改为 yaml 序列化
+5. 写完文件后才 SendMessage 给 leader；消息内容只包含：
+   - `report_path: <路径>`
+   - `status: ok | missing | conflict | error`
+   - `summary: <不超过 10 行的一句话摘要>`
+6. 禁止在 mailbox 里发送完整报告正文；builder 会直接读文件
+
 ## 交付约束
 
-- 报告接收方始终是 `leader` 和对应 `builder-*`
+- 报告文件是 builder 的事实源；mailbox 只向 `leader` 发送路径 + 状态摘要
 - 报告要让 builder 可以直接消费，不需要再做猜测
 - 如果证据不足以支持写出规范，明确告诉 builder 该处只能产出占位 skill

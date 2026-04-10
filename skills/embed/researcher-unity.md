@@ -25,7 +25,7 @@ scope:
 ```text
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: Unity 引擎主线调查报告（SendMessage 给 leader 与 builder-unity）
+Deliverable: Unity 引擎主线调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/researcher-unity.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + 状态摘要
 Done Definition: 报告按 researcher-common 的三段格式输出；所有结论附证据路径；仅覆盖 Unity 主线方向；如运行时必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
 Dependencies: none
 Risk Level: low
@@ -49,7 +49,7 @@ Exclusions: common-lua-embedding、common-data-config-pipeline、common-network-
 - 搜索 `*.lua`、脚本入口、脚本加载器、表驱动脚本目录
 - 搜索 `LuaEnv`、`DoString`、`CSharpCallLua`、`LuaCallCSharp`、`DllImport`、原生 SDK wrapper
 - Unity 侧只写宿主入口和桥接边界；Lua-specific 绑定、热修、Lua 约定要交给 `researcher-lua`
-- 如果命中 Lua bridge，报告中要明确写“已命中 Lua 能力证据，供 builder-lua 消费”
+- 如果命中 Lua bridge，报告中要明确写“已命中 Lua 能力证据，供 researcher-lua 核对，并供 builder-engine 写 bridge_layer 时使用”
 
 ### UI / 热更新 / 资源管线
 

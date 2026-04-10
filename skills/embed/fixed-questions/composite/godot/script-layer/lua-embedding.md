@@ -7,7 +7,7 @@ engine: godot
 direction_id: script_layer
 capability: lua_embedding
 capability_id: lua_embedding
-owner: builder-godot
+owner: builder-engine
 researcher_owner: researcher-godot
 capability_owner: researcher-lua
 scope:

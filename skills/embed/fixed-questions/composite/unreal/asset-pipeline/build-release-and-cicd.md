@@ -7,7 +7,7 @@ engine: unreal
 direction_id: asset_pipeline
 capability: build_release_and_cicd
 capability_id: build_release_and_cicd
-owner: builder-unreal
+owner: builder-engine
 researcher_owner: researcher-unreal
 capability_owner: researcher-infra
 scope:
