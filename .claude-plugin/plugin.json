@@ -1,6 +1,6 @@
 {
   "name": "seed",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "AI workflow system for game development",
   "author": { "name": "seed contributors" },
   "repository": "https://github.com/buyun00/Seed-GameDev-Harness",

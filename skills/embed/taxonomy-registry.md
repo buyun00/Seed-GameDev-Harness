@@ -21,21 +21,22 @@ scope:
 1. 分类采用**双轴矩阵**：
    - `axis: engine`：当前主引擎的主线方向。
    - `axis: capability`：跨引擎复用的能力方向。
-2. 引擎 researcher 只拥有当前引擎的主线方向；引擎主线 skill 统一由 `builder-engine` 落笔：
-   - `researcher-unity` / `builder-engine`
-   - `researcher-godot` / `builder-engine`
-   - `researcher-unreal` / `builder-engine`
-   - `researcher-cocos` / `builder-engine`
-3. 跨引擎能力 owner 固定：
-   - `lua_embedding` → `researcher-lua` / `builder-common`
-   - `data_config_pipeline` → `researcher-config` / `builder-common`
-   - `network_protocol_and_sync` → `researcher-infra` / `builder-common`
-   - `build_release_and_cicd` → `researcher-infra` / `builder-common`
-   - `tooling_and_ai_pipeline` → `researcher-infra` / `builder-common`
-4. 文件命名固定：
+2. `/seed:embed` 的执行最小单元是 `matrix_id`。每个矩阵项单独创建 researcher job 和 builder job。
+3. 引擎方向使用引擎 researcher profile 与 `builder-engine` profile：
+   - `engine.unity.*` → `researcher-unity` profile / `builder-engine` profile
+   - `engine.godot.*` → `researcher-godot` profile / `builder-engine` profile
+   - `engine.unreal.*` → `researcher-unreal` profile / `builder-engine` profile
+   - `engine.cocos.*` → `researcher-cocos` profile / `builder-engine` profile
+4. 跨引擎能力 profile 固定：
+   - `lua_embedding` → `researcher-lua` profile / `builder-common` profile
+   - `data_config_pipeline` → `researcher-config` profile / `builder-common` profile
+   - `network_protocol_and_sync` → `researcher-infra` profile / `builder-common` profile
+   - `build_release_and_cicd` → `researcher-infra` profile / `builder-common` profile
+   - `tooling_and_ai_pipeline` → `researcher-infra` profile / `builder-common` profile
+5. 文件命名固定：
    - 引擎主线：`domain/<engine>-<direction-kebab>.md`
    - 跨引擎能力：`domain/common-<capability-kebab>.md`
-5. 每个 skill frontmatter 至少包含：
+6. 每个 skill frontmatter 至少包含：
    - `matrix_id`
    - `axis`
    - `engine` 或 `capability`
@@ -43,8 +44,8 @@ scope:
    - `question_set_id`
    - `fixed_question_file`
    - `source`
-6. 每个矩阵项的固定问题都按 `matrix_id` 拆成独立文件，不再维护单一总表。
-7. 每个生成的 skill 都必须带 `## 固定问题` 段落，并指向对应的 `fixed_question_file`。
+7. 每个矩阵项的固定问题都按 `matrix_id` 拆成独立文件，不再维护单一总表。
+8. 每个生成的 skill 都必须带 `## 固定问题` 段落，并指向对应的 `fixed_question_file`。
 
 ## 命名规则
 
@@ -54,7 +55,10 @@ scope:
 - `question_set_id`: `qs-<engine>-<direction-kebab>`
 - `output_file`: `domain/<engine>-<direction-kebab>.md`
 - `fixed_question_file`: `$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
-- `owner`: `researcher-<engine>` / `builder-engine`
+- `researcher_profile`: `researcher-<engine>`
+- `builder_profile`: `builder-engine`
+- `researcher_agent`: `researcher-<engine>-<direction-kebab>`
+- `builder_agent`: `builder-<engine>-<direction-kebab>`
 
 ### Capability 方向
 
@@ -62,7 +66,10 @@ scope:
 - `question_set_id`: `qs-common-<capability-kebab>`
 - `output_file`: `domain/common-<capability-kebab>.md`
 - `fixed_question_file`: `$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/capability/<capability-kebab>.md`
-- `owner`: 见“核心规则”第 3 条
+- `researcher_profile`: 见“核心规则”的跨引擎能力 profile
+- `builder_profile`: `builder-common`
+- `researcher_agent`: `researcher-common-<capability-kebab>`
+- `builder_agent`: `builder-common-<capability-kebab>`
 
 ### Composite 叠加方向
 

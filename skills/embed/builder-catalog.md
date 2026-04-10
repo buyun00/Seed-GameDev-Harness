@@ -17,16 +17,16 @@ scope:
 
 ## Builder 总约束
 
-1. builder 只能基于对应落盘 researcher 报告写 skill。
-2. builder 启动后必须先读取 Precondition 指定报告，并向 leader 发送预读确认：`confirmed_reports`、`missing_or_invalid_reports`、`covered_researchers`。
-3. 若 `missing_or_invalid_reports` 非空，builder 必须暂停生成，等待 leader 回到 Phase A Gate 定向修复。
+1. builder 只能基于当前 `matrix_job.report_file` 写当前 `matrix_job.output_file`。
+2. builder 启动后必须先读取 Precondition 指定的单个报告，并向 leader 发送预读确认：`matrix_id`、`confirmed_reports`、`missing_or_invalid_reports`、`covered_researchers`。
+3. 若 `missing_or_invalid_reports` 非空，builder 必须暂停生成，等待 leader 对该 `matrix_id` 定向修复。
 4. builder 不得把项目外常识补写成项目规范。
-5. 同一个矩阵项只能由唯一 builder 落笔：
-   - 引擎方向 → `builder-engine`
-   - `lua_embedding` / `data_config_pipeline` / `network_protocol_and_sync` / `build_release_and_cicd` / `tooling_and_ai_pipeline` → `builder-common`
+5. 同一个矩阵项只能由唯一 builder agent 落笔：
+   - 引擎方向 → 使用 `builder-engine` profile 的 `builder-<engine>-<direction-kebab>`
+   - capability 方向 → 使用 `builder-common` profile 的 `builder-common-<capability-kebab>`
 6. 每个 skill 都必须写新的 frontmatter 契约和 `## 固定问题` 段，且固定问题来自对应 `fixed_question_file`，回答来自 researcher 报告的 `fixed_question_results`。
 7. 如果目标矩阵项带有 `confirmed_by_user: true`，builder 必须读取 `user_supplied_evidence`，不能因为 researcher 未重新扫到同一证据就跳过该 skill。
-8. 单个 builder 必须按报告内容为每个 `matrix_id` 独立迭代，不得把多个矩阵项混在一个文件里写。
+8. 单个 builder 只处理一个 `matrix_id`，不得读取或生成其它矩阵项。
 9. 语言层内容必须落在既有矩阵项中：C# 编码约定写入 `<engine>-native-code-architecture.md`；Lua 业务脚本组织写入 `<engine>-script-layer.md`；`common-lua-embedding.md` 只写 runtime / 绑定 / 双向互调 / 热修能力。
 
 ## 占位 skill 规则
@@ -63,37 +63,39 @@ scope:
 
 ## Builder 任务模板
 
-### `builder-engine`
+### `builder-engine` profile
 
 ```text
 Task Kind: implement
 Expected Owner Role: builder
-Deliverable: 当前项目所有激活引擎主线方向的 domain skill 文件，写入 .seed/skills/domain/
-Done Definition: 所有目标 `domain/<engine>-*.md`（含 unity/godot/unreal/cocos 中激活的引擎）均已按对应 researcher 报告生成；frontmatter 使用 v2 矩阵字段；必查项缺失或证据不足的矩阵项只生成占位 skill 并标注 source: incomplete
+Agent Name: builder-<engine>-<direction-kebab>
+Deliverable: 当前 matrix_job 的单个引擎主线 domain skill，写入 matrix_job.output_file
+Done Definition: `matrix_job.output_file` 已按 `matrix_job.report_file` 生成；frontmatter 使用 v2 矩阵字段；必查项缺失或证据不足时只生成占位 skill 并标注 source: incomplete
 Dependencies: none
-Precondition: 读取 .seed/state/embed/<embed_stamp>/reports/ 下所有 researcher-{unity,godot,unreal,cocos}.yaml 中实际存在的报告
-Startup Requirement: 读取 Precondition 后先向 leader 发送 confirmed_reports / missing_or_invalid_reports / covered_researchers；missing_or_invalid_reports 非空时暂停生成
+Precondition: 读取 matrix_job.report_file
+Startup Requirement: 读取 Precondition 后先向 leader 发送 matrix_id / confirmed_reports / missing_or_invalid_reports / covered_researchers；missing_or_invalid_reports 非空时暂停生成
 Risk Level: low
 Leader Ack Required: false
-Original User Intent: 生成项目专属的引擎主线方向 domain skill
-Scope Coverage: 所有激活引擎的 13 个方向（project_structure, scene_graph_and_lifecycle, native_code_architecture, script_layer, bridge_layer, ui_system, hot_reload, asset_pipeline, event_and_message_system, animation_system, physics_navigation_or_runtime_framework, plugin_extension, platform_adaptation）
+Original User Intent: 生成项目专属的单个引擎主线方向 domain skill
+Scope Coverage: matrix_job.matrix_id 对应的单个 engine direction
 Exclusions: 任何 common-* capability skill
 ```
 
-### `builder-common`
+### `builder-common` profile
 
 ```text
 Task Kind: implement
 Expected Owner Role: builder
-Deliverable: 当前项目所有激活跨引擎能力的 domain skill 文件，写入 .seed/skills/domain/
-Done Definition: 所有目标 `domain/common-*.md`（lua/config/network/build/tooling 中激活的能力）均已按对应 researcher 报告生成；frontmatter 使用 v2 矩阵字段；必查项缺失或证据不足的矩阵项只生成占位 skill 并标注 source: incomplete
+Agent Name: builder-common-<capability-kebab>
+Deliverable: 当前 matrix_job 的单个跨引擎能力 domain skill，写入 matrix_job.output_file
+Done Definition: `matrix_job.output_file` 已按 `matrix_job.report_file` 生成；frontmatter 使用 v2 矩阵字段；必查项缺失或证据不足时只生成占位 skill 并标注 source: incomplete
 Dependencies: none
-Precondition: 读取 .seed/state/embed/<embed_stamp>/reports/ 下所有 researcher-{lua,config,infra}.yaml 中实际存在的报告
-Startup Requirement: 读取 Precondition 后先向 leader 发送 confirmed_reports / missing_or_invalid_reports / covered_researchers；missing_or_invalid_reports 非空时暂停生成
+Precondition: 读取 matrix_job.report_file
+Startup Requirement: 读取 Precondition 后先向 leader 发送 matrix_id / confirmed_reports / missing_or_invalid_reports / covered_researchers；missing_or_invalid_reports 非空时暂停生成
 Risk Level: low
 Leader Ack Required: false
-Original User Intent: 生成项目专属的跨引擎能力 domain skill
-Scope Coverage: lua_embedding, data_config_pipeline, network_protocol_and_sync, build_release_and_cicd, tooling_and_ai_pipeline
+Original User Intent: 生成项目专属的单个跨引擎能力 domain skill
+Scope Coverage: matrix_job.matrix_id 对应的单个 capability
 Exclusions: 任何 <engine>-* 引擎主线 skill
 ```
 
@@ -102,7 +104,7 @@ Exclusions: 任何 <engine>-* 引擎主线 skill
 所有 builder 统一遵守：
 
 ```text
-根据 Precondition 指定的落盘 researcher 报告，为目标矩阵项生成 domain skill。文件命名、matrix_id、question_set_id、fixed_question_file、owner、frontmatter 字段都必须遵守 taxonomy-registry 与 skill-catalog。正文只写项目真实命中的实现入口、约定和证据，不得把通用引擎知识写成项目规则。生成每个文件前，先按 matrix_id 加载对应 fixed question 文件；如果存在匹配的 composite fixed question 文件，再追加加载。`## 固定问题` 不能只列题目，必须逐题写 `Q` 与 `A`：`Q` 来自 fixed question 文件，`A` 来自 researcher 报告的 `fixed_question_results` 和正文证据。若文件缺失，在 `## 固定问题` 中明确写缺失路径，不得补写猜测问题。若 researcher 报告缺少某题回答，builder 不得自行推断补答；必须在该题下写 `A: 未回答（researcher 报告缺少 fixed_question_results / 对应 question_id）`，并把 skill 标为 `source: incomplete` 或升级给 leader。
+根据 Precondition 指定的单个落盘 researcher 报告，为 matrix_job.output_file 生成 domain skill。文件命名、matrix_id、question_set_id、fixed_question_file 和 frontmatter 字段都必须遵守 taxonomy-registry 与 skill-catalog，并且必须与 matrix_job 完全一致。正文只写项目真实命中的实现入口、约定和证据，不得把通用引擎知识写成项目规则。生成文件前，先按 matrix_job.matrix_id 加载对应 fixed question 文件；如果存在匹配的 composite fixed question 文件，再追加加载。`## 固定问题` 不能只列题目，必须逐题写 `Q` 与 `A`：`Q` 来自 fixed question 文件，`A` 来自同一 report 的 `fixed_question_results`。若文件缺失，在 `## 固定问题` 中明确写缺失路径，不得补写猜测问题。若 researcher 报告缺少某题回答，或 question_id/question 与 fixed question 文件不匹配，builder 不得自行推断补答；必须在该题下写 `A: 未回答（researcher 报告缺少或错配 fixed_question_results / 对应 question_id）`，并把 skill 标为 `source: incomplete` 或升级给 leader。
 ```
 
 ## Leader Closeout 模板
@@ -112,7 +114,7 @@ Task Kind: closeout
 Expected Owner Role: leader
 Deliverable: 完成摘要（发给用户）
 Done Definition: 已核对所有生成文件是否符合 v2 矩阵命名；占位 skill 已正确标注 source: incomplete；完成摘要中单独列出“正常生成”“占位 skill”“未生成（missing/unsupported）”“必查项缺失 / 需用户补充”“agent 生命周期统计”
-Dependencies: builder-engine, builder-common（按激活情况）
+Dependencies: 所有 matrix_job 的 builder agent（按实际生成列表）
 Risk Level: low
 Leader Ack Required: true
 Original User Intent: 确认所有 domain skill 已按双轴矩阵正确生成
@@ -126,6 +128,6 @@ Leader 摘要必须单独列出：
 - 占位 skill
 - 因 `missing` 或 `unsupported` 未生成的矩阵项
 - researcher 报告中的 `必查项缺失错误`
-- 每个 agent 的创建、修复/补派、builder 预读确认、leader 验收、关闭状态
+- 每个 matrix_job 和 agent 的创建、修复/补派、builder 预读确认、leader 验收、关闭状态
 - 未关闭 agent 及原因
 - `Agent ×N` 明显高于计划值时，说明原因是定向补派还是异常重复创建

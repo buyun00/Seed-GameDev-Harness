@@ -25,8 +25,8 @@ scope:
 ```text
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: Godot 引擎主线调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/researcher-godot.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + 状态摘要
-Done Definition: 报告按 researcher-common 的四段格式输出；所有结论和 fixed_question_results 都附证据路径；仅覆盖 Godot 主线方向；如 fixed-questions 中的 fatal 固定问题缺失，则按 researcher-runtime-common 输出必查项缺失错误
+Deliverable: 单个 Godot 矩阵项调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/<matrix_id>.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + matrix_id + 状态摘要
+Done Definition: 报告按 researcher-common 的单矩阵格式输出；顶层 matrix_id/output_file/fixed_question_file 与 matrix_job 完全一致；所有结论和 fixed_question_results 都附证据路径；仅覆盖当前 matrix_id；如 fixed-questions 中的 fatal 固定问题缺失，则按 researcher-runtime-common 输出必查项缺失错误
 Dependencies: none
 Risk Level: low
 Leader Ack Required: false
@@ -34,6 +34,14 @@ Original User Intent: 分析项目 Godot 主线方向，为生成 v2 矩阵 skil
 Scope Coverage: project_structure, scene_graph_and_lifecycle, native_code_architecture, script_layer, bridge_layer, ui_system, hot_reload, asset_pipeline, event_and_message_system, animation_system, physics_navigation_or_runtime_framework, plugin_extension, platform_adaptation
 Exclusions: common-lua-embedding、common-data-config-pipeline、common-network-protocol-and-sync、common-build-release-and-cicd、common-tooling-and-ai-pipeline
 ```
+
+## 单矩阵任务约束
+
+- 本文件是 Godot researcher profile，不代表一次任务要扫描全部 Godot 方向。
+- TaskCreate 必须提供唯一 `matrix_job`；本 researcher 只调查 `matrix_job.matrix_id` 对应的 `direction_id`。
+- 报告文件必须写到 `matrix_job.report_file`，不得写 profile-level 聚合报告。
+- `domain_findings` 与 `fixed_question_results` 只能包含当前 `matrix_id`；其它方向线索只能写入 `handoff_notes`，且不得写出其它 `engine.*.*` / `capability.*` 矩阵 ID。
+- 只加载当前 `fixed_question_file` 与匹配 composite fixed question 文件，不得加载其它 Godot 方向的问题。
 
 ## 扫描剧本
 

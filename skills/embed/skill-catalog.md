@@ -13,7 +13,7 @@ scope:
 
 # /seed:embed Step 3 Skill Catalog
 
-本文件负责根据 `tech_stack_report` 生成目标 skill 文件列表。执行前必须先加载 [`$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`]($CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md)。
+本文件负责根据 `tech_stack_report` 生成目标 skill 文件列表，并为 Step 4 创建 `matrix_jobs`。执行前必须先加载 [`$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`]($CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md)。
 
 ## Step 3 目标
 
@@ -21,6 +21,7 @@ Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展
 
 - 当前主引擎的 13 个 `directions`
 - 当前项目已激活的 `capabilities`
+- 每个待生成 skill 对应一个 `matrix_job`
 
 ## 生成规则
 
@@ -59,6 +60,9 @@ Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展
 - `matrix_id`: `engine.<engine>.<direction_id>`
 - `question_set_id`: `qs-<engine>-<direction-kebab>`
 - `fixed_question_file`: `$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md`
+- `researcher_profile`: `researcher-<engine>`
+- `builder_profile`: `builder-engine`
+- `report_file`: `.seed/state/embed/<embed_stamp>/reports/engine.<engine>.<direction_id>.yaml`
 
 ### 2. 跨引擎能力 skill
 
@@ -80,8 +84,32 @@ Step 3 不再维护一张手写静态文件表，而是基于 registry 动态展
 - `matrix_id`: `capability.<capability_id>`
 - `question_set_id`: `qs-common-<capability-kebab>`
 - `fixed_question_file`: `$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/capability/<capability-kebab>.md`
+- `researcher_profile`: `researcher-lua` / `researcher-config` / `researcher-infra`
+- `builder_profile`: `builder-common`
+- `report_file`: `.seed/state/embed/<embed_stamp>/reports/capability.<capability_id>.yaml`
 
-### 3. 不再生成的旧文件类型
+### 3. `matrix_job` 输出结构
+
+Step 3 展示目标文件列表后，Step 4 必须将每个目标文件展开成以下 job：
+
+```yaml
+- matrix_id: engine.unity.ui_system
+  axis: engine
+  engine: unity
+  direction_id: ui_system
+  output_file: domain/unity-ui-system.md
+  fixed_question_file: $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/unity/ui-system.md
+  question_set_id: qs-unity-ui-system
+  researcher_profile: researcher-unity
+  builder_profile: builder-engine
+  researcher_agent: researcher-unity-ui-system
+  builder_agent: builder-unity-ui-system
+  report_file: .seed/state/embed/<embed_stamp>/reports/engine.unity.ui_system.yaml
+```
+
+Capability job 使用 `capability_id` 替代 `engine/direction_id`，并使用 `researcher-common-<capability-kebab>` / `builder-common-<capability-kebab>` agent 名。
+
+### 4. 不再生成的旧文件类型
 
 以下旧命名和旧分类不再作为 v2 catalog 输出：
 

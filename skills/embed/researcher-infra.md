@@ -26,8 +26,8 @@ scope:
 ```text
 Task Kind: investigate
 Expected Owner Role: researcher
-Deliverable: 基础设施能力调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/researcher-infra.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + 状态摘要
-Done Definition: 报告输出通用规则执行结果、运行时固定问题结果 N/A、capability.network_protocol_and_sync / capability.build_release_and_cicd / capability.tooling_and_ai_pipeline 的领域发现以及 fixed_question_results；每条结论和固定问题回答都附证据路径
+Deliverable: 单个基础设施 capability 矩阵项调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/<matrix_id>.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + matrix_id + 状态摘要
+Done Definition: 报告按 researcher-common 的单矩阵格式输出；顶层 matrix_id/output_file/fixed_question_file 与 matrix_job 完全一致；运行时固定问题结果 N/A；仅覆盖当前 capability_id；每条结论和固定问题回答都附证据路径
 Dependencies: none
 Risk Level: low
 Leader Ack Required: false
@@ -35,6 +35,14 @@ Original User Intent: 分析项目跨引擎基础设施能力，为生成 common
 Scope Coverage: network_protocol_and_sync, build_release_and_cicd, tooling_and_ai_pipeline
 Exclusions: 引擎主线方向、Lua、配置表
 ```
+
+## 单矩阵任务约束
+
+- 本文件是 infra researcher profile，不代表一次任务要扫描全部 infra capabilities。
+- TaskCreate 必须提供唯一 `matrix_job`；本 researcher 只调查 `capability.network_protocol_and_sync`、`capability.build_release_and_cicd` 或 `capability.tooling_and_ai_pipeline` 中的当前一个。
+- 报告文件必须写到 `matrix_job.report_file`，不得写 profile-level 聚合报告。
+- `domain_findings` 与 `fixed_question_results` 只能包含当前 `matrix_id`；其它能力线索只能写入 `handoff_notes`，且不得写出其它 `engine.*.*` / `capability.*` 矩阵 ID。
+- 只加载当前 `fixed_question_file` 与匹配 composite fixed question 文件。
 
 ## 扫描剧本
 

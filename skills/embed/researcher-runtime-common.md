@@ -105,23 +105,23 @@ scope:
 
 ```yaml
 fixed_question_results:
-  - matrix_id: "engine.<engine>.<direction_id>"
-    fixed_question_file: "$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md"
-    composite_fixed_question_files: []
-    questions:
-      - question_id: "<id from fixed question file>"
-        question: "<question text from fixed question file>"
-        status: error
-        error_type: "必查项缺失错误"
-        evidence_paths: []
-        matched_strings: []
-        implementation: []
-        searched_scopes:
-          - "<searched path or glob>"
-        searched_keywords:
-          - "<searched keyword>"
-        answer: "扩大到全仓库后仍未找到可确认的实际实现。"
-        builder_note: "该方向只能生成占位 skill，不得补写推断性规则。"
+  matrix_id: "engine.<engine>.<direction_id>"
+  fixed_question_file: "$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/<engine>/<direction-kebab>.md"
+  composite_fixed_question_files: []
+  questions:
+    - question_id: "<id from fixed question file>"
+      question: "<question text from fixed question file>"
+      status: error
+      error_type: "必查项缺失错误"
+      evidence_paths: []
+      matched_strings: []
+      implementation: []
+      searched_scopes:
+        - "<searched path or glob>"
+      searched_keywords:
+        - "<searched keyword>"
+      answer: "扩大到全仓库后仍未找到可确认的实际实现。"
+      builder_note: "该方向只能生成占位 skill，不得补写推断性规则。"
 ```
 
 ## Builder 协议

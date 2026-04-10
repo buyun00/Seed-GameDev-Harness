@@ -22,7 +22,7 @@ scope:
 2. 运行时 researcher 再加载 `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-runtime-common.md`
 3. 再加载 `$CLAUDE_PLUGIN_ROOT/skills/embed/taxonomy-registry.md`
 4. 再加载各自的 `$CLAUDE_PLUGIN_ROOT/skills/embed/researcher-<domain>.md`
-5. 最后按本次负责的 `matrix_id` 加载对应的 fixed question 文件；如存在匹配的 composite fixed question 文件，再追加加载
+5. 最后按本次唯一目标 `matrix_id` 加载对应的 fixed question 文件；如存在匹配的 composite fixed question 文件，再追加加载
 
 ## 核心元规则
 
@@ -73,7 +73,7 @@ scope:
 
 ## 固定问题加载规则
 
-researcher 不仅要扫描领域剧本，还必须按本次负责的矩阵项加载对应固定问题文件。
+researcher 不仅要扫描领域剧本，还必须按本次唯一目标矩阵项加载对应固定问题文件。
 
 加载顺序：
 
@@ -88,35 +88,54 @@ researcher 不仅要扫描领域剧本，还必须按本次负责的矩阵项加
 - 如果领域剧本与固定问题冲突，以固定问题文件为准；领域剧本只提供搜索范围和追踪方式
 - 对每一道固定问题都必须产出逐题回答；不能只把题目抄进报告
 - 回答可以是 `found`、`not_found`、`conflict` 或 `error`，但必须写清证据、已搜索范围和当前能否支持 builder 写入项目约定
+- 一个 researcher report 只能包含一个 `matrix_id`。如果发现其它方向的线索，只能写入 `handoff_notes`，不得写入 `domain_findings` 或 `fixed_question_results`；`handoff_notes` 也不得写出其它 `engine.*.*` 或 `capability.*` 矩阵 ID 字符串。
 
 ## 固定问题回答格式
 
-每个 researcher 报告必须新增 `fixed_question_results` 顶层段。每个矩阵项按 `matrix_id` 分组，每道题按以下结构记录：
+每个 researcher 报告必须声明唯一目标矩阵项，并新增 `fixed_question_results` 顶层段。报告顶层结构如下：
 
 ```yaml
+matrix_id: "engine.unity.project_structure"
+axis: "engine"
+engine: "unity"
+direction_id: "project_structure"
+output_file: "domain/unity-project-structure.md"
+fixed_question_file: "$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/unity/project-structure.md"
+composite_fixed_question_files: []
+
+common_rule_results:
+  - finding: "本次只调查 engine.unity.project_structure"
+    status: found
+
+runtime_fixed_question_results: "N/A"
+
+domain_findings:
+  - finding: "简短结论"
+    status: found
+
 fixed_question_results:
-  - matrix_id: "engine.unity.project_structure"
-    fixed_question_file: "$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/unity/project-structure.md"
-    composite_fixed_question_files: []
-    questions:
-      - question_id: "engine_unity_project_structure_q1"
-        question: "固定问题原文"
-        status: found | not_found | conflict | error
-        answer: "基于物理证据的一句话回答；未找到时写明未找到什么"
-        evidence_paths:
-          - "路径 A"
-        matched_strings:
-          - "命中串 A"
-        implementation:
-          - "最终实现文件/类/函数"
-        searched_scopes:
-          - "已搜索目录或文件范围"
-        searched_keywords:
-          - "已搜索关键词"
-        builder_note: "可选：告诉 builder 是否只能生成占位 skill"
+  matrix_id: "engine.unity.project_structure"
+  fixed_question_file: "$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/unity/project-structure.md"
+  composite_fixed_question_files: []
+  questions:
+    - question_id: "engine_unity_project_structure_q1"
+      question: "固定问题原文"
+      status: found | not_found | conflict | error
+      answer: "基于物理证据的一句话回答；未找到时写明未找到什么"
+      evidence_paths:
+        - "路径 A"
+      matched_strings:
+        - "命中串 A"
+      implementation:
+        - "最终实现文件/类/函数"
+      searched_scopes:
+        - "已搜索目录或文件范围"
+      searched_keywords:
+        - "已搜索关键词"
+      builder_note: "可选：告诉 builder 是否只能生成占位 skill"
 ```
 
-若固定问题文件缺失，也必须保留对应 `matrix_id` 的 `fixed_question_results` 项，`questions: []`，并写 `status: missing_fixed_question_file` 与缺失路径。
+若固定问题文件缺失，也必须保留 `fixed_question_results`，`questions: []`，并写 `status: missing_fixed_question_file` 与缺失路径。
 
 ## 证据记录格式
 
@@ -160,14 +179,15 @@ fixed_question_results:
 
 所有 researcher 的最终报告必须写入文件，而不是通过 mailbox 内联传递：
 
-1. 路径：`.seed/state/embed/<embed_stamp>/reports/researcher-<domain>.yaml`
+1. 路径：`.seed/state/embed/<embed_stamp>/reports/<matrix_id>.yaml`
    - `<embed_stamp>` 由 `/seed:embed` 主流程生成，leader 通过启动消息传递
-   - `<domain>` 是 researcher 本体名（unity/godot/unreal/cocos/lua/config/infra）
-2. 写入方式：原子写（先写 `<name>.yaml.tmp`，再 rename 为 `<name>.yaml`）
+   - `<matrix_id>` 是本次 job 的唯一矩阵项，例如 `engine.unity.ui_system` 或 `capability.lua_embedding`
+2. 写入方式：原子写（先写 `<matrix_id>.yaml.tmp`，再 rename 为 `<matrix_id>.yaml`）
 3. 编码：UTF-8
-4. 顶层结构与现有“调查报告结构”四段格式一致，但改为 yaml 序列化
+4. 顶层必须包含 `matrix_id`、`output_file`、`fixed_question_file`，并与当前 `matrix_job` 完全一致
 5. 写完文件后才 SendMessage 给 leader；消息内容只包含：
    - `report_path: <路径>`
+   - `matrix_id: <matrix_id>`
    - `status: ok | missing | conflict | error`
    - `summary: <不超过 10 行的一句话摘要>`
 6. 该 SendMessage 是普通文本消息时，工具调用本身也必须带 `summary` 字段（短预览，例如 `researcher-unity ok`），否则 Claude Code 会拒绝发送
