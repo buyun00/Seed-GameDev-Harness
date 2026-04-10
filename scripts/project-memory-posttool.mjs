@@ -21,6 +21,7 @@ function emptyMemory() {
     hotPaths: [],
     userDirectives: [],
     customNotes: [],
+    projectProfile: null,
     lastScanned: null
   };
 }

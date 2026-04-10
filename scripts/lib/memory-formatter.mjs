@@ -1,24 +1,54 @@
 /**
- * Seed hook 脚本的共享记忆格式化工具。
- * 将 project-memory.json 格式化为 Seed 项目上下文摘要，
- * 同时用于 SessionStart 注入和 PreCompact 保护。
+ * Shared formatter for Seed project memory injection.
  */
 
 import { t } from './i18n.mjs';
 
+const ENGINE_NAMES = {
+  unity: 'Unity',
+  godot: 'Godot',
+  unreal: 'Unreal',
+  cocos: 'Cocos',
+  none: 'Unknown',
+};
+
+const ROLE_LABELS = {
+  gameplay_primary: 'gameplay primary',
+  engine_host_bridge_tooling: 'Unity host/bridge/tooling',
+  gameplay_runtime_primary: 'gameplay/runtime primary',
+  secondary_or_unconfirmed: 'secondary or unconfirmed',
+  secondary_runtime: 'secondary runtime',
+  native_runtime_primary: 'native/runtime primary',
+  visual_scripting_assets: 'visual scripting assets',
+  supporting_or_unclassified: 'supporting or unclassified',
+};
+
+function formatProfileEngine(profile, fallback = '') {
+  const engine = profile?.engine;
+  if (!engine) return fallback;
+  const name = ENGINE_NAMES[engine.name] || engine.name || '';
+  if (!name || name === 'Unknown') return fallback || name;
+  return engine.version ? `${name} ${engine.version}` : name;
+}
+
+function formatRole(role) {
+  if (!role?.language) return '';
+  const label = ROLE_LABELS[role.role] || String(role.role || '').replace(/_/g, ' ');
+  return label ? `${role.language} = ${label}` : role.language;
+}
+
 /**
- * 将 project-memory.json 对象格式化为 markdown 摘要。
+ * Format project-memory.json as a short markdown context summary.
  *
- * @param {object} memory - 解析后的 project-memory.json 内容
- * @param {string} [lang] - 配置中的语言设置（原始值）
- * @returns {string} 格式化的 markdown 摘要，如果没有内容则返回空字符串
+ * @param {object} memory - Parsed project-memory.json.
+ * @param {string} [lang] - Configured interaction language.
+ * @returns {string} Markdown summary, or an empty string when there is nothing to inject.
  */
 export function formatContextSummary(memory, lang) {
   if (!memory) return '';
 
   const sections = [];
 
-  // [项目环境]
   const tech = memory.techStack;
   if (tech && (tech.engine || tech.languages?.length || tech.buildTool || tech.testTool)) {
     const lines = ['### [Project Environment]'];
@@ -29,7 +59,31 @@ export function formatContextSummary(memory, lang) {
     sections.push(lines.join('\n'));
   }
 
-  // [热点路径]
+  const profile = memory.projectProfile;
+  if (profile) {
+    const lines = ['### [Project Profile]'];
+    const engine = formatProfileEngine(profile, tech?.engine || '');
+    if (engine) lines.push(`- Engine: ${engine}`);
+
+    const roles = (profile.languages?.roles || [])
+      .map(formatRole)
+      .filter(Boolean)
+      .slice(0, 6);
+    if (roles.length) lines.push(`- Language roles: ${roles.join('; ')}`);
+
+    const directories = (profile.directories || [])
+      .filter((dir) => dir?.path && dir?.purpose)
+      .slice(0, 12);
+    if (directories.length) {
+      lines.push('- Key directories:');
+      for (const dir of directories) {
+        lines.push(`  - ${dir.path}: ${dir.purpose}`);
+      }
+    }
+
+    if (lines.length > 1) sections.push(lines.join('\n'));
+  }
+
   if (memory.hotPaths?.length) {
     const sorted = [...memory.hotPaths]
       .sort((a, b) => (b.count || 0) - (a.count || 0))
@@ -41,7 +95,6 @@ export function formatContextSummary(memory, lang) {
     sections.push(lines.join('\n'));
   }
 
-  // [用户指令]
   if (memory.userDirectives?.length) {
     const lines = ['### [Directives]'];
     for (const d of memory.userDirectives) {
@@ -50,7 +103,6 @@ export function formatContextSummary(memory, lang) {
     sections.push(lines.join('\n'));
   }
 
-  // [近期学习]
   if (memory.customNotes?.length) {
     const lines = ['### [Recent Learnings]'];
     for (const note of memory.customNotes.slice(-5)) {

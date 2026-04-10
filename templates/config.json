@@ -4,11 +4,8 @@
     "mode": "auto"
   },
   "embed": {
-    "parallelism": {
-      "maxResearchersPerWave": 4,
-      "maxBuildersPerWave": 4,
-      "waveTimeoutSeconds": 600
-    }
+    "maxDirectoryEntries": 80,
+    "writeMarkdownProfile": true
   },
   "memory": {
     "autoLearn": true,

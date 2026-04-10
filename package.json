@@ -1,4 +1,8 @@
 {
   "name": "seed",
-  "version": "0.6.0"
+  "version": "0.6.0",
+  "scripts": {
+    "check": "node --check scripts/embed-project-profile.mjs && node --check scripts/lib/memory-formatter.mjs",
+    "test": "node --test scripts/__tests__/*.test.mjs"
+  }
 }
