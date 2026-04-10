@@ -323,10 +323,19 @@ TeamCreate("seed-embed")
 所有 researcher wave 完成后，做最终 gate：
 
 1. 校验所有激活 researcher 对应的 yaml 报告均存在
-2. 校验每个 yaml 可解析，且顶层结构符合 `researcher-common.md` 的三段报告结构
-3. 任一报告缺失、无法解析或结构不完整时，重派对应 researcher 1 次
-4. 重派后继续等待同一 `reports_dir` 下的同名 yaml，仍以 `waveTimeoutSeconds` 作为超时
-5. 如果重派仍失败：
+2. 必须先运行插件内置的 Node gate（无外部依赖）：
+
+```text
+node $CLAUDE_PLUGIN_ROOT/scripts/validate-embed-reports.mjs <reports_dir> <domain> [domain...]
+```
+
+该 gate 至少校验文件存在、非空、无 `.tmp` 残留、不是 fenced markdown、无冲突标记，并包含 `researcher-common.md` 要求的三段报告结构。
+
+3. 如果环境另外提供 YAML parser，可以在 Node gate 通过后追加完整解析检查
+4. 禁止在没有任何 gate 校验通过的情况下继续；没有额外 YAML parser 时，以内置 Node gate 为最低通过条件
+5. 任一报告缺失、无法解析或结构不完整时，重派对应 researcher 1 次
+6. 重派后继续等待同一 `reports_dir` 下的同名 yaml，仍以 `waveTimeoutSeconds` 作为超时
+7. 如果重派仍失败：
    - 将失败 researcher、缺失路径、等待时间、已存在报告列表写入 `.seed/logs/embed-<embed_stamp>.log`
    - 终止 Step 4
    - 向用户说明失败原因，不进入 Phase B
