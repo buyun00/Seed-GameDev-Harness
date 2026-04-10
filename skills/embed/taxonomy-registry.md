@@ -115,7 +115,7 @@ scope:
 | `data_config_pipeline` | 配置表、Schema、Protobuf、导表与校验流程 | Excel / CSV / JSON / YAML / Proto / FlatBuffers / 校验脚本 | `config` |
 | `network_protocol_and_sync` | 网络协议、传输层、同步框架与异常处理 | Protobuf / KCP / WebSocket / Mirror / Netcode / Godot Multiplayer / Unreal Replication | `infra` |
 | `build_release_and_cicd` | 构建、打包、发布、热更产物生成、CI/CD | GitHub Actions / GitLab CI / Jenkins / UAT / export presets / Cocos build script | `infra` |
-| `tooling_and_ai_pipeline` | MCP、Agent、工具链、项目自动化与 AI 工作流 | `.mcp.json` / `.seed/` / custom tools / editor tools / automation | `infra` |
+| `tooling_and_ai_pipeline` | MCP、Agent、工具链、项目自动化与 AI 工作流 | `.mcp.json` / `.seed/`（仅存在性证据） / custom tools / editor tools / automation | `infra` |
 
 ### 固定字段
 

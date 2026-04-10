@@ -66,7 +66,9 @@ scope:
 2. 对命中项继续向上/向下追踪调用链，找到实际实现落点
 3. 如果第一轮没找到，扩大到全仓库搜索
 4. 扩大搜索时排除明显的三方、缓存、生成产物目录
-   常见排除项：`Library/`、`Temp/`、`Logs/`、`Obj/`、`node_modules/`、`DerivedDataCache/`、`.git/`
+   常见排除项：`.seed/`、`.claude/`、`.claude-plugin/`、`Library/`、`Temp/`、`Logs/`、`Obj/`、`node_modules/`、`DerivedDataCache/`、`.git/`
+   - `.seed/skills/`、`.seed/state/`、`.seed/logs/`、`.seed/plans/` 是 Seed 生成物或运行态文件，不得作为项目业务实现证据
+   - 只有 `researcher-infra` 检查 `tooling_and_ai_pipeline` 时，才可以把项目根目录 `.seed/` 的存在作为 Seed 工具链证据；不得递归读取其内容来支撑 Lua、引擎、配置、网络或构建结论
 5. 仍没找到时，记录已搜索范围和关键词，再输出 `未找到` 或对应错误
 
 ## 固定问题加载规则

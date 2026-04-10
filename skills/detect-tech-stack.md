@@ -24,6 +24,27 @@ scope:
 4. **跨引擎能力独立检测**：Lua、配置、网络、CI/CD、工具链必须写入 `capabilities`，不能借道某个引擎方向。
 5. **冲突全部保留**：如果同一矩阵项命中多个互斥变体，写入 `conflicts`，交给 Step 1 用户确认。
 
+## 扫描边界
+
+以下目录是 Seed / Claude / 缓存 / 生成产物，不属于被分析游戏项目的业务技术栈。除非某条规则明确说明“只做存在性检查”，否则所有 Phase 都必须排除这些目录及其子目录：
+
+- `.seed/`
+- `.claude/`
+- `.claude-plugin/`
+- `Library/`
+- `Temp/`
+- `Logs/`
+- `Obj/`
+- `node_modules/`
+- `DerivedDataCache/`
+- `.git/`
+
+特别约束：
+
+- `.seed/skills/`、`.seed/state/`、`.seed/logs/`、`.seed/plans/` 中的任何文本都不得作为 `lua_embedding`、引擎方向、配置、网络或构建能力的证据。
+- `tooling_and_ai_pipeline` 可以把项目根目录存在 `.seed/`、`.seed/config.json`、`.seed/team-router.md` 作为 Seed 工具链证据，但不得递归读取 `.seed/skills/` 中的 generated skill 内容来判断其它能力。
+- 如果某次扫描命中的证据路径位于上述排除目录内，必须丢弃该证据；如果因此只剩 `.seed/` 证据，则只能影响 `tooling_and_ai_pipeline`。
+
 ## 状态规则
 
 - `detected`：命中足够证据，能确认该方向存在项目实现。
@@ -52,7 +73,7 @@ scope:
 
 ## Phase 2：统计语言分布
 
-统计以下扩展名数量，排除 `Library/`、`Temp/`、`node_modules/`、`.git/`、常见三方缓存目录：
+统计以下扩展名数量，必须遵守“扫描边界”，排除 `.seed/`、`.claude/`、`.claude-plugin/`、`Library/`、`Temp/`、`node_modules/`、`.git/`、常见三方缓存目录：
 
 | 扩展名 | 语言 |
 |---|---|
@@ -184,7 +205,7 @@ scope:
 | `data_config_pipeline` | `*.xlsx`、`*.xls`、`*.csv`、`*.proto`、`*.fbs`、`ExcelExport`、`TableExport`、`GenerateConfig`、批量 JSON/YAML 数据目录、校验脚本 |
 | `network_protocol_and_sync` | `Mirror`、`Netcode`、`System.Net.Sockets`、`KCP`、`WebSocket`、`*.proto`、Godot `MultiplayerAPI`、Unreal replication/network subsystem |
 | `build_release_and_cicd` | `.github/workflows/`、`.gitlab-ci.yml`、`Jenkinsfile`、Unity build scripts、Godot export、Unreal UAT、Cocos build/release scripts |
-| `tooling_and_ai_pipeline` | `.mcp.json`、`.seed/`、`mcp` 目录、`agent`、`pipeline`、自动化脚本、editor tools、custom tooling |
+| `tooling_and_ai_pipeline` | `.mcp.json`、`.seed/`（仅存在性标记，不递归读取其内容）、`mcp` 目录、`agent`、`pipeline`、自动化脚本、editor tools、custom tooling |
 
 ### Capability 结果约束
 

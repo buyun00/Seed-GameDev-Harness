@@ -52,7 +52,8 @@ Exclusions: 引擎主线方向、Lua、配置表
 
 ### 工具链与 AI pipeline
 
-- 搜索 `.mcp.json`、`.seed/`、`mcp`、`agent`、`pipeline`
+- 搜索 `.mcp.json`、项目根目录 `.seed/` 是否存在、`mcp`、`agent`、`pipeline`
+- `.seed/` 只作为 Seed 工具链存在性证据，不得递归读取 `.seed/skills/`、`.seed/state/`、`.seed/logs/`、`.seed/plans/` 中的内容来判断 Lua、配置、网络、构建或引擎能力
 - 搜索 custom tooling、editor tools、自动化脚本入口
 - 只记录项目级工具链，不把引擎自带工具当项目能力
 
