@@ -273,6 +273,15 @@ Step 1 中任何用户补充 / 修正都必须立即归一化到对应的 `direc
 TeamCreate("seed-embed")
 ```
 
+#### Agent Team 消息约束
+
+当前 session 只能有一个 Team。调用 `SendMessage` 时：
+
+- `to` 必须是裸 teammate 名称，例如 `leader`、`researcher-unity`、`builder-engine`
+- 禁止把 Team 名写进 `to`，例如不要写 `seed-embed/leader`、`seed-embed.leader`、`seed-embed:leader`
+- 禁止在 `to` 里加入角色说明、括号、路径或 `@` 前缀，例如不要写 `researcher-unity（引擎主线）`、`@leader`
+- 广播只能使用 `to: "*"`
+
 创建后立即 SendMessage 给 leader，内容必须包含：
 
 - `embed_stamp`
