@@ -22,7 +22,7 @@ scope:
 3. 同一个矩阵项只能由唯一 builder 落笔：
    - 引擎方向 → `builder-engine`
    - `lua_embedding` / `data_config_pipeline` / `network_protocol_and_sync` / `build_release_and_cicd` / `tooling_and_ai_pipeline` → `builder-common`
-4. 每个 skill 都必须写新的 frontmatter 契约和 `## 固定问题` 段，且固定问题来自对应 `fixed_question_file`。
+4. 每个 skill 都必须写新的 frontmatter 契约和 `## 固定问题` 段，且固定问题来自对应 `fixed_question_file`，回答来自 researcher 报告的 `fixed_question_results`。
 5. 如果目标矩阵项带有 `confirmed_by_user: true`，builder 必须读取 `user_supplied_evidence`，不能因为 researcher 未重新扫到同一证据就跳过该 skill。
 6. 单个 builder 必须按报告内容为每个 `matrix_id` 独立迭代，不得把多个矩阵项混在一个文件里写。
 7. 语言层内容必须落在既有矩阵项中：C# 编码约定写入 `<engine>-native-code-architecture.md`；Lua 业务脚本组织写入 `<engine>-script-layer.md`；`common-lua-embedding.md` 只写 runtime / 绑定 / 双向互调 / 热修能力。
@@ -43,7 +43,7 @@ scope:
    - 缺失了哪些关键实现
    - researcher 搜了哪些范围
    - 为什么当前不能把它写成项目规范
-3. 仍要保留矩阵 frontmatter 字段和 `## 固定问题` 段
+3. 仍要保留矩阵 frontmatter 字段和 `## 固定问题` 段；能回答的题逐题回答，不能回答的题写明缺失证据
 
 ### 用户补全 skill 要求
 
@@ -98,7 +98,7 @@ Exclusions: 任何 <engine>-* 引擎主线 skill
 所有 builder 统一遵守：
 
 ```text
-根据 Precondition 指定的落盘 researcher 报告，为目标矩阵项生成 domain skill。文件命名、matrix_id、question_set_id、fixed_question_file、owner、frontmatter 字段都必须遵守 taxonomy-registry 与 skill-catalog。正文只写项目真实命中的实现入口、约定和证据，不得把通用引擎知识写成项目规则。生成每个文件前，先按 matrix_id 加载对应 fixed question 文件；如果存在匹配的 composite fixed question 文件，再追加加载。若文件缺失，在 `## 固定问题` 中明确写缺失路径，不得补写猜测问题。
+根据 Precondition 指定的落盘 researcher 报告，为目标矩阵项生成 domain skill。文件命名、matrix_id、question_set_id、fixed_question_file、owner、frontmatter 字段都必须遵守 taxonomy-registry 与 skill-catalog。正文只写项目真实命中的实现入口、约定和证据，不得把通用引擎知识写成项目规则。生成每个文件前，先按 matrix_id 加载对应 fixed question 文件；如果存在匹配的 composite fixed question 文件，再追加加载。`## 固定问题` 不能只列题目，必须逐题写 `Q` 与 `A`：`Q` 来自 fixed question 文件，`A` 来自 researcher 报告的 `fixed_question_results` 和正文证据。若文件缺失，在 `## 固定问题` 中明确写缺失路径，不得补写猜测问题。若 researcher 报告缺少某题回答，builder 不得自行推断补答；必须在该题下写 `A: 未回答（researcher 报告缺少 fixed_question_results / 对应 question_id）`，并把 skill 标为 `source: incomplete` 或升级给 leader。
 ```
 
 ## Leader Closeout 模板

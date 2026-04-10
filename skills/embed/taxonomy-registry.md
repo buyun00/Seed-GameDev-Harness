@@ -236,7 +236,7 @@ tech_stack_report:
 
 1. 先加载矩阵项自己的 `fixed_question_file`
 2. 如存在匹配的 composite 文件，再追加加载 composite 文件
-3. 将加载到的问题写入 skill 的 `## 固定问题`
+3. researcher 将加载到的问题逐题回答到 `fixed_question_results`；builder 将问题与回答写入 skill 的 `## 固定问题`
 4. engine / capability 基础矩阵项模板应默认预建
 5. 如果对应基础文件缺失，则在 `## 固定问题` 中明确写出缺失文件路径，不得伪造问题正文
 6. composite 文件允许按需创建，不要求一次性补齐全部组合

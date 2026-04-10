@@ -186,6 +186,7 @@ source: scanned | user-confirmed | incomplete
 4. `## 固定问题`
    - 从对应 `fixed_question_file` 载入矩阵项固定问题
    - 如存在匹配的 composite 文件，追加其问题
+   - 每道题都必须写 `Q` 和 `A`，`A` 只能来自 researcher 报告的 `fixed_question_results` 或同一报告中的证据，不得由 builder 自由推断
    - 文件缺失时明确写缺失路径，不补写猜测内容
 
 其中 capability skill 的 `## 结论` 必须明确写出：
@@ -210,8 +211,12 @@ source: scanned | user-confirmed | incomplete
   - $CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/composite/...
 - status: loaded | missing
 - questions:
-  - Q1 ...
-  - Q2 ...
+  - Q1: 固定问题原文
+    A: 基于 researcher fixed_question_results 的项目回答；未找到时写明搜索范围和缺失证据。
+    evidence:
+      - path/to/file
+  - Q2: 固定问题原文
+    A: 未回答（researcher 报告缺少对应 question_id，当前 skill 只能视为 incomplete）。
 ```
 
 如果对应文件不存在，改写为：

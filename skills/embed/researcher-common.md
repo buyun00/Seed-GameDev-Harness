@@ -86,6 +86,37 @@ researcher 不仅要扫描领域剧本，还必须按本次负责的矩阵项加
 - 固定问题文件缺失时，必须在报告里明确写出缺失路径
 - 固定问题文件缺失，不等于 researcher 可以自由补写问题
 - 如果领域剧本与固定问题冲突，以固定问题文件为准；领域剧本只提供搜索范围和追踪方式
+- 对每一道固定问题都必须产出逐题回答；不能只把题目抄进报告
+- 回答可以是 `found`、`not_found`、`conflict` 或 `error`，但必须写清证据、已搜索范围和当前能否支持 builder 写入项目约定
+
+## 固定问题回答格式
+
+每个 researcher 报告必须新增 `fixed_question_results` 顶层段。每个矩阵项按 `matrix_id` 分组，每道题按以下结构记录：
+
+```yaml
+fixed_question_results:
+  - matrix_id: "engine.unity.project_structure"
+    fixed_question_file: "$CLAUDE_PLUGIN_ROOT/skills/embed/fixed-questions/engine/unity/project-structure.md"
+    composite_fixed_question_files: []
+    questions:
+      - question_id: "engine_unity_project_structure_q1"
+        question: "固定问题原文"
+        status: found | not_found | conflict | error
+        answer: "基于物理证据的一句话回答；未找到时写明未找到什么"
+        evidence_paths:
+          - "路径 A"
+        matched_strings:
+          - "命中串 A"
+        implementation:
+          - "最终实现文件/类/函数"
+        searched_scopes:
+          - "已搜索目录或文件范围"
+        searched_keywords:
+          - "已搜索关键词"
+        builder_note: "可选：告诉 builder 是否只能生成占位 skill"
+```
+
+若固定问题文件缺失，也必须保留对应 `matrix_id` 的 `fixed_question_results` 项，`questions: []`，并写 `status: missing_fixed_question_file` 与缺失路径。
 
 ## 证据记录格式
 
@@ -111,7 +142,7 @@ researcher 不仅要扫描领域剧本，还必须按本次负责的矩阵项加
 
 ## 调查报告结构
 
-所有 researcher 的最终报告必须按以下三段输出，顺序不可变：
+所有 researcher 的最终报告必须按以下四段输出，顺序不可变：
 
 1. **通用规则执行结果**
    记录本次实际搜索范围、排除项、冲突项、是否存在仅文档无实现的情况。
@@ -122,6 +153,9 @@ researcher 不仅要扫描领域剧本，还必须按本次负责的矩阵项加
 3. **领域发现**
    仅写实际命中的项目实现与证据，不写框架常识总结。
 
+4. **固定问题回答**
+   写入 `fixed_question_results`，逐题回答本次加载到的所有基础固定问题与 composite 固定问题。
+
 ## 报告落盘协议
 
 所有 researcher 的最终报告必须写入文件，而不是通过 mailbox 内联传递：
@@ -131,7 +165,7 @@ researcher 不仅要扫描领域剧本，还必须按本次负责的矩阵项加
    - `<domain>` 是 researcher 本体名（unity/godot/unreal/cocos/lua/config/infra）
 2. 写入方式：原子写（先写 `<name>.yaml.tmp`，再 rename 为 `<name>.yaml`）
 3. 编码：UTF-8
-4. 顶层结构与现有“调查报告结构”三段格式一致，但改为 yaml 序列化
+4. 顶层结构与现有“调查报告结构”四段格式一致，但改为 yaml 序列化
 5. 写完文件后才 SendMessage 给 leader；消息内容只包含：
    - `report_path: <路径>`
    - `status: ok | missing | conflict | error`

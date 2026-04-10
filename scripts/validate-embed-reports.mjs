@@ -4,7 +4,7 @@
  *
  * This is a gate helper, not a complete YAML parser. It verifies that the
  * expected report files exist, contain substantial YAML-like content, and
- * expose the three required report sections from researcher-common.md.
+ * expose the four required report sections from researcher-common.md.
  */
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -16,6 +16,7 @@ const REQUIRED_SECTIONS = [
   ['通用规则执行结果', 'common_rule_results', 'common_rules'],
   ['运行时必查项结果', 'runtime_required_results', 'runtime_required_checks'],
   ['领域发现', 'domain_findings', 'findings'],
+  ['固定问题回答', 'fixed_question_results', 'fixed_questions'],
 ];
 
 function fail(message) {
