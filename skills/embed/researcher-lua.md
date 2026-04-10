@@ -26,7 +26,7 @@ scope:
 Task Kind: investigate
 Expected Owner Role: researcher
 Deliverable: Lua 跨引擎能力调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/researcher-lua.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + 状态摘要
-Done Definition: 报告按 researcher-common 的四段格式输出；所有结论和 fixed_question_results 都附证据路径；覆盖 capability.lua_embedding；如 Lua 层承担运行时主路径但必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
+Done Definition: 报告按 researcher-common 的四段格式输出；所有结论和 fixed_question_results 都附证据路径；覆盖 capability.lua_embedding；如 Lua 层承担 fixed-questions 中的 fatal 运行时主路径但实际实现缺失，则按 researcher-runtime-common 输出必查项缺失错误
 Dependencies: none
 Risk Level: low
 Leader Ack Required: false
@@ -56,9 +56,9 @@ Exclusions: 任意引擎主线方向、配置表、网络、CI/CD、工具链
 - 搜索 `pcall`、`xpcall`、`error(`、`LogError`、日志封装
 - 如果只找到框架依赖，没有互调调用点，写 `unknown`，不要补写 bridge 规则
 
-### 运行时五问中的 Lua 落点
+### Fixed Questions 中的 Lua 运行时落点
 
-- 如果按钮绑定、UI 开关、系统通信、场景切换、资源加载释放主要落在 Lua 层，必须把 Lua 侧实现路径写清楚
+- 如果已加载 fixed-questions 指向的运行时主路径主要落在 Lua 层，必须把 Lua 侧实现路径写清楚
 - 如果这些行为主要在宿主引擎层，则标明“Lua 不承担主路径”，不要强行补写
 
 ## 输出要求

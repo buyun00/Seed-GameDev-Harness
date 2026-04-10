@@ -26,7 +26,7 @@ scope:
 Task Kind: investigate
 Expected Owner Role: researcher
 Deliverable: Unity 引擎主线调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/researcher-unity.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + 状态摘要
-Done Definition: 报告按 researcher-common 的四段格式输出；所有结论和 fixed_question_results 都附证据路径；仅覆盖 Unity 主线方向；如运行时必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
+Done Definition: 报告按 researcher-common 的四段格式输出；所有结论和 fixed_question_results 都附证据路径；仅覆盖 Unity 主线方向；如 fixed-questions 中的 fatal 固定问题缺失，则按 researcher-runtime-common 输出必查项缺失错误
 Dependencies: none
 Risk Level: low
 Leader Ack Required: false
@@ -58,7 +58,7 @@ Exclusions: common-lua-embedding、common-data-config-pipeline、common-network-
 - 搜索 `UnityEngine.UI`、`using FairyGUI;`、`UnityEngine.UIElements`、`.uxml`、`.uss`
 - 搜索 `HybridCLR`、`ILRuntime`、`[Hotfix]`、patch loader、热更发布脚本
 - 搜索 `AddressableAssetsData/`、`BuildAssetBundles`、loader/provider、加载释放调用点
-- 资源加载与释放既是 Unity 主线方向，也是运行时必查项，必须继续追到项目封装
+- 资源加载与释放既是 Unity 主线方向，也是 fixed-questions 中常见的运行时关键点，必须继续追到项目封装
 
 ### 事件 / 动画 / 物理导航 / 插件 / 平台适配
 
@@ -70,6 +70,6 @@ Exclusions: common-lua-embedding、common-data-config-pipeline、common-network-
 
 ## 输出要求
 
-- 运行时五问必须先回答，再写 Unity 主线方向发现
+- 先回答已加载的 fixed-questions，再写 Unity 主线方向发现
 - 只写 Unity 主线，不把 Lua / 配置 / 网络 / CI/CD 结论吞进 Unity skill
 - 如果某方向只命中依赖或目录，没有实际入口，要明确写 `unknown`

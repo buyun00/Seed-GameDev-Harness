@@ -27,7 +27,7 @@ scope:
 Task Kind: investigate
 Expected Owner Role: researcher
 Deliverable: 数据配置能力调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/researcher-config.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + 状态摘要
-Done Definition: 报告输出通用规则执行结果、运行时必查项结果 N/A、capability.data_config_pipeline 领域发现以及 fixed_question_results；每条结论和固定问题回答都附证据路径
+Done Definition: 报告输出通用规则执行结果、运行时固定问题结果 N/A、capability.data_config_pipeline 领域发现以及 fixed_question_results；每条结论和固定问题回答都附证据路径
 Dependencies: none
 Risk Level: low
 Leader Ack Required: false
@@ -57,5 +57,5 @@ Exclusions: 引擎主线方向、Lua、网络、CI/CD、工具链
 
 ## 输出要求
 
-- 报告第二段固定写：`运行时必查项结果：N/A（data_config_pipeline 不适用）`
+- 报告第二段固定写：`运行时固定问题结果：N/A（data_config_pipeline 不适用）`
 - 只服务 `common-data-config-pipeline.md`

@@ -27,7 +27,7 @@ scope:
 Task Kind: investigate
 Expected Owner Role: researcher
 Deliverable: 基础设施能力调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/researcher-infra.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + 状态摘要
-Done Definition: 报告输出通用规则执行结果、运行时必查项结果 N/A、capability.network_protocol_and_sync / capability.build_release_and_cicd / capability.tooling_and_ai_pipeline 的领域发现以及 fixed_question_results；每条结论和固定问题回答都附证据路径
+Done Definition: 报告输出通用规则执行结果、运行时固定问题结果 N/A、capability.network_protocol_and_sync / capability.build_release_and_cicd / capability.tooling_and_ai_pipeline 的领域发现以及 fixed_question_results；每条结论和固定问题回答都附证据路径
 Dependencies: none
 Risk Level: low
 Leader Ack Required: false
@@ -59,5 +59,5 @@ Exclusions: 引擎主线方向、Lua、配置表
 
 ## 输出要求
 
-- 报告第二段固定写：`运行时必查项结果：N/A（infra capabilities 不直接承担运行时五问）`
+- 报告第二段固定写：`运行时固定问题结果：N/A（infra capabilities 不直接承担引擎运行时主线固定问题）`
 - `asset_pipeline` 不归 `researcher-infra`，发现相关证据只作为旁注交给对应引擎 researcher

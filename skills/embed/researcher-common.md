@@ -147,8 +147,8 @@ fixed_question_results:
 1. **通用规则执行结果**
    记录本次实际搜索范围、排除项、冲突项、是否存在仅文档无实现的情况。
 
-2. **运行时必查项结果**
-   只有运行时 researcher 输出；非运行时 researcher 写 `N/A`。
+2. **运行时固定问题结果**
+   只有加载 `researcher-runtime-common.md` 的 researcher 输出；非运行时 researcher 写 `N/A`。
 
 3. **领域发现**
    仅写实际命中的项目实现与证据，不写框架常识总结。

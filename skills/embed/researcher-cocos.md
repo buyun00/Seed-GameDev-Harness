@@ -26,7 +26,7 @@ scope:
 Task Kind: investigate
 Expected Owner Role: researcher
 Deliverable: Cocos 引擎主线调查报告；写入 `.seed/state/embed/<embed_stamp>/reports/researcher-cocos.yaml`（原子写）；写完后 SendMessage 通知 leader 路径 + 状态摘要
-Done Definition: 报告按 researcher-common 的四段格式输出；所有结论和 fixed_question_results 都附证据路径；仅覆盖 Cocos 主线方向；如运行时必查项缺失，则按 researcher-runtime-common 输出必查项缺失错误
+Done Definition: 报告按 researcher-common 的四段格式输出；所有结论和 fixed_question_results 都附证据路径；仅覆盖 Cocos 主线方向；如 fixed-questions 中的 fatal 固定问题缺失，则按 researcher-runtime-common 输出必查项缺失错误
 Dependencies: none
 Risk Level: low
 Leader Ack Required: false
