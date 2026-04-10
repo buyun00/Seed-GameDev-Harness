@@ -84,43 +84,76 @@ argument-hint: "[--update]"
 
 ### 展示结构
 
-```text
-根据项目扫描，Seed 检测到以下矩阵结果，请确认是否正确：
+使用 Markdown 表格输出，不要放进 `text` 代码块，也不要用空格对齐伪表格。
 
-  主引擎：        Unity 2022.3.15f1
-  主语言：        C#（主）/ Lua（辅）
-  项目阶段：      开发中（共 6 个 commits，有 README）
+```markdown
+## Seed 矩阵确认
 
-  引擎主线方向：
-    - project_structure                     detected     Assets + asmdef 分层
-    - scene_graph_and_lifecycle             detected     SceneManager + MonoBehaviour
-    - ui_system                             detected     UGUI + FairyGUI
-    - hot_reload                            detected     HybridCLR
-    - platform_adaptation                   unknown      命中 Android/iOS 构建脚本，但主平台未确认
+根据项目扫描，Seed 检测到以下矩阵结果。请先确认是否正确，再继续生成项目专属 domain skill。
 
-  跨引擎能力：
-    - lua_embedding                         detected     xLua
-    - data_config_pipeline                  detected     Excel + Proto
-    - network_protocol_and_sync             unknown      命中 Protobuf，但传输层未确认
-    - build_release_and_cicd                detected     GitHub Actions
-    - tooling_and_ai_pipeline               detected     MCP + .seed
+### 项目概览
 
-  无直接对应 / 本轮不生成：
-    - 某些矩阵项会因当前引擎无直接项目级方案而标记为 unsupported
+| 项目 | 检测结果 | 依据 |
+|---|---|---|
+| 主引擎 | Unity 2022.3.15f1 | `ProjectVersion.txt` |
+| 主语言 | C#（主）/ Lua（辅） | `.cs` 文件占比最高；命中 Lua 目录 |
+| 项目阶段 | 开发中 | 共 6 个 commits；有 `README.md` |
 
-  ⚠️ 冲突项：
-    - capability.lua_embedding：同时找到 xLua 和 tolua，请告知实际使用哪套
+### 引擎主线方向
 
-[确认正确，继续]  [检测结果有误，我来描述]
+| 状态 | 矩阵项 | 检测结果 | 依据 / 待确认 |
+|---|---|---|---|
+| ✅ detected | `project_structure` | Assets + asmdef 分层 | 命中 `Assets/`、`*.asmdef` |
+| ✅ detected | `scene_graph_and_lifecycle` | SceneManager + MonoBehaviour | 命中 `SceneManager`、`MonoBehaviour` |
+| ✅ detected | `ui_system` | UGUI + FairyGUI | 命中 `UnityEngine.UI`、`FairyGUI` |
+| ✅ detected | `hot_reload` | HybridCLR | 命中 `HybridCLR` 配置 |
+| ❔ unknown | `platform_adaptation` | Android / iOS 构建脚本 | 主平台未确认 |
+
+### 跨引擎能力
+
+| 状态 | 矩阵项 | 检测结果 | 依据 / 待确认 |
+|---|---|---|---|
+| ✅ detected | `lua_embedding` | xLua | 命中 `XLua` |
+| ✅ detected | `data_config_pipeline` | Excel + Proto | 命中 Excel 导表与 `.proto` |
+| ❔ unknown | `network_protocol_and_sync` | Protobuf | 已命中协议文件；传输层未确认 |
+| ✅ detected | `build_release_and_cicd` | GitHub Actions | 命中 `.github/workflows/` |
+| ✅ detected | `tooling_and_ai_pipeline` | MCP + `.seed` | 命中 MCP 配置与 `.seed/` |
+
+### 未检测到 / 未确认
+
+| 状态 | 矩阵项 | 当前结论 | 处理方式 |
+|---|---|---|---|
+| ⚪ missing | `engine.unity.audio_pipeline` | 未找到项目级音频方案 | 本轮默认不生成，除非你补充证据 |
+
+### 无直接对应 / 本轮不生成
+
+| 状态 | 矩阵项 | 原因 |
+|---|---|---|
+| ⛔ unsupported | `engine.unity.example_direction` | 当前引擎无直接项目级方案 |
+
+### 冲突项
+
+| 冲突项 | 同时命中的候选 | 需要你确认 |
+|---|---|---|
+| `capability.lua_embedding` | xLua、tolua | 实际使用哪一套 Lua 方案？ |
+
+**你现在需要回复：**
+
+- `确认正确，继续`
+- 或直接描述需要修正的地方，例如：`Lua 实际用 tolua，网络层是 TCP + Protobuf`
 ```
 
 ### Step 1 展示规则
 
+- 实际展示给用户时必须渲染为 Markdown，不要输出围栏代码块
+- 固定展示顺序：项目概览 → 引擎主线方向 → 跨引擎能力 → 未检测到 / 未确认 → 无直接对应 / 本轮不生成 → 冲突项 → 回复指引
+- 状态文案统一使用：`✅ detected`、`❔ unknown`、`⚪ missing`、`⛔ unsupported`
 - `detected` 和 `unknown` 必须逐项展示
-- `missing` 可以归入“未检测到 / 未确认”汇总展示
+- `missing` 可以归入“未检测到 / 未确认”汇总展示，但仍然使用表格，不要用散列表
 - `unsupported` 必须单独放在“无直接对应 / 本轮不生成”区块
 - 每项都要带简短证据说明
-- `conflicts` 必须单独列出
+- `conflicts` 必须单独列出；如果没有冲突，显示“无冲突项。”
+- 表格内不要堆长段落；证据过长时保留最关键的 1-2 条路径或关键词
 
 ### 用户修正规则
 
