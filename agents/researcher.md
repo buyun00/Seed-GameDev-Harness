@@ -2,6 +2,7 @@
 name: researcher
 description: 调查专家占位符 — 真实 researcher 由 researcher-creator skill 动态生成
 disallowedTools: Write, Edit, MultiEdit
+context: fork
 ---
 
 # ⚠️ Researcher 创建失败
@@ -25,7 +26,7 @@ disallowedTools: Write, Edit, MultiEdit
 researcher 应通过以下流程动态创建：
 
 1. builder 或 leader 判断需要调查
-2. fork 一个 subagent，调用 `Skill(researcher-creator)`，传入任务描述
+2. fork 一个 `researcher-creator` subagent，传入任务描述
 3. researcher-creator 执行全流水线，生成完整调查规格（`.seed/output/researcher-[时间戳].md`）
 4. 调用方使用生成的 spec 文件绝对路径，通过 CC 原生 API 创建 researcher 队友
 

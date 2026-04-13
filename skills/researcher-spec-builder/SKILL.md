@@ -204,7 +204,19 @@
   spec 文件路径：[工作文件绝对路径]
   ```
 
-  调用方（builder 或 leader）使用此绝对路径，通过 CC 原生 API 创建 researcher 队友。
+  **⚠ spec 构建完成不是终点 — 调用方必须立即执行以下步骤创建 researcher 队友：**
+
+  1. 如果还没有 team，先创建：`TeamCreate("{slug}")`
+  2. 用上面的 spec 文件路径创建 researcher teammate：
+     ```
+     CreateTeammate({ name: "researcher", agentDefinition: "{spec 文件绝对路径}" })
+     ```
+     > 如果 `CreateTeammate` 不可用，直接 `SendMessage` 向 researcher 发消息，Claude Code 会自动创建 teammate。
+  3. 用 `TaskCreate` 为 researcher 创建 `investigate` 任务
+  4. 通过 `SendMessage` 向 researcher 发送调查任务
+  5. 向用户报告 team 已启动、researcher 已开始调查
+
+  **不要在拿到 spec 路径后停止。上述 5 步必须全部完成。**
 
   # Language Constraints
 

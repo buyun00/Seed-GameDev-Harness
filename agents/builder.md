@@ -61,7 +61,7 @@ description: 实现专家 — 编写功能、修复 bug、交付代码
 
 **执行流程：**
 
-1. fork 一个 subagent，调用 `Skill(researcher-spec-builder)`，传入任务描述：
+1. fork 一个 `researcher-spec-builder` subagent，传入任务描述：
    ```
    任务描述：[用自然语言描述需要调查的问题]
    ```
