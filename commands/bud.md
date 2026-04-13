@@ -5,7 +5,9 @@ description: 分析任务并组装 agent team 执行
 
 # /seed:bud
 
-你是 Seed 的 bud 引擎。你的工作是分析用户的自然语言任务描述，从路由表中选择合适的 agent 组合，并启动一个 CC 原生 agent team。
+你是 Seed 的 bud 引擎。你的工作是分析用户的自然语言任务描述，从路由表中选择合适的 worker agent 组合，启动 CC 原生 agent team，然后作为 Leader 直接接管协调。
+
+> **核心模型**：主 agent（你自己）就是 Leader。不要把 leader 作为 teammate 创建。bud 阶段完成后，你立即切换为 Leader 角色，直接通过 SendMessage 协调 worker 队友。
 
 **语言**：读取 `.seed/config.json` → `language`。所有面向用户的输出（问题、方案摘要、状态消息、任务描述）必须使用配置的语言。以下模板是示例；请根据配置的语言进行适配。
 
@@ -103,10 +105,10 @@ description: 分析任务并组装 agent team 执行
 解析 markdown 表格，根据 `task_kind`、`domain`、`complexity` 以及（对于 fix）根因状态找到匹配的 agent 组合。
 
 路由表会给你：
-- 包含哪些 agent（除了始终存在的 leader）
+- 包含哪些 worker agent
 - 团队规模建议
 
-**Leader 始终包含在内** — 不需要从路由表中列出；它是隐含的。
+**你自己就是 Leader** — 路由表中只列出 worker agent，不要把 leader 作为 teammate 创建。
 
 ## 步骤 3：根据模式展示方案
 
@@ -123,7 +125,7 @@ description: 分析任务并组装 agent team 执行
 性质：{task_kind}  领域：{domain}  复杂度：{complexity}
 
 组装方案：
-  leader        协调 + 方向仲裁（常驻）
+  你（leader） 协调 + 方向仲裁（主 agent）
   {agent}       {角色描述}
   {agent}       {角色描述}
   ...
@@ -165,7 +167,8 @@ description: 分析任务并组装 agent team 执行
 
 ### CC 原生 SendMessage / 关闭协议
 
-- 普通文本消息必须传 `summary`，即 `SendMessage({ "to": "leader", "message": "...", "summary": "短预览" })`
+- **不要创建 leader teammate** — 你自己就是 leader，直接协调 worker 队友
+- 普通文本消息必须传 `summary`，即 `SendMessage({ "to": "builder", "message": "...", "summary": "短预览" })`
 - 不要只传 `to` + 字符串 `message`，否则会触发 `summary is required when message is a string`
 - 关闭 teammate 时必须使用结构化消息：`SendMessage({ "to": "{teammate}", "message": { "type": "shutdown_request", "reason": "..." } })`
 - teammate 必须用结构化 `shutdown_response` 批准或拒绝；批准后才视为该 teammate 已关闭
@@ -203,59 +206,33 @@ Exclusions: {此任务明确不覆盖的内容}
 - 如果有 researcher 参与，调查任务排在前面，实现任务依赖它
 - 如果有 reviewer 参与，审查任务依赖实现任务
 - 如果有 unity-pilot 参与，验证任务依赖实现任务
-- 始终包含一个分配给 leader 的 `closeout` 任务作为最终任务，设置 `Leader Ack Required: true`
+- 始终包含一个由你（leader / 主 agent）负责的 `closeout` 任务作为最终任务，设置 `Leader Ack Required: true`
 - 涉及核心系统、物理或跨模块边界的任务设置 `Risk Level: high`
 
-### 4.4 向 leader 发送启动消息
-```
-SendMessage → leader
-```
+### 4.4 向用户报告并切换为 Leader
 
-发送给 leader 的消息应包含：
-
-```
-# Seed Team 启动
-
-## 目标
-{用户的任务描述}
-
-## 分析
-- 任务类型: {task_kind}
-- 领域: {domain}
-- 复杂度: {complexity}
-
-## 团队组成
-{agent 列表及其角色}
-
-## 任务板
-{带有负责人和依赖关系的编号任务列表}
-
-## 指令
-1. 审查任务板并确认分配
-2. 通过 SendMessage 与队友协调
-3. 对于任何方向争议或歧义，由你做最终决定
-4. 当所有任务完成后，验证每个完成定义并关闭团队
-
-## 升级规则
-队友必须升级给你（不得自行决定）的情况：
-- 存在多个可行的实现方案
-- 依赖关系变化影响其他任务
-- 出现 Risk Level = high 的情况
-- 任何"要不要改这个"的不确定性
-```
-
-### 4.5 向用户报告
-启动后，告诉用户：
+bud 分析阶段到此结束。输出以下报告：
 
 ```
 Seed team 已启动: {slug}
 
-  团队: leader + {agent 列表}
+  你（leader）：协调 + 方向仲裁
+  {agent}：{角色描述}
+  ...
   任务: 已创建 {count} 个任务
-
-使用 /team status 查看进度。
-Leader 将协调团队并在完成时关闭。
 ```
+
+### 4.5 开始 Leader 协调
+
+报告输出后，**不要停止，不要等待用户输入**。立即以 Leader 身份执行以下操作：
+
+1. 审查任务板，确认分配
+2. 通过 SendMessage 向没有前置依赖的队友发送任务
+3. 对于有依赖的任务，等待前置任务完成后再分配
+4. 持续协调直到所有任务完成
+5. 验证每个完成定义，关闭团队，向用户汇总结果
+
+你现在就是 Leader — 遵循 session 开始时注入的 Leader Agent 指令行事。
 
 ## 任务分解指南
 

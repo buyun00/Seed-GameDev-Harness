@@ -2,7 +2,8 @@
 /**
  * Seed Session 启动 Hook
  *
- * 注入 notepad 的 Priority Context 和轻量级 team 状态提示。
+ * 注入 leader 身份、notepad 的 Priority Context 和轻量级 team 状态提示。
+ * 主 agent 在每个 session 开始时自动获得 leader 角色。
  * 不操作 project-memory.json（那是 project-memory-session.mjs 的职责）。
  */
 
@@ -13,6 +14,22 @@ import { readLanguageConfig, buildLanguageDirective, t } from './lib/i18n.mjs';
 
 const SEED_DIR = '.seed';
 const NOTEPAD_FILE = 'notepad.md';
+const LEADER_AGENT_FILE = 'agents/leader.md';
+
+/**
+ * 读取 leader.md 并剥离 YAML frontmatter，返回正文。
+ */
+function loadLeaderBody() {
+  const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || '';
+  if (!pluginRoot) return '';
+  const leaderPath = join(pluginRoot, LEADER_AGENT_FILE);
+  try {
+    if (!existsSync(leaderPath)) return '';
+    const raw = readFileSync(leaderPath, 'utf-8');
+    const match = raw.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?([\s\S]*)$/);
+    return match ? match[1].trim() : raw.trim();
+  } catch { return ''; }
+}
 
 /**
  * 从 notepad.md 中提取 "Priority Context" 段落。
@@ -54,6 +71,12 @@ async function main() {
     const langDirective = buildLanguageDirective(lang);
     if (langDirective) {
       parts.push(langDirective);
+    }
+
+    // 0.5 Leader 身份注入 — 主 agent 自动担任 leader 角色
+    const leaderBody = loadLeaderBody();
+    if (leaderBody) {
+      parts.push('<seed-leader-identity>\n' + leaderBody + '\n</seed-leader-identity>');
     }
 
     // 1. Notepad Priority Context

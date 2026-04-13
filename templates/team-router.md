@@ -3,7 +3,7 @@
 本文件定义了 `/seed`（`/seed:bud`）如何根据任务特征选择 agent。
 你可以通过编辑 `.seed/team-router.md` 来按项目定制此文件。
 
-> **注意**：Leader 始终包含在每个团队中，以下表格不再列出。
+> **注意**：主 agent 自动担任 Leader 角色，以下表格仅列出 worker agent。不要将 leader 作为 teammate 创建。
 
 ---
 
@@ -99,12 +99,12 @@
 
 ## 团队规模指南
 
-| 规模 | 组成 | 适用场景 |
-|------|------|---------|
-| 2 | leader + 1 | Focused、单领域任务 |
-| 3 | leader + 2 | Module 级任务，或需要验证的任务 |
-| 4 | leader + 3 | System 级任务，跨领域工作 |
-| 4+ | — | 先将任务拆分为更小的 bud 调用 |
+| Worker 数 | 组成 | 适用场景 |
+|-----------|------|---------|
+| 1 | 你（leader）+ 1 worker | Focused、单领域任务 |
+| 2 | 你（leader）+ 2 workers | Module 级任务，或需要验证的任务 |
+| 3 | 你（leader）+ 3 workers | System 级任务，跨领域工作 |
+| 3+ | — | 先将任务拆分为更小的 bud 调用 |
 
 ## 定制化
 
