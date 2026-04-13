@@ -149,6 +149,7 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 | `mcp-tools` | `skills/` | MCP 工具开发和调试指南 |
 | `detect-tech-stack` | `skills/` | 简化项目画像扫描规范 |
 | method skills | `skills/method/` | implement / debug / review / verify / config-change 方法论 |
+| researcher skills | `skills/researcher/` | researcher-spec-builder / current-task-contract-creator / delivery-contract-creator / domain-context-creator |
 
 在 `.seed/skills/` 下创建 `.md` 文件可以添加项目级 learned skills。
 
@@ -167,6 +168,10 @@ seed/
 │   ├── project-memory-posttool.mjs      # PostToolUse 更新 hot paths
 │   ├── project-memory-precompact.mjs    # PreCompact 注入记忆摘要
 │   ├── skill-injector.mjs               # UserPromptSubmit skill 注入
+│   ├── researcher-copy-template.mjs    # researcher 模板复制
+│   ├── researcher-list-options.mjs     # researcher MF/Tool 列举
+│   ├── researcher-fill-options.mjs     # researcher MF/Tool 填充
+│   ├── researcher-inject-section.mjs   # researcher 占位符注入
 │   └── lib/
 │       ├── atomic-write.mjs
 │       ├── memory-formatter.mjs
@@ -179,11 +184,20 @@ seed/
 ├── skills/
 │   ├── detect-tech-stack.md             # 简化扫描规范
 │   ├── method/
+│   ├── researcher/                     # researcher spec 构建流水线
+│   │   ├── researcher-spec-builder/
+│   │   ├── current-task-contract-creator/
+│   │   ├── delivery-contract-creator/
+│   │   └── domain-context-creator/
 │   └── seed-reference/
 ├── templates/
 │   ├── config.json
 │   ├── task.md
-│   └── team-router.md
+│   ├── team-router.md
+│   └── researcher/                     # researcher spec 模板与片段库
+│       ├── researcher.md
+│       ├── mf/
+│       └── tools/
 └── package.json
 ```
 
@@ -200,6 +214,7 @@ seed/
 │   ├── state/
 │   ├── logs/
 │   ├── plans/
+│   ├── output/                    # researcher spec 工作文件输出
 │   └── skills/
 └── .claude/
     ├── CLAUDE.md
