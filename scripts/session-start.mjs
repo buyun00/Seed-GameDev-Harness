@@ -76,13 +76,7 @@ async function main() {
     // 0.5 Leader 身份注入 — 主 agent 自动担任 leader 角色
     const leaderBody = loadLeaderBody();
     if (leaderBody) {
-      const greeting = t(lang, 'leaderGreeting');
-      parts.push(
-        '<seed-leader-identity>\n' + leaderBody +
-        '\n\n[Session 启动指令] 收到用户第一条消息时，先输出以下就绪提示，再处理请求：\n' +
-        greeting +
-        '\n</seed-leader-identity>'
-      );
+      parts.push('<seed-leader-identity>\n' + leaderBody + '\n</seed-leader-identity>');
     }
 
     // 1. Notepad Priority Context
