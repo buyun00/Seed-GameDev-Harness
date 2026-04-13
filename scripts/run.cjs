@@ -18,6 +18,11 @@ const { spawnSync } = require('child_process');
 const { existsSync, realpathSync } = require('fs');
 const { join, basename, dirname } = require('path');
 
+// 确保 CLAUDE_PLUGIN_ROOT 始终可用（Bash tool 调用时 shell 可能没有此环境变量）
+if (!process.env.CLAUDE_PLUGIN_ROOT) {
+  process.env.CLAUDE_PLUGIN_ROOT = join(__dirname, '..');
+}
+
 const target = process.argv[2];
 if (!target) {
   // 没有要执行的目标 — 干净退出，确保 Claude Code hooks 永远不被阻塞。
@@ -74,6 +79,14 @@ function resolveTarget(targetPath) {
     }
   } catch {
     // 回退扫描中的任何错误 — 优雅放弃
+  }
+
+  // 最终回退：如果目标路径包含脚本文件名，尝试在 run.cjs 同目录下查找
+  // 处理 $CLAUDE_PLUGIN_ROOT 在 shell 中未被替换导致路径错误的场景
+  const scriptName = basename(targetPath);
+  if (scriptName && scriptName !== targetPath) {
+    const sibling = join(__dirname, scriptName);
+    if (existsSync(sibling)) return sibling;
   }
 
   return null;

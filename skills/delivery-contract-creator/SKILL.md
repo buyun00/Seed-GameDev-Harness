@@ -174,7 +174,7 @@ memo 至少包含：问题 / 结论 / 主结构 / 关键证据 / 检查结果 / 
 1. 从调用输入中读取工作文件路径（格式为 `工作文件：[路径]`）
 2. 若路径存在：
    a. 使用 Write 工具将刚才输出的完整 Delivery Contract 内容写入临时文件 `.seed/output/.section-temp.md`
-   b. 调用脚本：`node "$CLAUDE_PLUGIN_ROOT"/scripts/run.cjs "$CLAUDE_PLUGIN_ROOT"/scripts/researcher-inject-section.mjs --file [工作文件路径] --placeholder {delivery_contract} --from .seed/output/.section-temp.md`
+   b. 调用插件内脚本 `scripts/researcher-inject-section.mjs`（通过 `scripts/run.cjs` 启动），参数：`--file [工作文件路径] --placeholder {delivery_contract} --from .seed/output/.section-temp.md`
 3. 脚本输出 `✓ 已注入` 后即为完成
 4. 若输入中无工作文件路径：跳过回写，只保留聊天输出
 

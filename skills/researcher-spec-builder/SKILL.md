@@ -12,9 +12,7 @@
 
   纯文件操作，不做任何内容判断。
 
-  ```
-  node "$CLAUDE_PLUGIN_ROOT"/scripts/run.cjs "$CLAUDE_PLUGIN_ROOT"/scripts/researcher-copy-template.mjs --output .seed/output/
-  ```
+  调用插件内脚本 `scripts/researcher-copy-template.mjs`（通过 `scripts/run.cjs` 启动），参数：`--output .seed/output/`
 
   - 读取 `templates/researcher/researcher.md`
   - 复制为 `.seed/output/researcher-[YYYYMMDD-HHMM].md`
@@ -31,32 +29,24 @@
 
   ### MF 选择
 
-  ```
-  node "$CLAUDE_PLUGIN_ROOT"/scripts/run.cjs "$CLAUDE_PLUGIN_ROOT"/scripts/researcher-list-options.mjs --type mf
-  ```
+  调用插件内脚本 `scripts/researcher-list-options.mjs`，参数：`--type mf`
   输出 `templates/researcher/mf/` 目录下所有 MF 文件的 ID 和一行描述，供 LLM 判断。
 
   LLM 根据 builder 描述选出 MF ID 列表（可多选，第一个为主 MF）。
 
-  ```
-  node "$CLAUDE_PLUGIN_ROOT"/scripts/run.cjs "$CLAUDE_PLUGIN_ROOT"/scripts/researcher-fill-options.mjs --file [工作文件路径] --type mf --ids [id1,id2,...]
-  ```
+  调用插件内脚本 `scripts/researcher-fill-options.mjs`，参数：`--file [工作文件路径] --type mf --ids [id1,id2,...]`
   按顺序读取对应 MF 文件内容，拼接后写入 `{selected_method_fragments}`。
 
 ---
 
   ### Tool Skills 选择
 
-  ```
-  node "$CLAUDE_PLUGIN_ROOT"/scripts/run.cjs "$CLAUDE_PLUGIN_ROOT"/scripts/researcher-list-options.mjs --type skill
-  ```
+  调用插件内脚本 `scripts/researcher-list-options.mjs`，参数：`--type skill`
   输出 `templates/researcher/tools/` 目录下所有 Tool Skill 文件的 ID 和一行描述，供 LLM 判断。
 
   LLM 根据 builder 描述 + 已选 MF 判断需要哪些 Tool Skills（不是全选）。
 
-  ```
-  node "$CLAUDE_PLUGIN_ROOT"/scripts/run.cjs "$CLAUDE_PLUGIN_ROOT"/scripts/researcher-fill-options.mjs --file [工作文件路径] --type skill --ids [id1,id2,...]
-  ```
+  调用插件内脚本 `scripts/researcher-fill-options.mjs`，参数：`--file [工作文件路径] --type skill --ids [id1,id2,...]`
   读取对应 Tool Skill 文件内容，写入 `{selected_tool_skills}`。
 
 ---
@@ -69,7 +59,18 @@
 
   若条件不满足，终止并报告：`× 工作文件状态异常，请先完成阶段一和阶段二`
 
-  > 注：所有脚本通过 `run.cjs` 启动，使用 `$CLAUDE_PLUGIN_ROOT` 定位插件资源，输出到项目目录 `.seed/output/`。
+  > 注：所有脚本通过 `run.cjs` 启动，`run.cjs` 会自动推导插件根目录，输出到项目目录 `.seed/output/`。
+
+  ### 脚本调用约定
+
+  本 skill 中所有脚本均位于本插件的 `scripts/` 目录下。调用时使用插件安装的绝对路径，示例：
+
+  ```
+  node "<插件根目录>/scripts/run.cjs" "<插件根目录>/scripts/<脚本名>.mjs" [args...]
+  ```
+
+  其中 `<插件根目录>` 是本插件的实际安装路径（即加载本 skill 的插件位置）。
+  **不要使用 `$CLAUDE_PLUGIN_ROOT` shell 变量，它在 Bash 工具中可能未被设置。**
 
   # Execution Flow
 
