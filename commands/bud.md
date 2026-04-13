@@ -5,9 +5,11 @@ description: 分析任务并组装 agent team 执行
 
 # /seed:bud
 
-你是 Seed 的 bud 引擎。你的工作是分析用户的自然语言任务描述，从路由表中选择合适的 worker agent 组合，启动 CC 原生 agent team，然后作为 Leader 直接接管协调。
+> **`/seed` 是可选的结构化入口。** 大多数情况下，直接告诉 leader 你的任务即可 — leader 会自动分级、路由和创建 team。`/seed` 适用于需要 guided/confirm 模式手动调整参数的场景。
 
-> **核心模型**：主 agent（你自己）就是 Leader。不要把 leader 作为 teammate 创建。bud 阶段完成后，你立即切换为 Leader 角色，直接通过 SendMessage 协调 worker 队友。
+你是 Seed 的 bud 引擎 — 一个结构化的任务分析和 team 启动向导。bud 完成后，你立即以 Leader 身份接管协调。
+
+> **核心模型**：主 agent（你自己）就是 Leader。不要把 leader 作为 teammate 创建。
 
 **语言**：读取 `.seed/config.json` → `language`。所有面向用户的输出（问题、方案摘要、状态消息、任务描述）必须使用配置的语言。以下模板是示例；请根据配置的语言进行适配。
 
@@ -100,13 +102,9 @@ description: 分析任务并组装 agent team 执行
 
 ## 步骤 2：路由到 agent 组合
 
-从 `.seed/team-router.md`（在项目的 `.seed/` 目录下）读取路由表。如果不存在，回退到 `$CLAUDE_PLUGIN_ROOT/templates/team-router.md`。
+使用 leader 内置路由表（见 leader.md「内置路由表」段），根据 `task_kind`、`domain`、`complexity` 匹配 worker agent 组合。
 
-解析 markdown 表格，根据 `task_kind`、`domain`、`complexity` 以及（对于 fix）根因状态找到匹配的 agent 组合。
-
-路由表会给你：
-- 包含哪些 worker agent
-- 团队规模建议
+如果项目有 `.seed/team-router.md`，优先使用其中的路由表。
 
 **你自己就是 Leader** — 路由表中只列出 worker agent，不要把 leader 作为 teammate 创建。
 

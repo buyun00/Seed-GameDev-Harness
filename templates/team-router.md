@@ -1,7 +1,6 @@
-# Seed 团队路由表
+# Seed 团队路由表（项目级覆盖）
 
-本文件定义了 `/seed`（`/seed:bud`）如何根据任务特征选择 agent。
-你可以通过编辑 `.seed/team-router.md` 来按项目定制此文件。
+Leader 已内置默认路由表。本文件是**可选的项目级覆盖** — 如果存在 `.seed/team-router.md`，leader 优先使用其中的路由表替代内置默认值。
 
 > **注意**：主 agent 自动担任 Leader 角色，以下表格仅列出 worker agent。不要将 leader 作为 teammate 创建。
 
@@ -108,11 +107,12 @@
 
 ## 定制化
 
-要为你的项目定制路由：
+要覆盖 leader 的内置路由：
 
 1. 将此文件复制到 `.seed/team-router.md`（setup-init 会自动完成）
 2. 编辑表格以匹配你的项目需求
-3. 常见定制：
+3. Leader 检测到 `.seed/team-router.md` 存在时，会优先使用它
+4. 常见定制：
    - 某些领域始终包含 reviewer
    - 需要 Editor 验证的领域添加 unity-pilot
    - 移除不需要的 agent（如项目没有 Lua）

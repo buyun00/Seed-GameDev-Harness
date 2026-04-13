@@ -13,8 +13,10 @@
 - Mailbox（SendMessage）是低延迟沟通面
 
 ## Agent Team 使用
-需要启动多 agent 协作时，使用 /seed 命令（项目快捷命令，由 /seed:setup 自动创建）。
-系统会根据任务特征自动选择 worker agent 组合。主 agent 即 Leader，不会创建单独的 leader teammate。
+直接对主 agent 说任务即可 — 主 agent 自动担任 Leader，会根据任务规模分级并决定是否创建 team。
+- 轻量任务 → Leader 直接处理
+- 标准/重型任务 → Leader 自动创建 team 并协调 worker agent
+- `/seed` 命令是可选的结构化入口，适用于需要 guided/confirm 模式手动调整参数的场景
 
 普通文本 `SendMessage` 必须带 `summary` 字段。关闭 teammate 时必须使用结构化 `shutdown_request` / `shutdown_response`，所有活跃 teammate 退出后再调用 `TeamDelete`；`TeamDelete` 不接收 `team_name`、`message` 或最终摘要，最终摘要在删除成功后输出给用户。
 

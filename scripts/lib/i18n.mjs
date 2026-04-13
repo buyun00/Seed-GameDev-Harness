@@ -13,18 +13,22 @@ const SEED_DIR = '.seed';
 const strings = {
   en: {
     teamStatusTip: '> Tip: If you have an unfinished agent team, use `/team status` to check.',
+    leaderGreeting: '🌱 Seed Leader ready. Just tell me your task.',
     hotPathAccess: (count) => `accessed ${count} times`,
   },
   zh: {
     teamStatusTip: '> Tip: 如果有未完成的 agent team，可用 `/team status` 查看。',
+    leaderGreeting: '🌱 Seed Leader 就绪。直接说出你的任务即可。',
     hotPathAccess: (count) => `访问 ${count} 次`,
   },
   ja: {
     teamStatusTip: '> Tip: 未完了の agent team がある場合は `/team status` で確認できます。',
+    leaderGreeting: '🌱 Seed Leader 準備完了。タスクを伝えてください。',
     hotPathAccess: (count) => `${count} 回アクセス`,
   },
   ko: {
     teamStatusTip: '> Tip: 완료되지 않은 agent team이 있으면 `/team status`로 확인하세요.',
+    leaderGreeting: '🌱 Seed Leader 준비 완료. 작업을 말씀해 주세요.',
     hotPathAccess: (count) => `${count}회 접근`,
   },
 };
