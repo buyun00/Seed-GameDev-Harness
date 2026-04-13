@@ -149,7 +149,7 @@ Seed 仅支持通过 Claude Code Plugin 机制安装：
 | `mcp-tools` | `skills/` | MCP 工具开发和调试指南 |
 | `detect-tech-stack` | `skills/` | 简化项目画像扫描规范 |
 | method skills | `skills/method/` | implement / debug / review / verify / config-change 方法论 |
-| researcher skills | `skills/researcher/` | researcher-spec-builder / current-task-contract-creator / delivery-contract-creator / domain-context-creator |
+| researcher skills | `skills/` | researcher-spec-builder / current-task-contract-creator / delivery-contract-creator / domain-context-creator |
 
 在 `.seed/skills/` 下创建 `.md` 文件可以添加项目级 learned skills。
 
@@ -184,11 +184,10 @@ seed/
 ├── skills/
 │   ├── detect-tech-stack.md             # 简化扫描规范
 │   ├── method/
-│   ├── researcher/                     # researcher spec 构建流水线
-│   │   ├── researcher-spec-builder/
-│   │   ├── current-task-contract-creator/
-│   │   ├── delivery-contract-creator/
-│   │   └── domain-context-creator/
+│   ├── researcher-spec-builder/        # researcher spec 构建主流水线
+│   ├── current-task-contract-creator/  # CTC 生成器
+│   ├── delivery-contract-creator/      # DC 生成器
+│   ├── domain-context-creator/         # Domain Context 收集器
 │   └── seed-reference/
 ├── templates/
 │   ├── config.json
