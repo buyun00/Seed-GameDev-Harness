@@ -1,7 +1,7 @@
 ---
   name: researcher-spec-builder
   tools: Read, Edit, Bash
-  description: 接收脚本初始化后的工作文件路径，依次调用 current-task-contract-creator / delivery-contract-creator / domain-context-creator，将输出写入工作文件对应占位符，完成 researcher spec 的 LLM 填充阶段。
+  description: 接收调用方（builder 或 leader）的任务描述，执行 researcher spec 生成全流水线：阶段一模板复制 → 阶段二 MF/Tool 选择填充 → 阶段三 LLM 填充，输出可直接用于创建 researcher 队友的 spec 文件绝对路径。
 ---
 
   # 架构说明
@@ -53,11 +53,7 @@
 
   ## 阶段三：LLM 填充（本 skill 负责）
 
-  本 skill 接收阶段一、二已处理的工作文件，完成需要语言理解的三个占位符填充。
-
-  **启动条件：** 工作文件必须已存在，`{selected_method_fragments}` 和 `{selected_tool_skills}` 必须已填充，`{task_contract}` / `{delivery_contract}` / `{domain_context}` 必须仍为占位符状态。
-
-  若条件不满足，终止并报告：`× 工作文件状态异常，请先完成阶段一和阶段二`
+  完成阶段一、二后，本 skill 再就工作文件内的三个 LLM 占位符做填充。
 
   > 注：所有脚本通过 `run.cjs` 启动，`run.cjs` 会自动推导插件根目录，输出到项目目录 `.seed/output/`。
 
@@ -74,37 +70,99 @@
 
   # Execution Flow
 
-  **重要：以下 5 个步骤必须按顺序全部执行完毕。每一步完成后，立即执行下一步，不得在中间停止或等待用户指令。**
+  **重要：以下 9 个步骤必须按顺序全部执行完毕。每一步完成后立即执行下一步，不得中途停止或等待额外指令。**
 
-  ## Step 1：验证工作文件状态
+  **输入（调用方必须提供）：**
+  ```
+  任务描述：[自然语言，描述需要调查的问题]
+  ```
 
-  读取工作文件，确认：
-  - `{selected_method_fragments}` 已填充
-  - `{selected_tool_skills}` 已填充
-  - `{task_contract}` 仍为占位符
-  - `{delivery_contract}` 仍为占位符
-  - `{domain_context}` 仍为占位符
+  ## Step 1：阶段一 — 复制模板
+
+  调用脚本 `researcher-copy-template.mjs`，参数：`--output .seed/output/`
+
+  ```
+  node "<插件根目录>/scripts/run.cjs" "<插件根目录>/scripts/researcher-copy-template.mjs" --output .seed/output/
+  ```
+
+  脚本将输出工作文件路径到 stdout。**记录此路径**，后续所有步骤均使用该路径。
 
   输出进度：
   ```
-  ✓ Step 1：工作文件状态正常 → [工作文件路径]
+  ✓ Step 1：工作文件已创建 → [工作文件路径]
   ```
 
-  ## Step 2：调用 current-task-contract-creator → 写入文件
+  ## Step 2：阶段二 — 列出 MF 选项
+
+  调用脚本 `researcher-list-options.mjs`，参数：`--type mf`
+
+  ```
+  node "<插件根目录>/scripts/run.cjs" "<插件根目录>/scripts/researcher-list-options.mjs" --type mf
+  ```
+
+  脚本输出格式为 `ID | 描述`，每行一项。根据任务描述，判断哪些 MF 与本次调查最相关。
+
+  输出进度：
+  ```
+  ✓ Step 2：MF 列表已获取
+  ```
+
+  ## Step 3：阶段二 — 填充 MF
+
+  根据任务描述从 Step 2 选择 MF ID（可多选，第一个为主 MF；只选真正相关的，不过度选择）。
+
+  ```
+  node "<插件根目录>/scripts/run.cjs" "<插件根目录>/scripts/researcher-fill-options.mjs" --file [工作文件路径] --type mf --ids [id1,id2,...]
+  ```
+
+  输出进度：
+  ```
+  ✓ Step 3：MF 已填充（选中：[id1, id2, ...]）
+  ```
+
+  ## Step 4：阶段二 — 列出 Tool Skill 选项
+
+  调用脚本 `researcher-list-options.mjs`，参数：`--type skill`
+
+  ```
+  node "<插件根目录>/scripts/run.cjs" "<插件根目录>/scripts/researcher-list-options.mjs" --type skill
+  ```
+
+  根据任务描述 + 已选 MF，判断需要哪些 Tool Skills。
+
+  输出进度：
+  ```
+  ✓ Step 4：Tool Skill 列表已获取
+  ```
+
+  ## Step 5：阶段二 — 填充 Tool Skills
+
+  从 Step 4 选择 Tool Skill ID（**不是全选**，只选当前任务真正需要的）。
+
+  ```
+  node "<插件根目录>/scripts/run.cjs" "<插件根目录>/scripts/researcher-fill-options.mjs" --file [工作文件路径] --type skill --ids [id1,id2,...]
+  ```
+
+  输出进度：
+  ```
+  ✓ Step 5：Tool Skills 已填充（选中：[id1, id2, ...]）
+  ```
+
+  ## Step 6：调用 current-task-contract-creator → 写入文件
 
   以 `Skill(current-task-contract-creator)` 方式启动 current-task-contract-creator，传入以下输入：
   ```
   工作文件：[工作文件路径]
-  任务描述：[builder 原始描述]
+  任务描述：[调用方原始描述]
   ```
   current-task-contract-creator 完成交互后，内部会自行调用 `researcher-inject-section.mjs` 将内容注入工作文件，输出 `✓ 已注入` 后返回。
   输出进度：
   ```
-  ✓ Step 2：CTC 已写入
+  ✓ Step 6：CTC 已写入
   ```
-  立即继续执行 Step 3。
+  立即继续执行 Step 7。
 
-  ## Step 3：调用 delivery-contract-creator → 写入文件
+  ## Step 7：调用 delivery-contract-creator → 写入文件
 
   以 `Skill(delivery-contract-creator)` 方式启动 delivery-contract-creator，传入以下输入：
   ```
@@ -113,24 +171,24 @@
   delivery-contract-creator 读取工作文件内容（已含 MF 和 CTC），生成 Delivery Contract 后，内部调用 `researcher-inject-section.mjs` 注入工作文件，输出 `✓ 已注入` 后返回。
   输出进度：
   ```
-  ✓ Step 3：DC 已写入
+  ✓ Step 7：DC 已写入
   ```
-  立即继续执行 Step 4。
+  立即继续执行 Step 8。
 
-  ## Step 4：调用 domain-context-creator → 写入文件
+  ## Step 8：调用 domain-context-creator → 写入文件
 
   以 `Skill(domain-context-creator)` 方式启动 domain-context-creator，传入以下输入：
   ```
   工作文件：[工作文件路径]
   ```
-  domain-context-creator 读取工作文件内容，完成与 builder 的问答后，内部调用 `researcher-inject-section.mjs` 注入工作文件，输出 `✓ 已注入` 后返回。
+  domain-context-creator 读取工作文件内容，完成与调用方的问答后，内部调用 `researcher-inject-section.mjs` 注入工作文件，输出 `✓ 已注入` 后返回。
   输出进度：
   ```
-  ✓ Step 4：Domain Context 已写入
+  ✓ Step 8：Domain Context 已写入
   ```
-  立即继续执行 Step 5。
+  立即继续执行 Step 9。
 
-  ## Step 5：完整性验证
+  ## Step 9：完整性验证与输出结果
 
   读取工作文件，扫描是否存在残留占位符（格式为 `{...}`）。
 
@@ -139,12 +197,14 @@
   × 以下占位符未填充：[占位符名称列表]
   ```
 
-  若无残留：
+  若无残留，输出最终结果：
   ```
-  ✓ Step 5：所有占位符已填充
-  文件路径：[工作文件路径]
-  researcher spec 已完成，可直接交给 researcher 执行。
+  ✓ Step 9：所有占位符已填充
+  researcher spec 已完成。
+  spec 文件路径：[工作文件绝对路径]
   ```
+
+  调用方（builder 或 leader）使用此绝对路径，通过 CC 原生 API 创建 researcher 队友。
 
   # Language Constraints
 

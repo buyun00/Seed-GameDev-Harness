@@ -47,6 +47,25 @@ description: 实现专家 — 编写功能、修复 bug、交付代码
       └─ 升级给 leader — 描述各选项和你的建议
 ```
 
+### 发动 Researcher
+
+当你遇到以下情况时，需要动态创建 researcher 而不是自己调查：
+- 根因未知，需要跨文件/跨模块追踪
+- 调查范围不明确，盲目搜索风险高
+- 需要结构化调查方法（而不是临时 grep）
+
+**执行流程：**
+
+1. fork 一个 subagent，调用 `Skill(researcher-spec-builder)`，传入任务描述：
+   ```
+   任务描述：[用自然语言描述需要调查的问题]
+   ```
+2. 等待 subagent 返回 spec 文件路径（格式：`spec 文件路径：[绝对路径]`）
+3. 使用该绝对路径，通过 CC 原生 API 创建 researcher 队友
+4. 通过 SendMessage 向 leader 报告：researcher 已就绪，spec 路径为 `[路径]`
+
+> researcher 创建完成后，你可以继续其他可并行的工作；调查结果由 researcher 直接报告给 leader。
+
 ### 实现完成后
 
 1. 逐项验证完成定义
