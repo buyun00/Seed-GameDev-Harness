@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: 调查代码
-tools: Read, Glob, Grep
+tools: Read, Glob, Grep, Write
 model: sonnet
 color: cyan
 ---
@@ -54,3 +54,18 @@ color: cyan
 - 单行写单个行号，如 `81`
 - 若某引用只有文件名无具体行号，行号列写 `*`
 - 去重：相同的 文件+函数+行号 只保留一条
+
+# Output: 调查报告文件
+
+调查完成后，将完整报告（包含所有 Delivery Contract 要求的 Section 和 Evidence Index）写入文件：
+
+```
+.seed/output/research-report-[简短主题]-[YYYYMMDD-HHmm].md
+```
+
+例如：`.seed/output/research-report-fight-dataflow-20260413-2310.md`
+
+写入完成后，通过 SendMessage 向 leader 报告：
+```
+调查完成。报告已写入：[报告文件绝对路径]
+```

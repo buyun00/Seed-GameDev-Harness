@@ -204,19 +204,34 @@
   spec 文件路径：[工作文件绝对路径]
   ```
 
-  **⚠ spec 构建完成不是终点 — 调用方必须立即执行以下步骤创建 researcher 队友：**
+  ## Step 10：部署 spec 为 agent 定义
+
+  **⚠ 这一步是关键 — 没有这一步，researcher teammate 不会加载你生成的 spec。**
+
+  将 spec 文件的完整内容覆盖写入 Seed 插件的 agent 定义文件：
+  ```
+  目标路径：$CLAUDE_PLUGIN_ROOT/agents/researcher.md
+  ```
+  （`$CLAUDE_PLUGIN_ROOT` 即本 skill 文件所在目录的上两级。例如本 skill 在 `skills/researcher-spec-builder/SKILL.md`，则目标为同级的 `agents/researcher.md`。）
+
+  用 Write 或 Edit 工具将 spec 内容完整写入目标路径，保留 YAML frontmatter。
+
+  输出进度：
+  ```
+  ✓ Step 10：spec 已部署到 agents/researcher.md
+  ```
+
+  ## Step 11：创建 team 和 researcher 队友
+
+  **spec 部署完成后，调用方必须立即执行以下步骤：**
 
   1. 如果还没有 team，先创建：`TeamCreate("{slug}")`
-  2. 用上面的 spec 文件路径创建 researcher teammate：
-     ```
-     CreateTeammate({ name: "researcher", agentDefinition: "{spec 文件绝对路径}" })
-     ```
-     > 如果 `CreateTeammate` 不可用，直接 `SendMessage` 向 researcher 发消息，Claude Code 会自动创建 teammate。
+  2. Claude Code 创建 researcher teammate 时会自动加载已覆盖的 `agents/researcher.md`（即你的 spec）
   3. 用 `TaskCreate` 为 researcher 创建 `investigate` 任务
-  4. 通过 `SendMessage` 向 researcher 发送调查任务
+  4. 通过 `SendMessage` 向 researcher 发送调查启动消息
   5. 向用户报告 team 已启动、researcher 已开始调查
 
-  **不要在拿到 spec 路径后停止。上述 5 步必须全部完成。**
+  **不要在部署 spec 后停止。上述 5 步必须全部完成。**
 
   # Language Constraints
 
