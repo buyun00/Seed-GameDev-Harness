@@ -134,3 +134,6 @@ Desktop.ini
 # Project specific
 .cursor/terminals/
 agent-transcripts/
+
+# Local reference files
+reference-local/
