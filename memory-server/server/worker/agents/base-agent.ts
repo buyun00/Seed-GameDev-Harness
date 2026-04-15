@@ -140,6 +140,9 @@ function cliQuery(opts: AgentQueryOptions): Promise<string> {
       cwd: opts.cwd,
     })
 
+    // Close stdin immediately so the claude CLI doesn't wait for piped input
+    proc.stdin.end()
+
     if (opts.signal) {
       opts.signal.addEventListener('abort', () => {
         proc.kill()
