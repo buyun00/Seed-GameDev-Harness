@@ -11256,6 +11256,7 @@ var WorkerService = class {
 // server/worker/spawner.ts
 var import_node_child_process5 = require("node:child_process");
 var import_node_path11 = require("node:path");
+var import_node_fs14 = require("node:fs");
 async function ensureWorkerStarted(rawProjectPath, opts) {
   const canonical = canonicalizeProjectPath(rawProjectPath);
   const state = validatePidFile(canonical);
@@ -11271,35 +11272,22 @@ async function ensureWorkerStarted(rawProjectPath, opts) {
   const thisDir = __dirname;
   const entryScript = (0, import_node_path11.resolve)(thisDir, "..", "index.ts");
   const entryScriptJs = (0, import_node_path11.resolve)(thisDir, "..", "index.js");
-  let cmd;
-  let args;
-  try {
-    const { existsSync: existsSync15 } = await import("node:fs");
-    if (existsSync15(entryScriptJs)) {
-      cmd = process.execPath;
-      args = [entryScriptJs, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
+  let workerCmd;
+  let workerArgs;
+  if ((0, import_node_fs14.existsSync)(entryScriptJs)) {
+    workerCmd = process.execPath;
+    workerArgs = [entryScriptJs, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
+  } else {
+    const tsxBin = (0, import_node_path11.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
+    if ((0, import_node_fs14.existsSync)(tsxBin) || (0, import_node_fs14.existsSync)(tsxBin + ".cmd")) {
+      workerCmd = process.platform === "win32" ? tsxBin + ".cmd" : tsxBin;
+      workerArgs = [entryScript, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
     } else {
-      cmd = process.execPath;
-      const tsxBin = (0, import_node_path11.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
-      if (existsSync15(tsxBin) || existsSync15(tsxBin + ".cmd")) {
-        cmd = process.platform === "win32" ? tsxBin + ".cmd" : tsxBin;
-        args = [entryScript, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
-      } else {
-        cmd = "npx";
-        args = ["tsx", entryScript, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
-      }
+      workerCmd = "npx";
+      workerArgs = ["tsx", entryScript, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
     }
-  } catch {
-    cmd = process.execPath;
-    args = [entryScriptJs, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
   }
-  const child = (0, import_node_child_process5.spawn)(cmd, args, {
-    detached: true,
-    stdio: "ignore",
-    windowsHide: true,
-    shell: process.platform === "win32"
-  });
-  child.unref();
+  spawnInConsole(workerCmd, workerArgs, rawProjectPath);
   const start = Date.now();
   const pollInterval = 500;
   while (Date.now() - start < timeoutMs) {
@@ -11313,6 +11301,64 @@ async function ensureWorkerStarted(rawProjectPath, opts) {
     }
   }
   throw new Error(`Worker failed to start within ${timeoutMs}ms for ${canonical}`);
+}
+function spawnInConsole(cmd, args, projectPath) {
+  const projectName = projectPath.split(/[/\\]/).filter(Boolean).pop() || "project";
+  const title = `Seed Memory Editor - ${projectName}`;
+  if (process.platform === "win32") {
+    const fullCmd = [cmd, ...args].map((a) => a.includes(" ") ? `"${a}"` : a).join(" ");
+    const child = (0, import_node_child_process5.spawn)("cmd", ["/c", "start", `"${title}"`, "cmd", "/k", fullCmd], {
+      detached: true,
+      stdio: "ignore",
+      shell: true,
+      windowsHide: false
+    });
+    child.unref();
+  } else if (process.platform === "darwin") {
+    const fullCmd = [cmd, ...args].map((a) => `"${a}"`).join(" ");
+    const script = `tell application "Terminal" to do script "${fullCmd}"`;
+    const child = (0, import_node_child_process5.spawn)("osascript", ["-e", script], {
+      detached: true,
+      stdio: "ignore"
+    });
+    child.unref();
+  } else {
+    const terminals = ["gnome-terminal", "xterm", "konsole", "xfce4-terminal"];
+    let launched = false;
+    for (const term of terminals) {
+      try {
+        if (term === "gnome-terminal") {
+          const child = (0, import_node_child_process5.spawn)(term, ["--title", title, "--", cmd, ...args], {
+            detached: true,
+            stdio: "ignore"
+          });
+          child.unref();
+        } else if (term === "xterm") {
+          const child = (0, import_node_child_process5.spawn)(term, ["-T", title, "-e", cmd, ...args], {
+            detached: true,
+            stdio: "ignore"
+          });
+          child.unref();
+        } else {
+          const child = (0, import_node_child_process5.spawn)(term, ["-e", cmd, ...args], {
+            detached: true,
+            stdio: "ignore"
+          });
+          child.unref();
+        }
+        launched = true;
+        break;
+      } catch {
+      }
+    }
+    if (!launched) {
+      const child = (0, import_node_child_process5.spawn)(cmd, args, {
+        detached: true,
+        stdio: "ignore"
+      });
+      child.unref();
+    }
+  }
 }
 async function checkHealth(port) {
   try {
