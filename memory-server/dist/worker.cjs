@@ -2745,7 +2745,7 @@ var require_dumper = __commonJS({
       return hasFoldableLine ? STYLE_FOLDED : STYLE_LITERAL;
     }
     function writeScalar(state, string, level, iskey) {
-      state.dump = (function() {
+      state.dump = function() {
         if (string.length === 0) {
           return "''";
         }
@@ -2772,7 +2772,7 @@ var require_dumper = __commonJS({
           default:
             throw new YAMLException("impossible error: invalid scalar style");
         }
-      })();
+      }();
     }
     function blockHeader(string, indentPerLevel) {
       var indentIndicator = needIndentIndicator(string) ? String(indentPerLevel) : "";
@@ -2786,12 +2786,12 @@ var require_dumper = __commonJS({
     }
     function foldString(string, width) {
       var lineRe = /(\n+)([^\n]*)/g;
-      var result = (function() {
+      var result = function() {
         var nextLF = string.indexOf("\n");
         nextLF = nextLF !== -1 ? nextLF : string.length;
         lineRe.lastIndex = nextLF;
         return foldLine(string.slice(0, nextLF), width);
-      })();
+      }();
       var prevMoreIndented = string[0] === "\n" || string[0] === " ";
       var moreIndented;
       var match2;
@@ -3554,7 +3554,7 @@ var newHeadersFromIncoming = (incoming) => {
   }
   return new Headers(headerRecord);
 };
-var wrapBodyStream = /* @__PURE__ */ Symbol("wrapBodyStream");
+var wrapBodyStream = Symbol("wrapBodyStream");
 var newRequestFromIncoming = (method, url, headers, incoming, abortController) => {
   const init = {
     method,
@@ -3602,13 +3602,13 @@ var newRequestFromIncoming = (method, url, headers, incoming, abortController) =
   }
   return new Request2(url, init);
 };
-var getRequestCache = /* @__PURE__ */ Symbol("getRequestCache");
-var requestCache = /* @__PURE__ */ Symbol("requestCache");
-var incomingKey = /* @__PURE__ */ Symbol("incomingKey");
-var urlKey = /* @__PURE__ */ Symbol("urlKey");
-var headersKey = /* @__PURE__ */ Symbol("headersKey");
-var abortControllerKey = /* @__PURE__ */ Symbol("abortControllerKey");
-var getAbortController = /* @__PURE__ */ Symbol("getAbortController");
+var getRequestCache = Symbol("getRequestCache");
+var requestCache = Symbol("requestCache");
+var incomingKey = Symbol("incomingKey");
+var urlKey = Symbol("urlKey");
+var headersKey = Symbol("headersKey");
+var abortControllerKey = Symbol("abortControllerKey");
+var getAbortController = Symbol("getAbortController");
 var requestPrototype = {
   get method() {
     return this[incomingKey].method || "GET";
@@ -3661,7 +3661,7 @@ var requestPrototype = {
     }
   });
 });
-Object.defineProperty(requestPrototype, /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom"), {
+Object.defineProperty(requestPrototype, Symbol.for("nodejs.util.inspect.custom"), {
   value: function(depth, options2, inspectFn) {
     const props = {
       method: this.method,
@@ -3710,9 +3710,9 @@ var newRequest = (incoming, defaultHostname) => {
   req[urlKey] = url.href;
   return req;
 };
-var responseCache = /* @__PURE__ */ Symbol("responseCache");
-var getResponseCache = /* @__PURE__ */ Symbol("getResponseCache");
-var cacheKey = /* @__PURE__ */ Symbol("cache");
+var responseCache = Symbol("responseCache");
+var getResponseCache = Symbol("getResponseCache");
+var cacheKey = Symbol("cache");
 var GlobalResponse = global.Response;
 var Response2 = class _Response {
   #body;
@@ -3776,7 +3776,7 @@ var Response2 = class _Response {
     }
   });
 });
-Object.defineProperty(Response2.prototype, /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom"), {
+Object.defineProperty(Response2.prototype, Symbol.for("nodejs.util.inspect.custom"), {
   value: function(depth, options2, inspectFn) {
     const props = {
       status: this.status,
@@ -3857,8 +3857,8 @@ var X_ALREADY_SENT = "x-hono-already-sent";
 if (typeof global.crypto === "undefined") {
   global.crypto = import_crypto.default;
 }
-var outgoingEnded = /* @__PURE__ */ Symbol("outgoingEnded");
-var incomingDraining = /* @__PURE__ */ Symbol("incomingDraining");
+var outgoingEnded = Symbol("outgoingEnded");
+var incomingDraining = Symbol("incomingDraining");
 var DRAIN_TIMEOUT_MS = 500;
 var MAX_DRAIN_BYTES = 64 * 1024 * 1024;
 var drainIncoming = (incoming) => {
@@ -5578,7 +5578,7 @@ var Hono = class _Hono {
 var emptyParam = [];
 function match(method, path) {
   const matchers = this.buildAllMatchers();
-  const match2 = ((method2, path2) => {
+  const match2 = (method2, path2) => {
     const matcher = matchers[method2] || matchers[METHOD_NAME_ALL];
     const staticMatch = matcher[2][path2];
     if (staticMatch) {
@@ -5590,7 +5590,7 @@ function match(method, path) {
     }
     const index = match3.indexOf("", 1);
     return [matcher[1][index], match3];
-  });
+  };
   this.match = match2;
   return match2(method, path);
 }
@@ -7606,7 +7606,6 @@ var ConstitutionAnalyzer = class {
   constructor(ctx) {
     this.ctx = ctx;
   }
-  ctx;
   /**
    * Run analysis. If taskQueue is available, submits as a background task
    * and waits (sync wrapper). Otherwise falls back to direct invocation.
@@ -8073,7 +8072,6 @@ var MemoryPathResolver = class {
   constructor(ctx) {
     this.ctx = ctx;
   }
-  ctx;
   resolve() {
     const settingsOverride = this.checkSettingsOverride();
     if (settingsOverride) {
@@ -8169,8 +8167,6 @@ var MemoryAnalyzer = class {
     this.ctx = ctx;
     this.pathResolver = pathResolver;
   }
-  ctx;
-  pathResolver;
   async scan() {
     const resolved = this.pathResolver.resolve();
     if (!resolved.path || !(0, import_node_fs5.existsSync)(resolved.path)) {
@@ -8355,7 +8351,6 @@ var KnowledgeCategorizer = class {
   constructor(ctx) {
     this.ctx = ctx;
   }
-  ctx;
   async getAll(category) {
     const assets = this.ctx.scanner.getByKind("knowledge");
     const objects = assets.map((asset) => {
@@ -8604,7 +8599,6 @@ var Scanner = class {
   constructor(ctx) {
     this.ctx = ctx;
   }
-  ctx;
   assets = /* @__PURE__ */ new Map();
   async scan() {
     this.assets.clear();
@@ -10383,9 +10377,6 @@ var Watcher = class {
     this.scanner = scanner;
     this.sseEmitter = sseEmitter;
   }
-  ctx;
-  scanner;
-  sseEmitter;
   fsWatcher = null;
   start() {
     const patterns = [
@@ -10433,7 +10424,6 @@ var Cache = class {
   constructor(ctx) {
     this.ctx = ctx;
   }
-  ctx;
   path(key) {
     return (0, import_node_path6.join)(this.ctx.cacheDir, `${key}.json`);
   }
@@ -10616,6 +10606,10 @@ var ProjectContext = class {
   }
 };
 
+// server/worker/worker-service.ts
+var import_node_path10 = require("node:path");
+var import_node_fs13 = require("node:fs");
+
 // server/worker/process-manager.ts
 var import_node_path8 = require("node:path");
 var import_node_os2 = require("node:os");
@@ -10749,7 +10743,6 @@ var TaskQueue = class {
   constructor(sseEmitter) {
     this.sseEmitter = sseEmitter;
   }
-  sseEmitter;
   tasks = /* @__PURE__ */ new Map();
   handlers = /* @__PURE__ */ new Map();
   queue = [];
@@ -11216,6 +11209,7 @@ var WorkerService = class {
           process.stderr.write(`[Seed Worker] PID: ${process.pid}  Port: ${actualPort}
 
 `);
+          this.writeUrlFile(projectContext.projectRoot, url);
           this.registerSignalHandlers();
           resolveStart({ port: actualPort });
         }
@@ -11239,6 +11233,16 @@ var WorkerService = class {
     removePidFile(this.canonicalPath);
     process.stderr.write("[Seed Worker] Shutdown complete.\n");
   }
+  writeUrlFile(projectRoot, url) {
+    try {
+      const seedDir = (0, import_node_path10.join)(projectRoot, ".seed");
+      if (!(0, import_node_fs13.existsSync)(seedDir)) {
+        (0, import_node_fs13.mkdirSync)(seedDir, { recursive: true });
+      }
+      (0, import_node_fs13.writeFileSync)((0, import_node_path10.join)(seedDir, "memory-editor.url"), url, "utf-8");
+    } catch {
+    }
+  }
   registerSignalHandlers() {
     const handler = async () => {
       await this.shutdown();
@@ -11251,7 +11255,7 @@ var WorkerService = class {
 
 // server/worker/spawner.ts
 var import_node_child_process5 = require("node:child_process");
-var import_node_path10 = require("node:path");
+var import_node_path11 = require("node:path");
 async function ensureWorkerStarted(rawProjectPath, opts) {
   const canonical = canonicalizeProjectPath(rawProjectPath);
   const state = validatePidFile(canonical);
@@ -11265,19 +11269,19 @@ async function ensureWorkerStarted(rawProjectPath, opts) {
   const port = opts?.port ?? 0;
   const timeoutMs = opts?.timeoutMs ?? 15e3;
   const thisDir = __dirname;
-  const entryScript = (0, import_node_path10.resolve)(thisDir, "..", "index.ts");
-  const entryScriptJs = (0, import_node_path10.resolve)(thisDir, "..", "index.js");
+  const entryScript = (0, import_node_path11.resolve)(thisDir, "..", "index.ts");
+  const entryScriptJs = (0, import_node_path11.resolve)(thisDir, "..", "index.js");
   let cmd;
   let args;
   try {
-    const { existsSync: existsSync14 } = await import("node:fs");
-    if (existsSync14(entryScriptJs)) {
+    const { existsSync: existsSync15 } = await import("node:fs");
+    if (existsSync15(entryScriptJs)) {
       cmd = process.execPath;
       args = [entryScriptJs, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
     } else {
       cmd = process.execPath;
-      const tsxBin = (0, import_node_path10.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
-      if (existsSync14(tsxBin) || existsSync14(tsxBin + ".cmd")) {
+      const tsxBin = (0, import_node_path11.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
+      if (existsSync15(tsxBin) || existsSync15(tsxBin + ".cmd")) {
         cmd = process.platform === "win32" ? tsxBin + ".cmd" : tsxBin;
         args = [entryScript, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
       } else {

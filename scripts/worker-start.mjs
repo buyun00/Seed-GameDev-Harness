@@ -8,6 +8,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { readStdin } from './lib/stdin.mjs';
 
 async function main() {
@@ -36,17 +37,31 @@ async function main() {
       }
     );
 
+    let url = '';
     if (result.status === 0 && result.stdout) {
       try {
         const info = JSON.parse(result.stdout.toString());
         if (info.port) {
-          process.stderr.write(`[Seed Worker] Ready on port ${info.port}\n`);
+          url = `http://127.0.0.1:${info.port}/`;
+
+          // Write URL to project .seed/ for easy discovery
+          const seedDir = join(cwd, '.seed');
+          if (!existsSync(seedDir)) {
+            mkdirSync(seedDir, { recursive: true });
+          }
+          writeFileSync(join(seedDir, 'memory-editor.url'), url, 'utf-8');
         }
       } catch { /* ignore parse errors */ }
     }
 
-    // Always continue — don't block the session
-    console.log(JSON.stringify({ continue: true, suppressOutput: true }));
+    if (url) {
+      console.log(JSON.stringify({
+        continue: true,
+        stopReason: `[Memory Editor] ${url}`,
+      }));
+    } else {
+      console.log(JSON.stringify({ continue: true, suppressOutput: true }));
+    }
   } catch (err) {
     process.stderr.write(`[Seed Worker] Hook error: ${err}\n`);
     console.log(JSON.stringify({ continue: true, suppressOutput: true }));

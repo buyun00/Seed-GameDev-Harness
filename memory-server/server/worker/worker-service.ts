@@ -7,6 +7,8 @@ import { Cache } from '../core/cache.js'
 import { Writer } from '../core/writer.js'
 import { ClaudeAdapter } from '../core/claude-adapter.js'
 import { ProjectContext } from '../core/project-context.js'
+import { join } from 'node:path'
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import {
   canonicalizeProjectPath,
   writePidFile,
@@ -104,6 +106,9 @@ export class WorkerService {
           process.stderr.write(`[Seed Worker] URL: ${url}\n`)
           process.stderr.write(`[Seed Worker] PID: ${process.pid}  Port: ${actualPort}\n\n`)
 
+          // Write URL to project .seed/ for easy discovery
+          this.writeUrlFile(projectContext.projectRoot, url)
+
           this.registerSignalHandlers()
           resolveStart({ port: actualPort })
         },
@@ -125,6 +130,16 @@ export class WorkerService {
 
     removePidFile(this.canonicalPath)
     process.stderr.write('[Seed Worker] Shutdown complete.\n')
+  }
+
+  private writeUrlFile(projectRoot: string, url: string): void {
+    try {
+      const seedDir = join(projectRoot, '.seed')
+      if (!existsSync(seedDir)) {
+        mkdirSync(seedDir, { recursive: true })
+      }
+      writeFileSync(join(seedDir, 'memory-editor.url'), url, 'utf-8')
+    } catch { /* non-critical */ }
   }
 
   private registerSignalHandlers(): void {

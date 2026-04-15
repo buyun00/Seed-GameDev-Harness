@@ -2,7 +2,8 @@ import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { AppContext } from '../../types.js'
 import { readFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 export function registerSystemTools(server: McpServer, ctx: AppContext) {
   server.tool(
@@ -57,10 +58,19 @@ export function registerSystemTools(server: McpServer, ctx: AppContext) {
 
   server.tool(
     'open_memory_manager_ui',
-    'Get the URL to open the Memory Editor web UI',
+    'Get the URL to open the Memory Editor web UI in a browser',
     {},
     async () => {
-      return { content: [{ type: 'text' as const, text: JSON.stringify({ url: `Open the Memory Editor UI in your browser. The URL was printed at server startup.` }) }] }
+      // Try reading URL from project-local file first
+      const urlFile = join(ctx.projectContext.projectRoot, '.seed', 'memory-editor.url')
+      if (existsSync(urlFile)) {
+        try {
+          const url = readFileSync(urlFile, 'utf-8').trim()
+          return { content: [{ type: 'text' as const, text: JSON.stringify({ url, message: `Memory Editor is running. Open in browser: ${url}` }) }] }
+        } catch { /* fall through */ }
+      }
+
+      return { content: [{ type: 'text' as const, text: JSON.stringify({ error: 'Memory Editor is not running. It should start automatically on the next session.' }) }] }
     },
   )
 }
