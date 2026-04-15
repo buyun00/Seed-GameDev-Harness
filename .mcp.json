@@ -1,13 +1,3 @@
 {
-  "mcpServers": {
-    "memory-server": {
-      "command": "node",
-      "args": [
-        "${CLAUDE_PLUGIN_ROOT}/scripts/worker-service.cjs",
-        "start",
-        "--project-path",
-        "${PROJECT_DIR}"
-      ]
-    }
-  }
+  "mcpServers": {}
 }

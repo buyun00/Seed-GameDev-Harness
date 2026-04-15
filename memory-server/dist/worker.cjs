@@ -11271,21 +11271,28 @@ async function ensureWorkerStarted(rawProjectPath, opts) {
   const port = opts?.port ?? 0;
   const timeoutMs = opts?.timeoutMs ?? 15e3;
   const thisDir = __dirname;
-  const entryScript = (0, import_node_path11.resolve)(thisDir, "..", "index.ts");
-  const entryScriptJs = (0, import_node_path11.resolve)(thisDir, "..", "index.js");
+  const daemonArgs = ["daemon", "--project-path", rawProjectPath, "--port", String(port)];
   let workerCmd;
   let workerArgs;
-  if ((0, import_node_fs14.existsSync)(entryScriptJs)) {
+  const bundlePath = (0, import_node_path11.join)(thisDir, "worker.cjs");
+  if ((0, import_node_fs14.existsSync)(bundlePath)) {
     workerCmd = process.execPath;
-    workerArgs = [entryScriptJs, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
+    workerArgs = [bundlePath, ...daemonArgs];
   } else {
-    const tsxBin = (0, import_node_path11.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
-    if ((0, import_node_fs14.existsSync)(tsxBin) || (0, import_node_fs14.existsSync)(tsxBin + ".cmd")) {
-      workerCmd = process.platform === "win32" ? tsxBin + ".cmd" : tsxBin;
-      workerArgs = [entryScript, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
+    const entryScriptJs = (0, import_node_path11.resolve)(thisDir, "..", "index.js");
+    if ((0, import_node_fs14.existsSync)(entryScriptJs)) {
+      workerCmd = process.execPath;
+      workerArgs = [entryScriptJs, ...daemonArgs];
     } else {
-      workerCmd = "npx";
-      workerArgs = ["tsx", entryScript, "daemon", "--project-path", rawProjectPath, "--port", String(port)];
+      const entryScript = (0, import_node_path11.resolve)(thisDir, "..", "index.ts");
+      const tsxBin = (0, import_node_path11.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
+      if ((0, import_node_fs14.existsSync)(tsxBin) || (0, import_node_fs14.existsSync)(tsxBin + ".cmd")) {
+        workerCmd = process.platform === "win32" ? tsxBin + ".cmd" : tsxBin;
+        workerArgs = [entryScript, ...daemonArgs];
+      } else {
+        workerCmd = "npx";
+        workerArgs = ["tsx", entryScript, ...daemonArgs];
+      }
     }
   }
   spawnInConsole(workerCmd, workerArgs, rawProjectPath);

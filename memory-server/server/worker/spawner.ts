@@ -38,23 +38,33 @@ export async function ensureWorkerStarted(
   const timeoutMs = opts?.timeoutMs ?? 15_000
 
   const thisDir = __dirname
-  const entryScript = resolve(thisDir, '..', 'index.ts')
-  const entryScriptJs = resolve(thisDir, '..', 'index.js')
+  const daemonArgs = ['daemon', '--project-path', rawProjectPath, '--port', String(port)]
 
   let workerCmd: string
   let workerArgs: string[]
 
-  if (existsSync(entryScriptJs)) {
+  // Priority 1: running from the esbuild bundle (dist/worker.cjs)
+  const bundlePath = join(thisDir, 'worker.cjs')
+  if (existsSync(bundlePath)) {
     workerCmd = process.execPath
-    workerArgs = [entryScriptJs, 'daemon', '--project-path', rawProjectPath, '--port', String(port)]
+    workerArgs = [bundlePath, ...daemonArgs]
   } else {
-    const tsxBin = resolve(thisDir, '..', '..', 'node_modules', '.bin', 'tsx')
-    if (existsSync(tsxBin) || existsSync(tsxBin + '.cmd')) {
-      workerCmd = process.platform === 'win32' ? tsxBin + '.cmd' : tsxBin
-      workerArgs = [entryScript, 'daemon', '--project-path', rawProjectPath, '--port', String(port)]
+    // Priority 2: compiled JS entry (tsc output)
+    const entryScriptJs = resolve(thisDir, '..', 'index.js')
+    if (existsSync(entryScriptJs)) {
+      workerCmd = process.execPath
+      workerArgs = [entryScriptJs, ...daemonArgs]
     } else {
-      workerCmd = 'npx'
-      workerArgs = ['tsx', entryScript, 'daemon', '--project-path', rawProjectPath, '--port', String(port)]
+      // Priority 3: dev mode — run TypeScript source via tsx
+      const entryScript = resolve(thisDir, '..', 'index.ts')
+      const tsxBin = resolve(thisDir, '..', '..', 'node_modules', '.bin', 'tsx')
+      if (existsSync(tsxBin) || existsSync(tsxBin + '.cmd')) {
+        workerCmd = process.platform === 'win32' ? tsxBin + '.cmd' : tsxBin
+        workerArgs = [entryScript, ...daemonArgs]
+      } else {
+        workerCmd = 'npx'
+        workerArgs = ['tsx', entryScript, ...daemonArgs]
+      }
     }
   }
 
