@@ -17,7 +17,6 @@ export interface ConstitutionRule {
   }
   writebackStrategy: 'replace' | 'insert_after' | 'append_to_section'
   status: 'effective' | 'shadowed' | 'conflicting' | 'unresolved'
-  confidence: number
   relations: Relation[]
   scope?: string
 }

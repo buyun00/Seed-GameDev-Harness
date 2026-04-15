@@ -70,7 +70,6 @@ type LangStrings = {
 
   moreRelations: (n: number) => string
 
-  labelConfidence: string
   labelSource: string
   labelScope: string
   normalizedRule: string
@@ -165,7 +164,6 @@ const translations: Record<string, LangStrings> = {
 
     moreRelations: (n) => `+${n} more`,
 
-    labelConfidence: 'Confidence',
     labelSource: 'Source',
     labelScope: 'Scope',
     normalizedRule: 'Normalized Rule',
@@ -259,7 +257,6 @@ const translations: Record<string, LangStrings> = {
 
     moreRelations: (n) => `+${n} 条更多`,
 
-    labelConfidence: '置信度',
     labelSource: '来源',
     labelScope: '作用域',
     normalizedRule: '规范化规则',
@@ -353,7 +350,6 @@ const translations: Record<string, LangStrings> = {
 
     moreRelations: (n) => `+${n} 件`,
 
-    labelConfidence: '信頼度',
     labelSource: 'ソース',
     labelScope: 'スコープ',
     normalizedRule: '正規化ルール',
@@ -447,7 +443,6 @@ const translations: Record<string, LangStrings> = {
 
     moreRelations: (n) => `+${n} 개 더`,
 
-    labelConfidence: '신뢰도',
     labelSource: '소스',
     labelScope: '범위',
     normalizedRule: '정규화된 규칙',

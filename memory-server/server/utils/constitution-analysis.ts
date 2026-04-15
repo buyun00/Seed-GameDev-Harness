@@ -1,4 +1,4 @@
-import type { ConstitutionRule } from '../models/constitution-rule.js'
+import type { ConstitutionRule, Relation } from '../models/constitution-rule.js'
 import { stableId } from './hash.js'
 
 export interface ConstitutionFileInput {
@@ -13,42 +13,14 @@ const VALID_STATUSES = new Set<ConstitutionRule['status']>([
   'unresolved',
 ])
 
-const NEGATIVE_MARKERS = [
-  'do not',
-  'dont',
-  'never',
-  'avoid',
-  'cannot',
-  "can't",
-  '\u7981\u6b62',
-  '\u4e0d\u8981',
-  '\u4e0d\u5f97',
-  '\u4e0d\u80fd',
-  '\u4e0d\u53ef',
-  '\u522b',
-  '\u52ff',
-  '\u907f\u514d',
-  '\u4e25\u7981',
-]
-
-const POSITIVE_MARKERS = [
-  'must',
-  'should',
-  'always',
-  'required',
-  'require',
-  'ensure',
-  'prefer',
-  'please',
-  '\u5fc5\u987b',
-  '\u5e94\u5f53',
-  '\u9700\u8981',
-  '\u52a1\u5fc5',
-  '\u786e\u4fdd',
-  '\u4f18\u5148',
-  '\u5efa\u8bae',
-  '\u8bf7',
-]
+const VALID_RELATION_TYPES = new Set<Relation['type']>([
+  'shadowed_by',
+  'conflicts_with',
+  'overlaps_with',
+  'reinforced_by',
+  'more_specific_than',
+  'likely_supersedes',
+])
 
 const BASE_ANALYSIS_PROMPT = `You are a static document analysis engine performing offline extraction of rule blocks from configuration files.
 
@@ -75,8 +47,47 @@ Output strict JSON only, no markdown fencing:
       "contextAnchor": { "before": "lines before", "after": "lines after", "sectionHeading": "## Heading" },
       "writebackStrategy": "replace",
       "status": "effective",
-      "confidence": 0.9,
       "scope": "project-wide"
+    }
+  ]
+}`
+
+const BASE_COMPARE_PROMPT = `You are a semantic rule comparison engine.
+
+You will receive a set of already-extracted constitution rules from multiple CLAUDE.md files. Your job is to compare them GLOBALLY across files and decide which rules are:
+- effective: stands as an active rule
+- shadowed: substantially duplicated or superseded by another higher-priority rule
+- conflicting: semantically incompatible with another rule
+- unresolved: ambiguous, incomplete, or impossible to classify confidently
+
+Source priority is:
+1. CLAUDE.md
+2. .claude/CLAUDE.md
+3. CLAUDE.local.md
+
+Comparison requirements:
+- Use semantic meaning, not just lexical overlap.
+- If two rules mean almost the same thing, mark the lower-priority one as shadowed_by the higher-priority one.
+- If two rules materially contradict each other, mark BOTH as conflicting and add conflicts_with relations.
+- If two rules support the same direction but one is a duplicate or near-duplicate, prefer shadowed_by/reinforced_by over leaving both effective.
+- If one rule is clearly narrower or more specific than another, you may use more_specific_than or likely_supersedes when helpful.
+- Do not invent new rules or rewrite rule text.
+- Every input rule id must appear exactly once in the output.
+- Relations must only target existing input rule ids.
+
+Output strict JSON only, no markdown fencing:
+{
+  "rules": [
+    {
+      "id": "existing-rule-id",
+      "status": "effective",
+      "relations": [
+        {
+          "type": "shadowed_by",
+          "targetRuleId": "another-existing-rule-id",
+          "description": "Why this relationship exists"
+        }
+      ]
     }
   ]
 }`
@@ -92,8 +103,27 @@ ${file.content}
 `
 }
 
+export function buildConstitutionComparisonPrompt(rules: ConstitutionRule[]): string {
+  const serializedRules = rules.map(rule => ({
+    id: rule.id,
+    title: rule.title,
+    normalizedText: rule.normalizedText,
+    originalExcerpt: rule.originalExcerpt,
+    sourceFile: rule.sourceFile,
+    sourceSpan: rule.sourceSpan,
+    sectionHeading: rule.contextAnchor.sectionHeading ?? '',
+    scope: rule.scope ?? '',
+  }))
+
+  return `${BASE_COMPARE_PROMPT}
+
+Rules to compare:
+${JSON.stringify(serializedRules, null, 2)}
+`
+}
+
 export function parseConstitutionAnalysisResult(rawResult: string, file: ConstitutionFileInput): ConstitutionRule[] {
-  const parsed = tryParseAnalysisObject(rawResult)
+  const parsed = tryParseJsonObject(rawResult)
   if (!parsed) {
     throw new Error(`AI returned invalid JSON for ${file.path}`)
   }
@@ -103,7 +133,7 @@ export function parseConstitutionAnalysisResult(rawResult: string, file: Constit
   }
 
   const rules = parsed.rules
-    .map((rawRule, index) => sanitizeAiRule(rawRule, file, index))
+    .map((rawRule, index) => sanitizeExtractedRule(rawRule, file, index))
     .filter((rule): rule is ConstitutionRule => rule !== null)
 
   if (rules.length === 0 && file.content.trim()) {
@@ -113,50 +143,53 @@ export function parseConstitutionAnalysisResult(rawResult: string, file: Constit
   return rules
 }
 
-export function postProcessConstitutionRules(inputRules: ConstitutionRule[]): ConstitutionRule[] {
-  const rules = inputRules.map(rule => ({
-    ...rule,
-    relations: [...(rule.relations ?? [])],
-  }))
-
-  const removed = new Set<string>()
-
-  for (let i = 0; i < rules.length; i++) {
-    const current = rules[i]
-    if (removed.has(current.id)) continue
-
-    for (let j = i + 1; j < rules.length; j++) {
-      const candidate = rules[j]
-      if (removed.has(candidate.id)) continue
-
-      const similarity = compareRuleSimilarity(current, candidate)
-      if (similarity < 0.72) continue
-
-      if (isLikelyConflict(current, candidate, similarity)) {
-        current.status = 'conflicting'
-        candidate.status = 'conflicting'
-        addRelation(current, 'conflicts_with', candidate.id, `Potentially contradictory rule in ${candidate.sourceFile}`)
-        addRelation(candidate, 'conflicts_with', current.id, `Potentially contradictory rule in ${current.sourceFile}`)
-        continue
-      }
-
-      if (shouldMergeRules(current, candidate, similarity)) {
-        const [primary, duplicate] = pickPrimaryRule(current, candidate)
-        mergeRules(primary, duplicate)
-        removed.add(duplicate.id)
-      } else if (similarity >= 0.82) {
-        addRelation(current, 'overlaps_with', candidate.id, `Highly similar rule in ${candidate.sourceFile}`)
-        addRelation(candidate, 'overlaps_with', current.id, `Highly similar rule in ${current.sourceFile}`)
-      }
-    }
+export function parseConstitutionComparisonResult(
+  rawResult: string,
+  extractedRules: ConstitutionRule[],
+): ConstitutionRule[] {
+  const parsed = tryParseJsonObject(rawResult)
+  if (!parsed) {
+    throw new Error('AI returned invalid JSON for constitution comparison')
   }
 
-  return rules
-    .filter(rule => !removed.has(rule.id))
-    .map(rule => ({
+  if (!('rules' in parsed) || !Array.isArray(parsed.rules)) {
+    throw new Error('AI comparison response is missing a rules array')
+  }
+
+  const inputIds = new Set(extractedRules.map(rule => rule.id))
+  const decisions = new Map<string, { status: ConstitutionRule['status']; relations: Relation[] }>()
+
+  for (const rawRule of parsed.rules) {
+    const decision = sanitizeComparisonDecision(rawRule, inputIds)
+    if (!decision) {
+      throw new Error('AI comparison response contains an invalid rule decision')
+    }
+    if (decisions.has(decision.id)) {
+      throw new Error(`AI comparison returned duplicate decision for rule ${decision.id}`)
+    }
+    decisions.set(decision.id, {
+      status: decision.status,
+      relations: decision.relations,
+    })
+  }
+
+  if (decisions.size !== extractedRules.length) {
+    const missing = extractedRules.map(rule => rule.id).filter(id => !decisions.has(id))
+    throw new Error(`AI comparison did not return decisions for all rules: ${missing.join(', ')}`)
+  }
+
+  return extractedRules.map(rule => {
+    const decision = decisions.get(rule.id)
+    if (!decision) {
+      throw new Error(`Missing comparison decision for rule ${rule.id}`)
+    }
+
+    return {
       ...rule,
-      relations: dedupeRelations(rule.relations),
-    }))
+      status: decision.status,
+      relations: dedupeRelations(decision.relations),
+    }
+  })
 }
 
 export function summarizeConstitutionRules(rules: ConstitutionRule[]) {
@@ -169,7 +202,7 @@ export function summarizeConstitutionRules(rules: ConstitutionRule[]) {
   }
 }
 
-function tryParseAnalysisObject(rawResult: string): Record<string, unknown> | null {
+function tryParseJsonObject(rawResult: string): Record<string, unknown> | null {
   const candidates = new Set<string>()
   const trimmed = rawResult.trim()
   if (trimmed) {
@@ -249,7 +282,7 @@ function extractBalancedJsonObject(raw: string): string | null {
   return null
 }
 
-function sanitizeAiRule(rawRule: unknown, file: ConstitutionFileInput, index: number): ConstitutionRule | null {
+function sanitizeExtractedRule(rawRule: unknown, file: ConstitutionFileInput, index: number): ConstitutionRule | null {
   if (!rawRule || typeof rawRule !== 'object') return null
 
   const record = rawRule as Record<string, unknown>
@@ -262,12 +295,6 @@ function sanitizeAiRule(rawRule: unknown, file: ConstitutionFileInput, index: nu
     return null
   }
 
-  const excerpt = originalExcerpt.trim()
-  const normalized = normalizedText.trim()
-  if (!excerpt || !normalized) {
-    return null
-  }
-
   const recordContext = record.contextAnchor && typeof record.contextAnchor === 'object'
     ? record.contextAnchor as Record<string, unknown>
     : undefined
@@ -276,10 +303,10 @@ function sanitizeAiRule(rawRule: unknown, file: ConstitutionFileInput, index: nu
     ?? findNearestHeading(file.content, sourceSpan.startLine)
 
   return {
-    id: stableId(`rule-${file.path}-${sourceSpan.startLine}-${normalizeComparable(normalized)}-${index}`),
-    title,
-    normalizedText: normalized,
-    originalExcerpt: excerpt,
+    id: stableId(`rule-${file.path}-${sourceSpan.startLine}-${normalizeComparable(normalizedText)}-${index}`),
+    title: title.trim(),
+    normalizedText: normalizedText.trim(),
+    originalExcerpt: originalExcerpt.trim(),
     sourceFile: file.path,
     sourceSpan,
     contextAnchor: {
@@ -289,9 +316,52 @@ function sanitizeAiRule(rawRule: unknown, file: ConstitutionFileInput, index: nu
     },
     writebackStrategy: 'replace',
     status: normalizeStatus(record.status),
-    confidence: normalizeConfidence(record.confidence, 0.78),
     relations: [],
     scope: asNonEmptyString(record.scope),
+  }
+}
+
+function sanitizeComparisonDecision(
+  rawRule: unknown,
+  inputIds: Set<string>,
+): { id: string; status: ConstitutionRule['status']; relations: Relation[] } | null {
+  if (!rawRule || typeof rawRule !== 'object') return null
+
+  const record = rawRule as Record<string, unknown>
+  const id = asNonEmptyString(record.id)
+  if (!id || !inputIds.has(id)) {
+    return null
+  }
+
+  const status = normalizeStatus(record.status)
+  const relations = Array.isArray(record.relations)
+    ? record.relations
+      .map(rawRelation => sanitizeRelation(rawRelation, id, inputIds))
+      .filter((relation): relation is Relation => relation !== null)
+    : []
+
+  return { id, status, relations }
+}
+
+function sanitizeRelation(
+  rawRelation: unknown,
+  sourceRuleId: string,
+  inputIds: Set<string>,
+): Relation | null {
+  if (!rawRelation || typeof rawRelation !== 'object') return null
+
+  const record = rawRelation as Record<string, unknown>
+  const type = asNonEmptyString(record.type) as Relation['type'] | undefined
+  const targetRuleId = asNonEmptyString(record.targetRuleId)
+  const description = asNonEmptyString(record.description)
+
+  if (!type || !VALID_RELATION_TYPES.has(type)) return null
+  if (!targetRuleId || !inputIds.has(targetRuleId) || targetRuleId === sourceRuleId) return null
+
+  return {
+    type,
+    targetRuleId,
+    description: description ?? '',
   }
 }
 
@@ -320,181 +390,7 @@ function findNearestHeading(content: string, startLine: number): string | undefi
   return undefined
 }
 
-function compareRuleSimilarity(left: ConstitutionRule, right: ConstitutionRule): number {
-  return compareComparableStrings(
-    normalizeComparable(left.normalizedText),
-    normalizeComparable(right.normalizedText),
-  )
-}
-
-function compareComparableStrings(leftText: string, rightText: string): number {
-  if (!leftText || !rightText) return 0
-  if (leftText === rightText) return 1
-
-  const containment = Math.max(
-    overlapRatio(leftText, rightText),
-    overlapRatio(rightText, leftText),
-  )
-
-  return Math.max(containment, diceCoefficient(toNGrams(leftText), toNGrams(rightText)))
-}
-
-function overlapRatio(text: string, other: string): number {
-  if (!text || !other) return 0
-  if (text.includes(other)) return other.length / text.length
-  return 0
-}
-
-function diceCoefficient(left: string[], right: string[]): number {
-  if (left.length === 0 || right.length === 0) return 0
-  const counts = new Map<string, number>()
-  for (const token of left) {
-    counts.set(token, (counts.get(token) ?? 0) + 1)
-  }
-
-  let matches = 0
-  for (const token of right) {
-    const count = counts.get(token) ?? 0
-    if (count > 0) {
-      matches += 1
-      counts.set(token, count - 1)
-    }
-  }
-
-  return (2 * matches) / (left.length + right.length)
-}
-
-function toNGrams(text: string): string[] {
-  const compact = text.replace(/\s+/g, '')
-  if (compact.length <= 3) return [compact]
-
-  const grams: string[] = []
-  for (let i = 0; i <= compact.length - 3; i++) {
-    grams.push(compact.slice(i, i + 3))
-  }
-  return grams
-}
-
-function shouldMergeRules(left: ConstitutionRule, right: ConstitutionRule, similarity: number): boolean {
-  if (normalizeComparable(left.normalizedText) === normalizeComparable(right.normalizedText)) {
-    return true
-  }
-
-  return similarity >= 0.8
-}
-
-function isLikelyConflict(left: ConstitutionRule, right: ConstitutionRule, similarity: number): boolean {
-  if (similarity < 0.72) return false
-
-  const leftComparable = normalizeComparable(left.normalizedText)
-  const rightComparable = normalizeComparable(right.normalizedText)
-  const leftNegative = containsAny(leftComparable, NEGATIVE_MARKERS)
-  const rightNegative = containsAny(rightComparable, NEGATIVE_MARKERS)
-  const leftPositive = containsAny(leftComparable, POSITIVE_MARKERS)
-  const rightPositive = containsAny(rightComparable, POSITIVE_MARKERS)
-  const leftCore = stripPolarityMarkers(leftComparable)
-  const rightCore = stripPolarityMarkers(rightComparable)
-  const coreSimilarity = compareComparableStrings(leftCore, rightCore)
-
-  return leftNegative !== rightNegative
-    && coreSimilarity >= 0.72
-    && ((leftPositive || leftNegative) && (rightPositive || rightNegative))
-}
-
-function containsAny(text: string, markers: string[]): boolean {
-  return markers.some(marker => text.includes(normalizeComparable(marker)))
-}
-
-function stripPolarityMarkers(text: string): string {
-  let stripped = text
-
-  for (const marker of [...NEGATIVE_MARKERS, ...POSITIVE_MARKERS]) {
-    stripped = stripped.replaceAll(normalizeComparable(marker), ' ')
-  }
-
-  return stripped.replace(/\s+/g, ' ').trim()
-}
-
-function pickPrimaryRule(left: ConstitutionRule, right: ConstitutionRule): [ConstitutionRule, ConstitutionRule] {
-  const leftPriority = sourcePriority(left.sourceFile)
-  const rightPriority = sourcePriority(right.sourceFile)
-
-  if (leftPriority !== rightPriority) {
-    return leftPriority < rightPriority ? [left, right] : [right, left]
-  }
-
-  if (left.confidence !== right.confidence) {
-    return left.confidence >= right.confidence ? [left, right] : [right, left]
-  }
-
-  if (left.normalizedText.length !== right.normalizedText.length) {
-    return left.normalizedText.length >= right.normalizedText.length ? [left, right] : [right, left]
-  }
-
-  return left.sourceSpan.startLine <= right.sourceSpan.startLine ? [left, right] : [right, left]
-}
-
-function sourcePriority(sourceFile: string): number {
-  switch (sourceFile) {
-    case 'CLAUDE.md':
-      return 0
-    case '.claude/CLAUDE.md':
-      return 1
-    case 'CLAUDE.local.md':
-      return 2
-    default:
-      return 9
-  }
-}
-
-function mergeRules(primary: ConstitutionRule, duplicate: ConstitutionRule) {
-  if (duplicate.confidence > primary.confidence) {
-    primary.confidence = duplicate.confidence
-  }
-
-  if (!primary.scope && duplicate.scope) {
-    primary.scope = duplicate.scope
-  }
-
-  if (primary.normalizedText.length < duplicate.normalizedText.length
-    && normalizeComparable(duplicate.normalizedText).includes(normalizeComparable(primary.normalizedText))) {
-    primary.title = duplicate.title
-    primary.normalizedText = duplicate.normalizedText
-  }
-
-  if (statusRank(duplicate.status) > statusRank(primary.status)) {
-    primary.status = duplicate.status
-  }
-}
-
-function statusRank(status: ConstitutionRule['status']): number {
-  switch (status) {
-    case 'conflicting':
-      return 4
-    case 'unresolved':
-      return 3
-    case 'shadowed':
-      return 2
-    case 'effective':
-    default:
-      return 1
-  }
-}
-
-function addRelation(
-  rule: ConstitutionRule,
-  type: ConstitutionRule['relations'][number]['type'],
-  targetRuleId: string,
-  description: string,
-) {
-  if (rule.relations.some(rel => rel.type === type && rel.targetRuleId === targetRuleId)) {
-    return
-  }
-
-  rule.relations.push({ type, targetRuleId, description })
-}
-
-function dedupeRelations(relations: ConstitutionRule['relations']): ConstitutionRule['relations'] {
+function dedupeRelations(relations: Relation[]): Relation[] {
   const seen = new Set<string>()
   return relations.filter(relation => {
     const key = `${relation.type}:${relation.targetRuleId}:${relation.description}`
@@ -519,13 +415,6 @@ function normalizeStatus(value: unknown): ConstitutionRule['status'] {
   return typeof value === 'string' && VALID_STATUSES.has(value as ConstitutionRule['status'])
     ? value as ConstitutionRule['status']
     : 'effective'
-}
-
-function normalizeConfidence(value: unknown, fallback: number): number {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return Math.max(0, Math.min(1, value))
-  }
-  return fallback
 }
 
 function asNonEmptyString(value: unknown): string | undefined {

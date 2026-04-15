@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { ConstitutionRule } from '@/types/constitution'
 import StatusBadge from '@/components/common/StatusBadge.vue'
-import ConfidenceIndicator from '@/components/common/ConfidenceIndicator.vue'
 import RelationTag from '@/components/common/RelationTag.vue'
 import { useI18n } from '@/i18n'
 import { truncate } from '@/utils/format'
@@ -22,7 +21,6 @@ const i18n = useI18n()
     <div class="rule-card__meta">
       <span class="rule-card__source">{{ rule.sourceFile }}</span>
       <span class="rule-card__lines">L{{ rule.sourceSpan.startLine }}-{{ rule.sourceSpan.endLine }}</span>
-      <ConfidenceIndicator :value="rule.confidence" />
     </div>
     <div v-if="rule.relations.length" class="rule-card__relations">
       <RelationTag v-for="(rel, i) in rule.relations.slice(0, 3)" :key="i" :relation="rel" />

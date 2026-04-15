@@ -6,8 +6,9 @@ import { hashString } from '../utils/hash.js'
 import { extractImports } from '../utils/markdown.js'
 import {
   buildConstitutionFilePrompt,
+  buildConstitutionComparisonPrompt,
   parseConstitutionAnalysisResult,
-  postProcessConstitutionRules,
+  parseConstitutionComparisonResult,
   summarizeConstitutionRules,
 } from '../utils/constitution-analysis.js'
 import { agentQuery } from '../worker/agents/base-agent.js'
@@ -19,6 +20,7 @@ export interface ConstitutionAnalysisRunnerOptions {
 }
 
 const MAX_ANALYSIS_ATTEMPTS = 3
+const MAX_COMPARISON_ATTEMPTS = 3
 
 export async function runConstitutionAnalysisPipeline(
   ctx: AppContext,
@@ -67,9 +69,10 @@ export async function runConstitutionAnalysisPipeline(
     options.onLog?.(`${file.path}: extracted ${rules.length} rule(s)`)
   }
 
-  options.onProgress?.('post_processing', 85, 'Merging similar rules and detecting conflicts...')
+  options.onProgress?.('post_processing', 85, 'Comparing extracted rules globally...')
 
-  const rules = postProcessConstitutionRules(extractedRules)
+  const { rawResult: comparisonRawResult, rules } = await compareRulesWithRetries(ctx, extractedRules, options)
+  rawResults.push(`--- global-comparison ---\n${comparisonRawResult}`)
   const imports = buildImports(ctx, fileContents)
   const importedSources = await collectImportedSources(ctx, imports)
   const summary = summarizeConstitutionRules(rules)
@@ -127,6 +130,53 @@ async function analyzeFileWithRetries(
   const previewSuffix = lastRawResult.trim().length > 300 ? '...' : ''
   throw new Error(
     `Constitution analysis failed for ${file.path} after ${MAX_ANALYSIS_ATTEMPTS} attempts: `
+    + `${lastError?.message ?? 'Unknown error'}`
+    + (preview ? ` | last output: ${preview}${previewSuffix}` : ''),
+  )
+}
+
+async function compareRulesWithRetries(
+  ctx: AppContext,
+  extractedRules: ConstitutionRule[],
+  options: ConstitutionAnalysisRunnerOptions,
+): Promise<{ rawResult: string; rules: ConstitutionRule[] }> {
+  if (extractedRules.length === 0) {
+    return { rawResult: '{"rules":[]}', rules: [] }
+  }
+
+  let lastError: Error | null = null
+  let lastRawResult = ''
+
+  for (let attempt = 1; attempt <= MAX_COMPARISON_ATTEMPTS; attempt++) {
+    options.onLog?.(`global-comparison: attempt ${attempt}/${MAX_COMPARISON_ATTEMPTS}`)
+
+    try {
+      const rawResult = await agentQuery({
+        prompt: buildConstitutionComparisonPrompt(extractedRules),
+        cwd: ctx.projectContext.projectRoot,
+        timeoutMs: 180_000,
+        signal: options.signal,
+        label: 'ConstitutionCompare',
+        onLog: (message) => options.onLog?.(`[global-comparison] ${message}`),
+        disallowedTools: [
+          'Write', 'Edit', 'MultiEdit', 'Shell',
+          'WebFetch', 'WebSearch', 'TodoWrite',
+        ],
+      })
+
+      lastRawResult = rawResult
+      const rules = parseConstitutionComparisonResult(rawResult, extractedRules)
+      return { rawResult, rules }
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      options.onLog?.(`global-comparison: attempt ${attempt} failed - ${lastError.message}`)
+    }
+  }
+
+  const preview = lastRawResult.trim().slice(0, 300)
+  const previewSuffix = lastRawResult.trim().length > 300 ? '...' : ''
+  throw new Error(
+    `Global constitution comparison failed after ${MAX_COMPARISON_ATTEMPTS} attempts: `
     + `${lastError?.message ?? 'Unknown error'}`
     + (preview ? ` | last output: ${preview}${previewSuffix}` : ''),
   )

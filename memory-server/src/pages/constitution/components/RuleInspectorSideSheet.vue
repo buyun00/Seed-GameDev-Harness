@@ -3,7 +3,6 @@ import { ref } from 'vue'
 import type { ConstitutionRule } from '@/types/constitution'
 import InspectorSideSheet from '@/layouts/InspectorSideSheet.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
-import ConfidenceIndicator from '@/components/common/ConfidenceIndicator.vue'
 import RelationTag from '@/components/common/RelationTag.vue'
 import RuleEditForm from './RuleEditForm.vue'
 import { useI18n } from '@/i18n'
@@ -29,10 +28,6 @@ const i18n = useI18n()
         <div class="detail-row">
           <span class="detail-label">{{ i18n.labelStatus }}</span>
           <StatusBadge :status="rule.status" />
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ i18n.labelConfidence }}</span>
-          <ConfidenceIndicator :value="rule.confidence" />
         </div>
         <div class="detail-row">
           <span class="detail-label">{{ i18n.labelSource }}</span>
