@@ -22,7 +22,7 @@ export class ConstitutionAnalyzer {
       const taskId = this.ctx.taskQueue.enqueue('constitution_analysis', {
         projectPath: this.ctx.projectContext.projectRoot,
       })
-      const task = await this.ctx.taskQueue.waitForTask<ConstitutionAnalysisCache>(taskId, 180_000)
+      const task = await this.ctx.taskQueue.waitForTask<ConstitutionAnalysisCache>(taskId, 600_000)
       if (task.status === 'completed' && task.result) {
         return task.result
       }

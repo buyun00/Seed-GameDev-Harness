@@ -8153,7 +8153,7 @@ var ConstitutionAnalyzer = class {
       const taskId = this.ctx.taskQueue.enqueue("constitution_analysis", {
         projectPath: this.ctx.projectContext.projectRoot
       });
-      const task = await this.ctx.taskQueue.waitForTask(taskId, 18e4);
+      const task = await this.ctx.taskQueue.waitForTask(taskId, 6e5);
       if (task.status === "completed" && task.result) {
         return task.result;
       }
@@ -8393,11 +8393,13 @@ function constitutionRoutes(ctx) {
     ctx.sseEmitter.emit("analysis:progress", { step: "reading_sources", percent: 10 });
     try {
       const result = await analyzer.analyze();
-      await ctx.cache.set("constitution-analysis", result);
-      ctx.sseEmitter.emit("analysis:complete", {
-        rulesCount: result.rules.length,
-        analyzedAt: result.analyzedAt
-      });
+      if (!ctx.taskQueue) {
+        await ctx.cache.set("constitution-analysis", result);
+        ctx.sseEmitter.emit("analysis:complete", {
+          rulesCount: result.rules.length,
+          analyzedAt: result.analyzedAt
+        });
+      }
       return c.json(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Analysis failed";
@@ -11326,6 +11328,11 @@ async function runConstitutionAnalysis(ctx, _params, signal) {
     signal,
     onProgress: emitProgress,
     onLog: emitLog
+  });
+  await ctx.cache.set("constitution-analysis", result);
+  ctx.sseEmitter.emit("analysis:complete", {
+    rulesCount: result.rules.length,
+    analyzedAt: result.analyzedAt
   });
   emitLog(
     `Analysis complete: ${result.rules.length} rule(s) (effective ${result.statusSummary.effective}, conflicting ${result.statusSummary.conflicting}, unresolved ${result.statusSummary.unresolved})`

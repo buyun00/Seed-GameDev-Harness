@@ -50,12 +50,13 @@ export function constitutionRoutes(ctx: AppContext) {
 
     try {
       const result = await analyzer.analyze()
-      await ctx.cache.set('constitution-analysis', result)
-
-      ctx.sseEmitter.emit('analysis:complete', {
-        rulesCount: result.rules.length,
-        analyzedAt: result.analyzedAt,
-      })
+      if (!ctx.taskQueue) {
+        await ctx.cache.set('constitution-analysis', result)
+        ctx.sseEmitter.emit('analysis:complete', {
+          rulesCount: result.rules.length,
+          analyzedAt: result.analyzedAt,
+        })
+      }
 
       return c.json(result)
     } catch (err) {

@@ -27,6 +27,12 @@ export async function runConstitutionAnalysis(
     onLog: emitLog,
   })
 
+  await ctx.cache.set('constitution-analysis', result)
+  ctx.sseEmitter.emit('analysis:complete', {
+    rulesCount: result.rules.length,
+    analyzedAt: result.analyzedAt,
+  })
+
   emitLog(
     `Analysis complete: ${result.rules.length} rule(s) `
     + `(effective ${result.statusSummary.effective}, conflicting ${result.statusSummary.conflicting}, unresolved ${result.statusSummary.unresolved})`,

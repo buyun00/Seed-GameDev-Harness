@@ -49,6 +49,9 @@ export const useConstitutionStore = defineStore('constitution', () => {
     if (msg) {
       progressLogs.value = [...progressLogs.value, `[${new Date().toLocaleTimeString()}] ${msg}`]
     }
+    if (progressStep.value === 'done' || progressPercent.value >= 100) {
+      analyzing.value = false
+    }
   }
 
   function onAgentLog(data: Record<string, unknown>) {
@@ -64,6 +67,16 @@ export const useConstitutionStore = defineStore('constitution', () => {
     progressPercent.value = 0
   }
 
+  function finishAnalysis() {
+    analyzing.value = false
+    if (progressPercent.value < 100) {
+      progressPercent.value = 100
+    }
+    if (!progressStep.value) {
+      progressStep.value = 'done'
+    }
+  }
+
   async function analyze() {
     analyzing.value = true
     clearProgress()
@@ -75,7 +88,6 @@ export const useConstitutionStore = defineStore('constitution', () => {
       statusSummary.value = data.statusSummary || {}
       changedFiles.value = []
     } catch { /* ignore */ }
-    analyzing.value = false
   }
 
   async function proposeEdit(ruleId: string, changes: { title?: string; normalizedText?: string }, editIntent: string): Promise<Proposal | null> {
@@ -100,6 +112,6 @@ export const useConstitutionStore = defineStore('constitution', () => {
     progressStep, progressPercent, progressLogs,
     effectiveRules, shadowedRules, conflictingRules, unresolvedRules,
     load, loadSources, analyze, proposeEdit, proposeCreate,
-    onProgressEvent, onAgentLog, clearProgress,
+    onProgressEvent, onAgentLog, clearProgress, finishAnalysis,
   }
 })

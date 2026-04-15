@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useConstitutionStore } from '@/stores/constitution'
 import { useProposalStore } from '@/stores/proposal'
-import { useFileChange } from '@/composables/useFileChange'
+import { useSSE } from '@/composables/useSSE'
 import { useI18n } from '@/i18n'
 import PageHeader from '@/layouts/PageHeader.vue'
 import AnalysisStatusBanner from './components/AnalysisStatusBanner.vue'
@@ -21,14 +21,37 @@ const activeStatusTab = ref('effective')
 const mainTab = ref<'rules' | 'sources'>('rules')
 const selectedRule = ref<ConstitutionRule | null>(null)
 const inspectorVisible = ref(false)
+const sse = useSSE()
 
 const filteredRules = computed(() => {
   return store.rules.filter(r => r.status === activeStatusTab.value)
 })
 
-onMounted(() => store.load())
+const handleFileUpdated = () => store.load()
+const handleAnalysisProgress = (data: Record<string, unknown>) => store.onProgressEvent(data)
+const handleAnalysisComplete = async () => {
+  store.finishAnalysis()
+  await store.load()
+}
+const handleAgentLog = (data: Record<string, unknown>) => store.onAgentLog(data)
 
-useFileChange(() => store.load())
+onMounted(() => {
+  store.load()
+  sse.connect()
+  sse.on('file:changed', handleFileUpdated)
+  sse.on('scan:updated', handleFileUpdated)
+  sse.on('analysis:progress', handleAnalysisProgress)
+  sse.on('analysis:complete', handleAnalysisComplete)
+  sse.on('agent:log', handleAgentLog)
+})
+
+onUnmounted(() => {
+  sse.off('file:changed', handleFileUpdated)
+  sse.off('scan:updated', handleFileUpdated)
+  sse.off('analysis:progress', handleAnalysisProgress)
+  sse.off('analysis:complete', handleAnalysisComplete)
+  sse.off('agent:log', handleAgentLog)
+})
 
 function selectRule(rule: ConstitutionRule) {
   selectedRule.value = rule
