@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
-import { dirname, join, resolve } from 'node:path'
-import { existsSync } from 'node:fs'
+import { join, resolve } from 'node:path'
+import { existsSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import {
   canonicalizeProjectPath,
   validatePidFile,
@@ -88,13 +89,21 @@ function spawnInConsole(cmd: string, args: string[], projectPath: string): void 
   const title = `Seed Memory Editor - ${projectName}`
 
   if (process.platform === 'win32') {
-    // `start "title" cmd /k "command args..."` opens a new cmd window that stays open
-    const fullCmd = [cmd, ...args].map(a => a.includes(' ') ? `"${a}"` : a).join(' ')
-    const child = spawn('cmd', ['/c', 'start', `"${title}"`, 'cmd', '/k', fullCmd], {
+    // Write a temp .cmd file to avoid Windows cmd.exe quote-stripping issues.
+    // `start ""` with an empty title prevents the first quoted arg from being
+    // consumed as the window title.
+    const innerCmd = [cmd, ...args]
+      .map(a => (a.includes(' ') ? `"${a}"` : a))
+      .join(' ')
+    const batPath = join(tmpdir(), `seed-worker-${Date.now()}.cmd`)
+    writeFileSync(
+      batPath,
+      `@echo off\r\ntitle ${title}\r\n${innerCmd}\r\necho.\r\necho Worker process exited. Press any key to close...\r\npause >nul\r\n`,
+      'utf-8',
+    )
+    const child = spawn('cmd.exe', ['/c', 'start', '""', batPath], {
       detached: true,
       stdio: 'ignore',
-      shell: true,
-      windowsHide: false,
     })
     child.unref()
   } else if (process.platform === 'darwin') {

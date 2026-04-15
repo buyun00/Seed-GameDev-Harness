@@ -9409,9 +9409,9 @@ var NodeFsHandler = class {
     if (this.fsw.closed) {
       return;
     }
-    const dirname4 = sysPath.dirname(file);
+    const dirname3 = sysPath.dirname(file);
     const basename3 = sysPath.basename(file);
-    const parent = this.fsw._getWatchedDir(dirname4);
+    const parent = this.fsw._getWatchedDir(dirname3);
     let prevStats = stats;
     if (parent.has(basename3))
       return;
@@ -9438,7 +9438,7 @@ var NodeFsHandler = class {
             prevStats = newStats2;
           }
         } catch (error) {
-          this.fsw._remove(dirname4, basename3);
+          this.fsw._remove(dirname3, basename3);
         }
       } else if (parent.has(basename3)) {
         const at = newStats.atimeMs;
@@ -11257,6 +11257,7 @@ var WorkerService = class {
 var import_node_child_process5 = require("node:child_process");
 var import_node_path11 = require("node:path");
 var import_node_fs14 = require("node:fs");
+var import_node_os3 = require("node:os");
 async function ensureWorkerStarted(rawProjectPath, opts) {
   const canonical = canonicalizeProjectPath(rawProjectPath);
   const state = validatePidFile(canonical);
@@ -11306,12 +11307,22 @@ function spawnInConsole(cmd, args, projectPath) {
   const projectName = projectPath.split(/[/\\]/).filter(Boolean).pop() || "project";
   const title = `Seed Memory Editor - ${projectName}`;
   if (process.platform === "win32") {
-    const fullCmd = [cmd, ...args].map((a) => a.includes(" ") ? `"${a}"` : a).join(" ");
-    const child = (0, import_node_child_process5.spawn)("cmd", ["/c", "start", `"${title}"`, "cmd", "/k", fullCmd], {
+    const innerCmd = [cmd, ...args].map((a) => a.includes(" ") ? `"${a}"` : a).join(" ");
+    const batPath = (0, import_node_path11.join)((0, import_node_os3.tmpdir)(), `seed-worker-${Date.now()}.cmd`);
+    (0, import_node_fs14.writeFileSync)(
+      batPath,
+      `@echo off\r
+title ${title}\r
+${innerCmd}\r
+echo.\r
+echo Worker process exited. Press any key to close...\r
+pause >nul\r
+`,
+      "utf-8"
+    );
+    const child = (0, import_node_child_process5.spawn)("cmd.exe", ["/c", "start", '""', batPath], {
       detached: true,
-      stdio: "ignore",
-      shell: true,
-      windowsHide: false
+      stdio: "ignore"
     });
     child.unref();
   } else if (process.platform === "darwin") {
