@@ -14,9 +14,9 @@ export function useAnalysisStatus() {
 
   const statusText = computed(() => {
     switch (store.analysisStatus) {
-      case 'up_to_date': return `Analysis up to date (${formatDate(store.analyzedAt)})`
-      case 'outdated': return `Source files changed since last analysis`
-      default: return 'No analysis has been run yet'
+      case 'up_to_date': return `分析结果最新（上次分析：${formatDate(store.analyzedAt)}）`
+      case 'outdated': return `分析结果已过期（上次分析：${formatDate(store.analyzedAt)}）`
+      default: return '尚未运行分析'
     }
   })
 
