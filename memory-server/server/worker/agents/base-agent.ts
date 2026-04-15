@@ -130,7 +130,8 @@ function cliQuery(opts: AgentQueryOptions): Promise<string> {
   if (opts.systemPrompt) {
     args.push('--append-system-prompt', opts.systemPrompt)
   }
-  args.push(opts.prompt)
+  // Note: prompt is NOT passed as a CLI arg — it is written to stdin below.
+  // Claude CLI reads from stdin when a pipe is open, and ignores positional args in that case.
 
   return new Promise<string>((resolvePromise, reject) => {
     const proc = spawn('claude', args, {
@@ -140,7 +141,8 @@ function cliQuery(opts: AgentQueryOptions): Promise<string> {
       cwd: opts.cwd,
     })
 
-    // Close stdin immediately so the claude CLI doesn't wait for piped input
+    // Write prompt to stdin and close it so Claude CLI doesn't wait for more input
+    proc.stdin.write(opts.prompt, 'utf-8')
     proc.stdin.end()
 
     if (opts.signal) {

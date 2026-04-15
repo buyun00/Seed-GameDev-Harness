@@ -7572,7 +7572,6 @@ function cliQuery(opts) {
   if (opts.systemPrompt) {
     args.push("--append-system-prompt", opts.systemPrompt);
   }
-  args.push(opts.prompt);
   return new Promise((resolvePromise, reject) => {
     const proc = (0, import_node_child_process.spawn)("claude", args, {
       stdio: ["pipe", "pipe", "pipe"],
@@ -7580,6 +7579,7 @@ function cliQuery(opts) {
       timeout: opts.timeoutMs ?? 12e4,
       cwd: opts.cwd
     });
+    proc.stdin.write(opts.prompt, "utf-8");
     proc.stdin.end();
     if (opts.signal) {
       opts.signal.addEventListener("abort", () => {
