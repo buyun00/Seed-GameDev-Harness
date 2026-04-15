@@ -3,6 +3,12 @@
   "version": "0.6.0",
   "scripts": {
     "check": "node --check scripts/embed-project-profile.mjs && node --check scripts/lib/memory-formatter.mjs && node --check scripts/researcher-copy-template.mjs && node --check scripts/researcher-list-options.mjs && node --check scripts/researcher-fill-options.mjs && node --check scripts/researcher-inject-section.mjs",
-    "test": "node --test scripts/__tests__/*.test.mjs"
+    "test": "node --test scripts/__tests__/*.test.mjs",
+    "build:worker": "cd memory-server && npm run build",
+    "worker:start": "node scripts/worker-service.cjs start",
+    "worker:stop": "node scripts/worker-service.cjs stop",
+    "worker:status": "node scripts/worker-service.cjs status",
+    "worker:restart": "node scripts/worker-service.cjs restart",
+    "postinstall": "cd memory-server && npm install && npm run build"
   }
 }

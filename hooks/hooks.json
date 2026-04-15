@@ -4,6 +4,7 @@
       {
         "matcher": "*",
         "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PLUGIN_ROOT\"/scripts/run.cjs \"$CLAUDE_PLUGIN_ROOT\"/scripts/worker-start.mjs", "timeout": 20 },
           { "type": "command", "command": "node \"$CLAUDE_PLUGIN_ROOT\"/scripts/run.cjs \"$CLAUDE_PLUGIN_ROOT\"/scripts/session-start.mjs", "timeout": 5 },
           { "type": "command", "command": "node \"$CLAUDE_PLUGIN_ROOT\"/scripts/run.cjs \"$CLAUDE_PLUGIN_ROOT\"/scripts/project-memory-session.mjs", "timeout": 5 }
         ]

@@ -1,0 +1,157 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import type { ConstitutionRule } from '@/types/constitution'
+import InspectorSideSheet from '@/layouts/InspectorSideSheet.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
+import ConfidenceIndicator from '@/components/common/ConfidenceIndicator.vue'
+import RelationTag from '@/components/common/RelationTag.vue'
+import RuleEditForm from './RuleEditForm.vue'
+
+const props = defineProps<{
+  rule: ConstitutionRule | null
+  visible: boolean
+}>()
+
+defineEmits<{
+  close: []
+  edit: [rule: ConstitutionRule, changes: { title?: string; normalizedText?: string }, intent: string]
+}>()
+
+const editing = ref(false)
+</script>
+
+<template>
+  <InspectorSideSheet :visible="visible" :title="rule?.title ?? ''" @close="$emit('close'); editing = false">
+    <template v-if="rule && !editing">
+      <div class="detail-section">
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <StatusBadge :status="rule.status" />
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Confidence</span>
+          <ConfidenceIndicator :value="rule.confidence" />
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Source</span>
+          <code class="detail-code">{{ rule.sourceFile }}:{{ rule.sourceSpan.startLine }}-{{ rule.sourceSpan.endLine }}</code>
+        </div>
+        <div v-if="rule.scope" class="detail-row">
+          <span class="detail-label">Scope</span>
+          <span>{{ rule.scope }}</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h4 class="detail-heading">Normalized Rule</h4>
+        <p class="detail-text">{{ rule.normalizedText }}</p>
+      </div>
+
+      <div class="detail-section">
+        <h4 class="detail-heading">Original Excerpt</h4>
+        <pre class="detail-pre">{{ rule.originalExcerpt }}</pre>
+      </div>
+
+      <div v-if="rule.relations.length" class="detail-section">
+        <h4 class="detail-heading">Relations</h4>
+        <div class="relations-list">
+          <div v-for="(rel, i) in rule.relations" :key="i" class="relation-item">
+            <RelationTag :relation="rel" />
+            <span class="relation-desc">{{ rel.description }}</span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <RuleEditForm
+      v-if="rule && editing"
+      :rule="rule"
+      @cancel="editing = false"
+      @save="(changes, intent) => { $emit('edit', rule!, changes, intent); editing = false }"
+    />
+
+    <template #footer v-if="rule && !editing">
+      <button class="btn btn--secondary" @click="editing = true">Edit Rule</button>
+    </template>
+  </InspectorSideSheet>
+</template>
+
+<style scoped>
+.detail-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f1f3;
+}
+.detail-section:last-child {
+  border-bottom: none;
+}
+.detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+.detail-label {
+  font-size: 12px;
+  color: #65686f;
+  font-weight: 500;
+}
+.detail-code {
+  font-size: 12px;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  background: #f0f1f3;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.detail-heading {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #1c1f26;
+}
+.detail-text {
+  font-size: 13px;
+  color: #1c1f26;
+  line-height: 1.6;
+}
+.detail-pre {
+  font-size: 12px;
+  background: #f7f8fa;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  color: #1c1f26;
+  line-height: 1.5;
+  border: 1px solid #e8eaed;
+}
+.relations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.relation-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.relation-desc {
+  font-size: 12px;
+  color: #65686f;
+}
+.btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+.btn--secondary {
+  background: #1c1f26;
+  color: #fff;
+}
+.btn--secondary:hover {
+  background: #2d3139;
+}
+</style>

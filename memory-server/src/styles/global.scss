@@ -1,0 +1,55 @@
+@use './variables' as *;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #app {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: $text-primary;
+  background: $bg-primary;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c5cc;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+// Vditor overrides (inline to avoid @use ordering issues)
+.vditor {
+  border: 1px solid $border-color !important;
+  border-radius: $border-radius !important;
+  font-family: inherit !important;
+
+  .vditor-toolbar {
+    border-bottom: 1px solid $border-color !important;
+    background: $bg-primary !important;
+  }
+
+  .vditor-content {
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+  }
+
+  .vditor-ir, .vditor-sv, .vditor-wysiwyg {
+    padding: 16px 20px !important;
+  }
+
+  .vditor-preview {
+    padding: 16px 20px !important;
+  }
+}

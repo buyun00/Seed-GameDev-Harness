@@ -1,0 +1,27 @@
+import { createMiddleware } from 'hono/factory'
+import type { AppContext } from '../../types.js'
+
+const AUTH_EXEMPT = new Set([
+  '/api/health',
+  '/api/auth/bootstrap',
+])
+
+export function authMiddleware(ctx: AppContext) {
+  return createMiddleware(async (c, next) => {
+    const path = c.req.path
+
+    if (!path.startsWith('/api/') || AUTH_EXEMPT.has(path)) {
+      return next()
+    }
+
+    const cookie = c.req.header('Cookie')
+    if (cookie) {
+      const match = cookie.match(/seed_session=([^;]+)/)
+      if (match && ctx.sessionStore.has(match[1])) {
+        return next()
+      }
+    }
+
+    return c.json({ error: 'Unauthorized' }, 401)
+  })
+}
