@@ -179,7 +179,7 @@ Claude Code SessionStart → Hook 自动启动 Worker
 - **Bootstrap Cookie 鉴权**：无 token 暴露（不在 URL/HTML/PID 文件中），通过 `GET /api/auth/bootstrap` 建立 HttpOnly session cookie，dev/prod 完全一致
 - **后台任务队列**：LLM 密集型任务（Constitution 分析、Proposal 生成等）异步处理，SSE 实时推送进度，同步 API 兼容包装（超时降级到轮询）
 - **Agent SDK + CLI Fallback**：优先使用 `@anthropic-ai/claude-agent-sdk`，不可用时自动 fallback 到 `claude --print`
-- **esbuild 自包含 Bundle**：后端打包为单个 `dist/worker.cjs`，无需额外 `npm install`
+- **esbuild 自包含 Bundle**：后端打包为单个 `dist/worker.cjs`（含全部运行时依赖），构建产物随 git 提交，用户 clone 即用，无需 `npm install`
 
 ### 使用方式
 

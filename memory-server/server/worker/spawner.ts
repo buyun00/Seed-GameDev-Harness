@@ -1,5 +1,4 @@
 import { spawn } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import {
   canonicalizeProjectPath,
@@ -38,9 +37,7 @@ export async function ensureWorkerStarted(
   const timeoutMs = opts?.timeoutMs ?? 15_000
 
   // Resolve the entry script — this file lives in server/worker/, the entry is server/index.ts
-  const thisDir = typeof __dirname !== 'undefined'
-    ? __dirname
-    : dirname(fileURLToPath(import.meta.url))
+  const thisDir = __dirname
   const entryScript = resolve(thisDir, '..', 'index.ts')
   const entryScriptJs = resolve(thisDir, '..', 'index.js')
 

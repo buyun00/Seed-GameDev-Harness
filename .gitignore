@@ -90,6 +90,9 @@ out
 .nuxt
 dist
 
+# But keep memory-server dist (pre-built artifacts for plugin distribution)
+!memory-server/dist/
+
 # Gatsby files
 .cache/
 # Comment in the public line in if your project uses Gatsby and not Next.js
