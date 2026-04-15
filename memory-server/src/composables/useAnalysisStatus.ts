@@ -1,8 +1,10 @@
 import { computed } from 'vue'
 import { useConstitutionStore } from '@/stores/constitution'
+import { useI18n } from '@/i18n'
 
 export function useAnalysisStatus() {
   const store = useConstitutionStore()
+  const i18n = useI18n()
 
   const statusType = computed(() => {
     switch (store.analysisStatus) {
@@ -14,9 +16,9 @@ export function useAnalysisStatus() {
 
   const statusText = computed(() => {
     switch (store.analysisStatus) {
-      case 'up_to_date': return `分析结果最新（上次分析：${formatDate(store.analyzedAt)}）`
-      case 'outdated': return `分析结果已过期（上次分析：${formatDate(store.analyzedAt)}）`
-      default: return '尚未运行分析'
+      case 'up_to_date': return i18n.value.statusUpToDate(formatDate(store.analyzedAt))
+      case 'outdated': return i18n.value.statusOutdated(formatDate(store.analyzedAt))
+      default: return i18n.value.statusNone
     }
   })
 

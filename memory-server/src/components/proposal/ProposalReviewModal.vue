@@ -2,6 +2,7 @@
 import type { Proposal } from '@/types/proposal'
 import ProposalDiffPanel from './ProposalDiffPanel.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import { useI18n } from '@/i18n'
 
 defineProps<{ proposal: Proposal }>()
 defineEmits<{
@@ -9,6 +10,8 @@ defineEmits<{
   apply: []
   reject: []
 }>()
+
+const i18n = useI18n()
 </script>
 
 <template>
@@ -17,7 +20,7 @@ defineEmits<{
       <div class="modal">
         <div class="modal__header">
           <div class="modal__title-group">
-            <h2 class="modal__title">Review Proposal</h2>
+            <h2 class="modal__title">{{ i18n.reviewProposal }}</h2>
             <StatusBadge :status="proposal.status" />
           </div>
           <button class="modal__close" @click="$emit('close')">&times;</button>
@@ -26,14 +29,14 @@ defineEmits<{
           <ProposalDiffPanel :proposal="proposal" />
         </div>
         <div class="modal__footer">
-          <button class="btn btn--ghost" @click="$emit('reject')">Reject</button>
-          <button class="btn btn--ghost" @click="$emit('close')">Cancel</button>
+          <button class="btn btn--ghost" @click="$emit('reject')">{{ i18n.rejectButton }}</button>
+          <button class="btn btn--ghost" @click="$emit('close')">{{ i18n.cancelButton }}</button>
           <button
             class="btn btn--primary"
             :disabled="proposal.status !== 'pending'"
             @click="$emit('apply')"
           >
-            Apply Changes
+            {{ i18n.applyChanges }}
           </button>
         </div>
       </div>

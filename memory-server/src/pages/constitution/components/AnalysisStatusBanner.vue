@@ -1,22 +1,24 @@
 <script setup lang="ts">
 import { useConstitutionStore } from '@/stores/constitution'
 import { useAnalysisStatus } from '@/composables/useAnalysisStatus'
+import { useI18n } from '@/i18n'
 
 const store = useConstitutionStore()
 const { statusType, statusText } = useAnalysisStatus()
+const i18n = useI18n()
 
 defineEmits<{ analyze: [] }>()
 </script>
 
 <template>
   <div class="analysis-banner-wrapper">
-    <!-- 文件更新醒目提示条 -->
+    <!-- outdated file alert bar -->
     <div v-if="store.analysisStatus === 'outdated'" class="update-alert">
       <span class="update-alert__icon">⚠</span>
       <div class="update-alert__body">
-        <span class="update-alert__title">检测到源文件已更新，分析结果已过期</span>
+        <span class="update-alert__title">{{ i18n.analysisOutdatedAlert }}</span>
         <span class="update-alert__files">
-          已变更：{{ store.changedFiles.join('、') }}
+          {{ i18n.changedFiles }} {{ store.changedFiles.join('、') }}
         </span>
       </div>
       <button
@@ -24,12 +26,12 @@ defineEmits<{ analyze: [] }>()
         :disabled="store.analyzing"
         @click="$emit('analyze')"
       >
-        {{ store.analyzing ? '分析中...' : '立即重新分析' }}
+        {{ store.analyzing ? i18n.analyzing : i18n.reanalyzeNow }}
       </button>
       <span v-if="store.analyzing" class="analysis-banner__spinner" />
     </div>
 
-    <!-- 常规状态条 -->
+    <!-- regular status bar -->
     <div :class="['analysis-banner', `analysis-banner--${statusType}`]">
       <div class="analysis-banner__content">
         <span class="analysis-banner__icon">
@@ -38,23 +40,21 @@ defineEmits<{ analyze: [] }>()
         <span class="analysis-banner__text">{{ statusText }}</span>
       </div>
       <div class="analysis-banner__actions">
-        <!-- 首次分析 -->
         <button
           v-if="store.analysisStatus === 'none'"
           class="banner-btn banner-btn--primary"
           :disabled="store.analyzing"
           @click="$emit('analyze')"
         >
-          {{ store.analyzing ? '分析中...' : 'Run First Analysis' }}
+          {{ store.analyzing ? i18n.analyzing : i18n.runFirstAnalysis }}
         </button>
-        <!-- 已有分析结果时始终显示重新分析按钮 -->
         <button
           v-else
           :class="['banner-btn', store.analysisStatus === 'outdated' ? 'banner-btn--warning' : 'banner-btn--secondary']"
           :disabled="store.analyzing"
           @click="$emit('analyze')"
         >
-          {{ store.analyzing ? '分析中...' : 'Re-run Analysis' }}
+          {{ store.analyzing ? i18n.analyzing : i18n.rerunAnalysis }}
         </button>
         <span v-if="store.analyzing" class="analysis-banner__spinner" />
       </div>
@@ -68,7 +68,6 @@ defineEmits<{ analyze: [] }>()
   flex-direction: column;
 }
 
-/* 文件更新醒目提示条 */
 .update-alert {
   display: flex;
   align-items: center;
@@ -108,7 +107,6 @@ defineEmits<{ analyze: [] }>()
   text-overflow: ellipsis;
 }
 
-/* 常规状态条 */
 .analysis-banner {
   display: flex;
   align-items: center;

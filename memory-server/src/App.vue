@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useI18n } from '@/i18n'
 import AppLayout from '@/layouts/AppLayout.vue'
 
 const appStore = useAppStore()
+const i18n = useI18n()
 onMounted(() => appStore.initialize())
 </script>
 
 <template>
   <div v-if="appStore.loading" class="app-loading">
     <div class="app-loading__spinner" />
-    <p>Connecting to Memory Server...</p>
+    <p>{{ i18n.connectingToServer }}</p>
   </div>
   <AppLayout v-else />
 </template>

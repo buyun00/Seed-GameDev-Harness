@@ -6,6 +6,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import ConfidenceIndicator from '@/components/common/ConfidenceIndicator.vue'
 import RelationTag from '@/components/common/RelationTag.vue'
 import RuleEditForm from './RuleEditForm.vue'
+import { useI18n } from '@/i18n'
 
 const props = defineProps<{
   rule: ConstitutionRule | null
@@ -18,6 +19,7 @@ defineEmits<{
 }>()
 
 const editing = ref(false)
+const i18n = useI18n()
 </script>
 
 <template>
@@ -25,37 +27,37 @@ const editing = ref(false)
     <template v-if="rule && !editing">
       <div class="detail-section">
         <div class="detail-row">
-          <span class="detail-label">Status</span>
+          <span class="detail-label">{{ i18n.labelStatus }}</span>
           <StatusBadge :status="rule.status" />
         </div>
         <div class="detail-row">
-          <span class="detail-label">Confidence</span>
+          <span class="detail-label">{{ i18n.labelConfidence }}</span>
           <ConfidenceIndicator :value="rule.confidence" />
         </div>
         <div class="detail-row">
-          <span class="detail-label">Source</span>
+          <span class="detail-label">{{ i18n.labelSource }}</span>
           <code class="detail-code">{{ rule.sourceFile }}:{{ rule.sourceSpan.startLine }}-{{ rule.sourceSpan.endLine }}</code>
         </div>
         <div v-if="rule.scope" class="detail-row">
-          <span class="detail-label">Scope</span>
+          <span class="detail-label">{{ i18n.labelScope }}</span>
           <span>{{ rule.scope }}</span>
         </div>
       </div>
 
       <div class="detail-section">
-        <h4 class="detail-heading">Normalized Rule</h4>
+        <h4 class="detail-heading">{{ i18n.normalizedRule }}</h4>
         <p class="detail-text">{{ rule.normalizedText }}</p>
       </div>
 
       <div class="detail-section">
-        <h4 class="detail-heading">Original Excerpt</h4>
+        <h4 class="detail-heading">{{ i18n.originalExcerpt }}</h4>
         <pre class="detail-pre">{{ rule.originalExcerpt }}</pre>
       </div>
 
       <div v-if="rule.relations.length" class="detail-section">
-        <h4 class="detail-heading">Relations</h4>
+        <h4 class="detail-heading">{{ i18n.relationsHeading }}</h4>
         <div class="relations-list">
-          <div v-for="(rel, i) in rule.relations" :key="i" class="relation-item">
+          <div v-for="(rel, idx) in rule.relations" :key="idx" class="relation-item">
             <RelationTag :relation="rel" />
             <span class="relation-desc">{{ rel.description }}</span>
           </div>
@@ -71,7 +73,7 @@ const editing = ref(false)
     />
 
     <template #footer v-if="rule && !editing">
-      <button class="btn btn--secondary" @click="editing = true">Edit Rule</button>
+      <button class="btn btn--secondary" @click="editing = true">{{ i18n.editRuleButton }}</button>
     </template>
   </InspectorSideSheet>
 </template>

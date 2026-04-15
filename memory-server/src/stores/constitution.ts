@@ -13,6 +13,9 @@ export const useConstitutionStore = defineStore('constitution', () => {
   const sources = ref<SourceFile[]>([])
   const loading = ref(false)
   const analyzing = ref(false)
+  const progressStep = ref('')
+  const progressPercent = ref(0)
+  const progressLogs = ref<string[]>([])
 
   const effectiveRules = computed(() => rules.value.filter(r => r.status === 'effective'))
   const shadowedRules = computed(() => rules.value.filter(r => r.status === 'shadowed'))
@@ -39,8 +42,31 @@ export const useConstitutionStore = defineStore('constitution', () => {
     } catch { /* ignore */ }
   }
 
+  function onProgressEvent(data: Record<string, unknown>) {
+    progressStep.value = (data.step as string) || ''
+    progressPercent.value = (data.percent as number) || 0
+    const msg = data.message as string
+    if (msg) {
+      progressLogs.value = [...progressLogs.value, `[${new Date().toLocaleTimeString()}] ${msg}`]
+    }
+  }
+
+  function onAgentLog(data: Record<string, unknown>) {
+    const msg = data.message as string
+    if (msg?.trim()) {
+      progressLogs.value = [...progressLogs.value.slice(-99), `[${new Date().toLocaleTimeString()}] ${msg}`]
+    }
+  }
+
+  function clearProgress() {
+    progressLogs.value = []
+    progressStep.value = ''
+    progressPercent.value = 0
+  }
+
   async function analyze() {
     analyzing.value = true
+    clearProgress()
     try {
       const data = await constitutionApi.runAnalysis()
       analysisStatus.value = 'up_to_date'
@@ -71,7 +97,9 @@ export const useConstitutionStore = defineStore('constitution', () => {
   return {
     analysisStatus, analyzedAt, rules, statusSummary, changedFiles,
     sources, loading, analyzing,
+    progressStep, progressPercent, progressLogs,
     effectiveRules, shadowedRules, conflictingRules, unresolvedRules,
     load, loadSources, analyze, proposeEdit, proposeCreate,
+    onProgressEvent, onAgentLog, clearProgress,
   }
 })

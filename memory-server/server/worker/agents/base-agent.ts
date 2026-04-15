@@ -8,6 +8,10 @@ export interface AgentQueryOptions {
   timeoutMs?: number
   signal?: AbortSignal
   disallowedTools?: string[]
+  /** Label shown in terminal logs, e.g. "Constitution" */
+  label?: string
+  /** Called for each significant agent output chunk */
+  onLog?: (msg: string) => void
 }
 
 /**
@@ -46,11 +50,24 @@ async function agentSDKQuery(opts: AgentQueryOptions): Promise<string> {
     ? setTimeout(() => ac.abort(), opts.timeoutMs)
     : null
 
+  const prefix = opts.label ? `[${opts.label}]` : '[Agent]'
+
+  function termLog(msg: string) {
+    process.stderr.write(`${prefix} ${msg}\n`)
+  }
+
+  function forwardLog(msg: string) {
+    termLog(msg)
+    opts.onLog?.(msg)
+  }
+
   try {
     const disallowedTools = opts.disallowedTools ?? [
       'Write', 'Edit', 'MultiEdit', 'Shell',
       'WebFetch', 'WebSearch', 'TodoWrite',
     ]
+
+    termLog('SDK 模式启动...')
 
     let result = ''
     const messages = query({
@@ -66,17 +83,39 @@ async function agentSDKQuery(opts: AgentQueryOptions): Promise<string> {
     })
 
     for await (const message of messages) {
-      if (message.type === 'assistant' && typeof message.content === 'string') {
-        result += message.content
-      } else if (message.type === 'assistant' && Array.isArray(message.content)) {
-        for (const block of message.content) {
-          if (block.type === 'text') {
-            result += block.text
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const msg = message as any
+
+      if (msg.type === 'assistant') {
+        if (typeof msg.content === 'string') {
+          if (msg.content.trim()) {
+            forwardLog(msg.content.slice(0, 400))
+          }
+          result += msg.content
+        } else if (Array.isArray(msg.content)) {
+          for (const block of msg.content) {
+            if (block.type === 'text') {
+              if (block.text.trim()) {
+                forwardLog(block.text.slice(0, 400))
+              }
+              result += block.text
+            } else if (block.type === 'tool_use') {
+              const summary = `调用工具: ${block.name}(${JSON.stringify(block.input ?? {}).slice(0, 120)})`
+              forwardLog(summary)
+            }
           }
         }
+      } else if (msg.type === 'tool_result') {
+        const preview = typeof msg.content === 'string'
+          ? msg.content.slice(0, 120)
+          : JSON.stringify(msg.content ?? '').slice(0, 120)
+        forwardLog(`工具结果: ${preview}`)
+      } else if (msg.type && msg.type !== 'user') {
+        termLog(`[${msg.type}]`)
       }
     }
 
+    termLog('SDK 查询完成')
     return result
   } finally {
     if (timeout) clearTimeout(timeout)
@@ -108,11 +147,23 @@ function cliQuery(opts: AgentQueryOptions): Promise<string> {
       })
     }
 
+    const prefix = opts.label ? `[${opts.label}]` : '[Agent]'
+
     let stdout = ''
     let stderr = ''
 
     proc.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString() })
-    proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString() })
+    proc.stderr.on('data', (chunk: Buffer) => {
+      const text = chunk.toString()
+      stderr += text
+      // 实时打印到终端
+      process.stderr.write(`${prefix} ${text}`)
+      if (opts.onLog) {
+        for (const line of text.split('\n')) {
+          if (line.trim()) opts.onLog(line)
+        }
+      }
+    })
 
     proc.on('close', (code) => {
       if (code !== 0) {

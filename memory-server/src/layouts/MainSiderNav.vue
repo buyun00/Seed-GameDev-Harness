@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from '@/i18n'
 
 const route = useRoute()
 const router = useRouter()
+const i18n = useI18n()
 
-const navItems = [
-  { key: 'constitution', label: 'Constitution', icon: '⚖' },
-  { key: 'auto-memory', label: 'Auto Memory', icon: '🧠' },
-  { key: 'project-knowledge', label: 'Knowledge', icon: '📚' },
-]
+const navItems = computed(() => [
+  { key: 'constitution', label: i18n.value.navConstitution, icon: '⚖' },
+  { key: 'auto-memory', label: i18n.value.navAutoMemory, icon: '🧠' },
+  { key: 'project-knowledge', label: i18n.value.navKnowledge, icon: '📚' },
+])
 
 const activeKey = computed(() => route.name as string)
 
@@ -22,7 +24,7 @@ function navigate(key: string) {
   <nav class="sider-nav">
     <div class="sider-nav__header">
       <span class="sider-nav__logo">S</span>
-      <span class="sider-nav__title">Memory Editor</span>
+      <span class="sider-nav__title">{{ i18n.memoryEditor }}</span>
     </div>
     <ul class="sider-nav__list">
       <li

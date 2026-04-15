@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useConstitutionStore } from '@/stores/constitution'
 import { useProposalStore } from '@/stores/proposal'
 import { useFileChange } from '@/composables/useFileChange'
+import { useI18n } from '@/i18n'
 import PageHeader from '@/layouts/PageHeader.vue'
 import AnalysisStatusBanner from './components/AnalysisStatusBanner.vue'
 import RuleStatusTabs from './components/RuleStatusTabs.vue'
@@ -14,6 +15,7 @@ import type { ConstitutionRule } from '@/types/constitution'
 
 const store = useConstitutionStore()
 const proposalStore = useProposalStore()
+const i18n = useI18n()
 
 const activeStatusTab = ref('effective')
 const mainTab = ref<'rules' | 'sources'>('rules')
@@ -43,7 +45,7 @@ async function handleEdit(rule: ConstitutionRule, changes: { title?: string; nor
 
 <template>
   <div class="constitution-page">
-    <PageHeader title="Constitution" subtitle="Claude Code rule system management" />
+    <PageHeader :title="i18n.pageConstitutionTitle" :subtitle="i18n.pageConstitutionSubtitle" />
 
     <AnalysisStatusBanner @analyze="store.analyze()" />
 
@@ -52,13 +54,13 @@ async function handleEdit(rule: ConstitutionRule, changes: { title?: string; nor
         :class="['page-tabs__item', { 'page-tabs__item--active': mainTab === 'rules' }]"
         @click="mainTab = 'rules'"
       >
-        Rules View
+        {{ i18n.tabRulesView }}
       </button>
       <button
         :class="['page-tabs__item', { 'page-tabs__item--active': mainTab === 'sources' }]"
         @click="mainTab = 'sources'"
       >
-        Source Documents
+        {{ i18n.tabSourceDocs }}
       </button>
     </div>
 
@@ -66,18 +68,18 @@ async function handleEdit(rule: ConstitutionRule, changes: { title?: string; nor
       <RuleStatusTabs v-model:active-tab="activeStatusTab" />
 
       <div class="rules-content">
-        <div v-if="store.loading" class="rules-loading">Loading...</div>
+        <div v-if="store.loading" class="rules-loading">{{ i18n.loading }}</div>
 
         <EmptyState
           v-else-if="store.analysisStatus === 'none'"
-          title="No analysis yet"
-          description="Run your first analysis to extract and categorize rules from your CLAUDE.md files."
+          :title="i18n.emptyNoAnalysis"
+          :description="i18n.emptyNoAnalysisDesc"
         />
 
         <EmptyState
           v-else-if="filteredRules.length === 0"
-          title="No rules in this category"
-          :description="`No ${activeStatusTab} rules found in the current analysis.`"
+          :title="i18n.emptyNoRulesInCategory"
+          :description="i18n.emptyNoRulesDesc(activeStatusTab)"
         />
 
         <div v-else class="rules-grid">

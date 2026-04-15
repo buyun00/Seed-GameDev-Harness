@@ -49,9 +49,23 @@ export async function runConstitutionAnalysis(
   _params: ConstitutionAnalysisParams,
   signal: AbortSignal,
 ): Promise<ConstitutionAnalysisCache> {
+  function emitProgress(step: string, percent: number, message: string) {
+    process.stderr.write(`[Constitution] ${message}\n`)
+    ctx.sseEmitter.emit('analysis:progress', { step, percent, message, ts: Date.now() })
+  }
+
+  function emitLog(message: string) {
+    process.stderr.write(`[Constitution] ${message}\n`)
+    ctx.sseEmitter.emit('agent:log', { source: 'constitution', message, ts: Date.now() })
+  }
+
+  emitProgress('reading_files', 5, '开始读取源文件...')
+
   const sourceFiles = ctx.projectContext.constitutionFiles
   const sources: SourceFileRecord[] = []
   const fileContents: Array<{ path: string; content: string }> = []
+
+  emitLog(`发现 ${sourceFiles.length} 个 Constitution 文件`)
 
   for (const absPath of sourceFiles) {
     const content = await readFile(absPath, 'utf-8')
@@ -64,6 +78,7 @@ export async function runConstitutionAnalysis(
       lastModified: fileStat.mtime.toISOString(),
     })
     fileContents.push({ path: relPath, content })
+    emitLog(`已读取: ${relPath} (${content.length} 字节, ${content.split('\n').length} 行)`)
   }
 
   let promptBody = ''
@@ -73,16 +88,22 @@ export async function runConstitutionAnalysis(
 
   const fullPrompt = ANALYSIS_PROMPT + '\n\nFiles to analyze:\n' + promptBody
 
+  emitProgress('running_ai', 20, '发送给 AI 进行规则分析，请稍候...')
+
   const rawResult = await agentQuery({
     prompt: fullPrompt,
     cwd: ctx.projectContext.projectRoot,
     timeoutMs: 180_000,
     signal,
+    label: 'Constitution',
+    onLog: (msg) => ctx.sseEmitter.emit('agent:log', { source: 'constitution', message: msg, ts: Date.now() }),
     disallowedTools: [
       'Write', 'Edit', 'MultiEdit', 'Shell',
       'WebFetch', 'WebSearch', 'TodoWrite',
     ],
   })
+
+  emitProgress('parsing', 90, '解析 AI 输出结果...')
 
   let parsed: { rules: ConstitutionRule[]; imports?: Array<{ directive: string; sourceFile: string; sourceLine: number; resolvedPath: string }> }
   try {
@@ -143,6 +164,9 @@ export async function runConstitutionAnalysis(
     unresolved: rules.filter(r => r.status === 'unresolved').length,
     total: rules.length,
   }
+
+  emitLog(`分析完成：共 ${rules.length} 条规则（有效 ${summary.effective}，冲突 ${summary.conflicting}，未解决 ${summary.unresolved}）`)
+  emitProgress('done', 100, `分析完成，共提取 ${rules.length} 条规则`)
 
   return {
     version: 2,

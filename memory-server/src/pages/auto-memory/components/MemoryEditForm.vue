@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { MemoryObject } from '@/types/memory'
+import { useI18n } from '@/i18n'
 
 const props = defineProps<{ memory: MemoryObject }>()
 const emit = defineEmits<{
@@ -8,6 +9,7 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const i18n = useI18n()
 const title = ref(props.memory.title)
 const description = ref(props.memory.description)
 const content = ref(props.memory.content)
@@ -26,25 +28,25 @@ function save() {
 <template>
   <div class="memory-edit">
     <div class="field">
-      <label class="field__label">Title</label>
+      <label class="field__label">{{ i18n.labelTitle }}</label>
       <input v-model="title" class="field__input" />
     </div>
     <div class="field">
-      <label class="field__label">Description</label>
+      <label class="field__label">{{ i18n.labelDescription }}</label>
       <textarea v-model="description" class="field__textarea" rows="3" />
     </div>
     <div class="field">
-      <label class="field__label">Content</label>
+      <label class="field__label">{{ i18n.contentHeading }}</label>
       <textarea v-model="content" class="field__textarea" rows="8" />
     </div>
     <div class="field">
-      <label class="field__label">Edit Intent <span class="required">*</span></label>
-      <input v-model="editIntent" class="field__input" placeholder="Describe your changes..." />
+      <label class="field__label">{{ i18n.labelEditIntent }} <span class="required">*</span></label>
+      <input v-model="editIntent" class="field__input" :placeholder="i18n.editChangesPlaceholder" />
     </div>
     <div class="memory-edit__actions">
-      <button class="btn btn--ghost" @click="$emit('cancel')">Cancel</button>
+      <button class="btn btn--ghost" @click="$emit('cancel')">{{ i18n.cancelButton }}</button>
       <button class="btn btn--primary" :disabled="!editIntent.trim()" @click="save">
-        Generate Proposal
+        {{ i18n.generateProposal }}
       </button>
     </div>
   </div>

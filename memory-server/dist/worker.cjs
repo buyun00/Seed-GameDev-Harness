@@ -6558,6 +6558,18 @@ function errorMiddleware() {
 }
 
 // server/http/routes/status.ts
+var import_node_fs = require("node:fs");
+var import_node_path = require("node:path");
+function readLanguage(projectRoot) {
+  try {
+    const configPath = (0, import_node_path.join)(projectRoot, ".seed", "config.json");
+    if (!(0, import_node_fs.existsSync)(configPath)) return "";
+    const config = JSON.parse((0, import_node_fs.readFileSync)(configPath, "utf-8"));
+    return config.language || "";
+  } catch {
+    return "";
+  }
+}
 function statusRoutes(ctx) {
   const router = new Hono2();
   router.get("/status", (c) => {
@@ -6565,6 +6577,7 @@ function statusRoutes(ctx) {
     return c.json({
       status: "running",
       projectPath: ctx.projectContext.projectRoot,
+      language: readLanguage(ctx.projectContext.projectRoot),
       assets: {
         total: assets.length,
         constitution: assets.filter((a) => a.kind === "constitution").length,
@@ -6613,7 +6626,7 @@ data: ${JSON.stringify(event.data)}
 
 // server/http/routes/constitution.ts
 var import_promises2 = require("node:fs/promises");
-var import_node_fs2 = require("node:fs");
+var import_node_fs3 = require("node:fs");
 
 // server/utils/hash.ts
 var import_node_crypto = require("node:crypto");
@@ -6626,7 +6639,7 @@ function stableId(input) {
 
 // server/analyzers/constitution-analyzer.ts
 var import_promises = require("node:fs/promises");
-var import_node_fs = require("node:fs");
+var import_node_fs2 = require("node:fs");
 var import_node_crypto2 = require("node:crypto");
 
 // server/utils/markdown.ts
@@ -6833,7 +6846,7 @@ Diff.prototype = {
   tokenize: function tokenize(value) {
     return Array.from(value);
   },
-  join: function join2(chars) {
+  join: function join3(chars) {
     return chars.join("");
   },
   postProcess: function postProcess(changeObjects) {
@@ -7488,6 +7501,15 @@ async function agentSDKQuery(opts) {
     opts.signal.addEventListener("abort", () => ac.abort());
   }
   const timeout = opts.timeoutMs ? setTimeout(() => ac.abort(), opts.timeoutMs) : null;
+  const prefix = opts.label ? `[${opts.label}]` : "[Agent]";
+  function termLog(msg) {
+    process.stderr.write(`${prefix} ${msg}
+`);
+  }
+  function forwardLog(msg) {
+    termLog(msg);
+    opts.onLog?.(msg);
+  }
   try {
     const disallowedTools = opts.disallowedTools ?? [
       "Write",
@@ -7498,6 +7520,7 @@ async function agentSDKQuery(opts) {
       "WebSearch",
       "TodoWrite"
     ];
+    termLog("SDK \u6A21\u5F0F\u542F\u52A8...");
     let result = "";
     const messages = query({
       prompt: async function* () {
@@ -7511,16 +7534,34 @@ async function agentSDKQuery(opts) {
       }
     });
     for await (const message of messages) {
-      if (message.type === "assistant" && typeof message.content === "string") {
-        result += message.content;
-      } else if (message.type === "assistant" && Array.isArray(message.content)) {
-        for (const block of message.content) {
-          if (block.type === "text") {
-            result += block.text;
+      const msg = message;
+      if (msg.type === "assistant") {
+        if (typeof msg.content === "string") {
+          if (msg.content.trim()) {
+            forwardLog(msg.content.slice(0, 400));
+          }
+          result += msg.content;
+        } else if (Array.isArray(msg.content)) {
+          for (const block of msg.content) {
+            if (block.type === "text") {
+              if (block.text.trim()) {
+                forwardLog(block.text.slice(0, 400));
+              }
+              result += block.text;
+            } else if (block.type === "tool_use") {
+              const summary = `\u8C03\u7528\u5DE5\u5177: ${block.name}(${JSON.stringify(block.input ?? {}).slice(0, 120)})`;
+              forwardLog(summary);
+            }
           }
         }
+      } else if (msg.type === "tool_result") {
+        const preview = typeof msg.content === "string" ? msg.content.slice(0, 120) : JSON.stringify(msg.content ?? "").slice(0, 120);
+        forwardLog(`\u5DE5\u5177\u7ED3\u679C: ${preview}`);
+      } else if (msg.type && msg.type !== "user") {
+        termLog(`[${msg.type}]`);
       }
     }
+    termLog("SDK \u67E5\u8BE2\u5B8C\u6210");
     return result;
   } finally {
     if (timeout) clearTimeout(timeout);
@@ -7545,13 +7586,21 @@ function cliQuery(opts) {
         reject(new Error("Aborted"));
       });
     }
+    const prefix = opts.label ? `[${opts.label}]` : "[Agent]";
     let stdout = "";
     let stderr = "";
     proc.stdout.on("data", (chunk) => {
       stdout += chunk.toString();
     });
     proc.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
+      const text = chunk.toString();
+      stderr += text;
+      process.stderr.write(`${prefix} ${text}`);
+      if (opts.onLog) {
+        for (const line of text.split("\n")) {
+          if (line.trim()) opts.onLog(line);
+        }
+      }
     });
     proc.on("close", (code) => {
       if (code !== 0) {
@@ -7678,14 +7727,14 @@ ${content}
           sourceFile: path,
           sourceLine: imp.line,
           resolvedPath: imp.directive,
-          exists: (0, import_node_fs.existsSync)(this.ctx.projectContext.resolve(imp.directive))
+          exists: (0, import_node_fs2.existsSync)(this.ctx.projectContext.resolve(imp.directive))
         });
       }
     }
     if (parsed.imports) {
       for (const imp of parsed.imports) {
         if (!imports.find((i) => i.directive === imp.directive && i.sourceFile === imp.sourceFile)) {
-          imports.push({ ...imp, exists: (0, import_node_fs.existsSync)(this.ctx.projectContext.resolve(imp.resolvedPath)) });
+          imports.push({ ...imp, exists: (0, import_node_fs2.existsSync)(this.ctx.projectContext.resolve(imp.resolvedPath)) });
         }
       }
     }
@@ -7714,7 +7763,7 @@ ${content}
     const changed = [];
     for (const src of cached.sources) {
       const absPath = this.ctx.projectContext.resolve(src.path);
-      if (!(0, import_node_fs.existsSync)(absPath)) {
+      if (!(0, import_node_fs2.existsSync)(absPath)) {
         changed.push(src.path);
         continue;
       }
@@ -7725,7 +7774,7 @@ ${content}
     }
     for (const src of cached.importedSources) {
       const absPath = this.ctx.projectContext.resolve(src.path);
-      if (!(0, import_node_fs.existsSync)(absPath)) {
+      if (!(0, import_node_fs2.existsSync)(absPath)) {
         changed.push(src.path);
         continue;
       }
@@ -7796,7 +7845,7 @@ Output raw file content only, no markdown fencing.`;
   async proposeCreate(params) {
     const absPath = this.ctx.projectContext.resolve(params.targetFile);
     let currentContent = "";
-    if ((0, import_node_fs.existsSync)(absPath)) {
+    if ((0, import_node_fs2.existsSync)(absPath)) {
       currentContent = await (0, import_promises.readFile)(absPath, "utf-8");
     }
     const prompt = `You are editing a Claude Code configuration file. Current content:
@@ -7923,7 +7972,7 @@ function constitutionRoutes(ctx) {
     const candidates = ["CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md"];
     for (const rel of candidates) {
       const abs = ctx.projectContext.resolve(rel);
-      if ((0, import_node_fs2.existsSync)(abs)) {
+      if ((0, import_node_fs3.existsSync)(abs)) {
         const content = await (0, import_promises2.readFile)(abs, "utf-8");
         sources.push({ path: rel, content, hash: hashString(content), exists: true });
       } else {
@@ -7958,7 +8007,7 @@ function constitutionRoutes(ctx) {
       return c.json({ error: `Rule ${body.ruleId} not found` }, 404);
     }
     const sourceFile = ctx.projectContext.resolve(rule.sourceFile);
-    if (!(0, import_node_fs2.existsSync)(sourceFile)) {
+    if (!(0, import_node_fs3.existsSync)(sourceFile)) {
       return c.json({ error: `Source file ${rule.sourceFile} not found` }, 404);
     }
     const currentContent = await (0, import_promises2.readFile)(sourceFile, "utf-8");
@@ -7990,19 +8039,19 @@ function constitutionRoutes(ctx) {
 
 // server/http/routes/proposal.ts
 var import_promises3 = require("node:fs/promises");
-var import_node_path = require("node:path");
-var import_node_fs3 = require("node:fs");
+var import_node_path2 = require("node:path");
+var import_node_fs4 = require("node:fs");
 function proposalRoutes(ctx) {
   const router = new Hono2();
   router.get("/", async (c) => {
     const dir = ctx.projectContext.proposalsDir;
-    if (!(0, import_node_fs3.existsSync)(dir)) return c.json({ proposals: [] });
+    if (!(0, import_node_fs4.existsSync)(dir)) return c.json({ proposals: [] });
     const files = await (0, import_promises3.readdir)(dir);
     const proposals = [];
     for (const f of files) {
       if (!f.endsWith(".json")) continue;
       try {
-        const raw2 = await (0, import_promises3.readFile)((0, import_node_path.join)(dir, f), "utf-8");
+        const raw2 = await (0, import_promises3.readFile)((0, import_node_path2.join)(dir, f), "utf-8");
         proposals.push(JSON.parse(raw2));
       } catch {
       }
@@ -8012,8 +8061,8 @@ function proposalRoutes(ctx) {
   });
   router.get("/:id", async (c) => {
     const id = c.req.param("id");
-    const filePath = (0, import_node_path.join)(ctx.projectContext.proposalsDir, `${id}.json`);
-    if (!(0, import_node_fs3.existsSync)(filePath)) {
+    const filePath = (0, import_node_path2.join)(ctx.projectContext.proposalsDir, `${id}.json`);
+    if (!(0, import_node_fs4.existsSync)(filePath)) {
       return c.json({ error: "Proposal not found" }, 404);
     }
     const raw2 = await (0, import_promises3.readFile)(filePath, "utf-8");
@@ -8021,8 +8070,8 @@ function proposalRoutes(ctx) {
   });
   router.post("/:id/apply", async (c) => {
     const id = c.req.param("id");
-    const filePath = (0, import_node_path.join)(ctx.projectContext.proposalsDir, `${id}.json`);
-    if (!(0, import_node_fs3.existsSync)(filePath)) {
+    const filePath = (0, import_node_path2.join)(ctx.projectContext.proposalsDir, `${id}.json`);
+    if (!(0, import_node_fs4.existsSync)(filePath)) {
       return c.json({ error: "Proposal not found" }, 404);
     }
     const raw2 = await (0, import_promises3.readFile)(filePath, "utf-8");
@@ -8050,8 +8099,8 @@ function proposalRoutes(ctx) {
   });
   router.post("/:id/reject", async (c) => {
     const id = c.req.param("id");
-    const filePath = (0, import_node_path.join)(ctx.projectContext.proposalsDir, `${id}.json`);
-    if (!(0, import_node_fs3.existsSync)(filePath)) {
+    const filePath = (0, import_node_path2.join)(ctx.projectContext.proposalsDir, `${id}.json`);
+    if (!(0, import_node_fs4.existsSync)(filePath)) {
       return c.json({ error: "Proposal not found" }, 404);
     }
     const raw2 = await (0, import_promises3.readFile)(filePath, "utf-8");
@@ -8065,8 +8114,8 @@ function proposalRoutes(ctx) {
 
 // server/core/memory-path-resolver.ts
 var import_node_child_process2 = require("node:child_process");
-var import_node_fs4 = require("node:fs");
-var import_node_path2 = require("node:path");
+var import_node_fs5 = require("node:fs");
+var import_node_path3 = require("node:path");
 var import_node_os = require("node:os");
 var MemoryPathResolver = class {
   constructor(ctx) {
@@ -8075,11 +8124,11 @@ var MemoryPathResolver = class {
   resolve() {
     const settingsOverride = this.checkSettingsOverride();
     if (settingsOverride) {
-      const resolved = settingsOverride.startsWith("~") ? (0, import_node_path2.join)((0, import_node_os.homedir)(), settingsOverride.slice(1)) : (0, import_node_path2.resolve)(settingsOverride);
+      const resolved = settingsOverride.startsWith("~") ? (0, import_node_path3.join)((0, import_node_os.homedir)(), settingsOverride.slice(1)) : (0, import_node_path3.resolve)(settingsOverride);
       return {
         path: resolved,
         method: "settings_override",
-        hasMemoryMd: (0, import_node_fs4.existsSync)((0, import_node_path2.join)(resolved, "MEMORY.md")),
+        hasMemoryMd: (0, import_node_fs5.existsSync)((0, import_node_path3.join)(resolved, "MEMORY.md")),
         diagnostics: `Using autoMemoryDirectory setting: ${settingsOverride}`
       };
     }
@@ -8092,23 +8141,23 @@ var MemoryPathResolver = class {
         diagnostics: projectSlug.diagnostics
       };
     }
-    const memoryDir = (0, import_node_path2.join)((0, import_node_os.homedir)(), ".claude", "projects", projectSlug.slug, "memory");
+    const memoryDir = (0, import_node_path3.join)((0, import_node_os.homedir)(), ".claude", "projects", projectSlug.slug, "memory");
     return {
       path: memoryDir,
       method: projectSlug.method,
-      hasMemoryMd: (0, import_node_fs4.existsSync)((0, import_node_path2.join)(memoryDir, "MEMORY.md")),
+      hasMemoryMd: (0, import_node_fs5.existsSync)((0, import_node_path3.join)(memoryDir, "MEMORY.md")),
       diagnostics: `Resolved via ${projectSlug.method}: ${memoryDir}`
     };
   }
   checkSettingsOverride() {
     const paths = [
-      (0, import_node_path2.join)((0, import_node_os.homedir)(), ".claude", "settings.json"),
-      (0, import_node_path2.join)(this.ctx.projectRoot, ".claude", "settings.local.json")
+      (0, import_node_path3.join)((0, import_node_os.homedir)(), ".claude", "settings.json"),
+      (0, import_node_path3.join)(this.ctx.projectRoot, ".claude", "settings.local.json")
     ];
     for (const p of paths) {
-      if (!(0, import_node_fs4.existsSync)(p)) continue;
+      if (!(0, import_node_fs5.existsSync)(p)) continue;
       try {
-        const data = JSON.parse((0, import_node_fs4.readFileSync)(p, "utf-8"));
+        const data = JSON.parse((0, import_node_fs5.readFileSync)(p, "utf-8"));
         if (data.autoMemoryDirectory) return data.autoMemoryDirectory;
       } catch {
       }
@@ -8117,14 +8166,14 @@ var MemoryPathResolver = class {
   }
   resolveProjectSlug() {
     const root = this.ctx.projectRoot;
-    const dotGitPath = (0, import_node_path2.join)(root, ".git");
-    if ((0, import_node_fs4.existsSync)(dotGitPath)) {
-      const isFile = (0, import_node_fs4.statSync)(dotGitPath).isFile();
+    const dotGitPath = (0, import_node_path3.join)(root, ".git");
+    if ((0, import_node_fs5.existsSync)(dotGitPath)) {
+      const isFile = (0, import_node_fs5.statSync)(dotGitPath).isFile();
       if (isFile) {
         try {
           const commonDir = (0, import_node_child_process2.execSync)("git rev-parse --git-common-dir", { cwd: root, encoding: "utf-8" }).trim();
-          const resolved = (0, import_node_path2.resolve)(root, commonDir);
-          const mainRoot = (0, import_node_path2.resolve)(resolved, "..");
+          const resolved = (0, import_node_path3.resolve)(root, commonDir);
+          const mainRoot = (0, import_node_path3.resolve)(resolved, "..");
           return {
             slug: this.slugify(mainRoot),
             method: "git_common_dir",
@@ -8159,8 +8208,8 @@ var MemoryPathResolver = class {
 
 // server/analyzers/memory-analyzer.ts
 var import_promises4 = require("node:fs/promises");
-var import_node_path3 = require("node:path");
-var import_node_fs5 = require("node:fs");
+var import_node_path4 = require("node:path");
+var import_node_fs6 = require("node:fs");
 var import_node_crypto3 = require("node:crypto");
 var MemoryAnalyzer = class {
   constructor(ctx, pathResolver) {
@@ -8169,7 +8218,7 @@ var MemoryAnalyzer = class {
   }
   async scan() {
     const resolved = this.pathResolver.resolve();
-    if (!resolved.path || !(0, import_node_fs5.existsSync)(resolved.path)) {
+    if (!resolved.path || !(0, import_node_fs6.existsSync)(resolved.path)) {
       return {
         resolvedPath: resolved.path,
         resolutionMethod: resolved.method,
@@ -8181,8 +8230,8 @@ var MemoryAnalyzer = class {
     }
     const objects = [];
     const indexEntries = /* @__PURE__ */ new Set();
-    const memoryMdPath = (0, import_node_path3.join)(resolved.path, "MEMORY.md");
-    if ((0, import_node_fs5.existsSync)(memoryMdPath)) {
+    const memoryMdPath = (0, import_node_path4.join)(resolved.path, "MEMORY.md");
+    if ((0, import_node_fs6.existsSync)(memoryMdPath)) {
       const content = await (0, import_promises4.readFile)(memoryMdPath, "utf-8");
       const lines = content.split("\n");
       for (const line of lines) {
@@ -8196,7 +8245,7 @@ var MemoryAnalyzer = class {
     const STALE_DAYS = 30;
     for (const file of files) {
       if (!file.endsWith(".md")) continue;
-      const filePath = (0, import_node_path3.join)(resolved.path, file);
+      const filePath = (0, import_node_path4.join)(resolved.path, file);
       const raw2 = await (0, import_promises4.readFile)(filePath, "utf-8");
       const fileStat = await (0, import_promises4.stat)(filePath);
       const { frontmatter, content, excerpt } = parseMarkdown(raw2);
@@ -8242,7 +8291,7 @@ var MemoryAnalyzer = class {
     const obj = result.objects.find((o) => o.id === memoryId);
     if (!obj) throw new Error(`Memory object ${memoryId} not found`);
     if (!result.resolvedPath) throw new Error("Memory path not resolved");
-    const absPath = (0, import_node_path3.join)(result.resolvedPath, obj.sourcePath);
+    const absPath = (0, import_node_path4.join)(result.resolvedPath, obj.sourcePath);
     const currentContent = await (0, import_promises4.readFile)(absPath, "utf-8");
     const prompt = `Edit this memory file. Current content:
 
@@ -8264,7 +8313,7 @@ Output the COMPLETE modified file content. Output raw content only, no markdown 
       type: "memory_edit",
       source: `Edit memory: ${obj.title}`,
       affectedFiles: [{
-        path: (0, import_node_path3.join)(result.resolvedPath, obj.sourcePath),
+        path: (0, import_node_path4.join)(result.resolvedPath, obj.sourcePath),
         action: "modify",
         diff: diff2,
         originalContent: currentContent,
@@ -8593,8 +8642,8 @@ var SseEmitter = class {
 
 // server/core/scanner.ts
 var import_promises6 = require("node:fs/promises");
-var import_node_path4 = require("node:path");
-var import_node_fs6 = require("node:fs");
+var import_node_path5 = require("node:path");
+var import_node_fs7 = require("node:fs");
 var Scanner = class {
   constructor(ctx) {
     this.ctx = ctx;
@@ -8625,7 +8674,7 @@ var Scanner = class {
   }
   async scanRules() {
     const rulesDir = this.ctx.rulesDir;
-    if (!(0, import_node_fs6.existsSync)(rulesDir)) return;
+    if (!(0, import_node_fs7.existsSync)(rulesDir)) return;
     const files = await this.walkMd(rulesDir);
     for (const f of files) {
       await this.addAsset(f, "knowledge", ["rules"]);
@@ -8667,7 +8716,7 @@ var Scanner = class {
     try {
       const entries = await (0, import_promises6.readdir)(dir, { withFileTypes: true });
       for (const entry of entries) {
-        const full = (0, import_node_path4.join)(dir, entry.name);
+        const full = (0, import_node_path5.join)(dir, entry.name);
         if (entry.isDirectory()) {
           results.push(...await this.walkMd(full));
         } else if (entry.isFile() && entry.name.endsWith(".md")) {
@@ -8689,7 +8738,7 @@ var sysPath2 = __toESM(require("path"), 1);
 // node_modules/readdirp/esm/index.js
 var import_promises7 = require("node:fs/promises");
 var import_node_stream = require("node:stream");
-var import_node_path5 = require("node:path");
+var import_node_path6 = require("node:path");
 var EntryTypes = {
   FILE_TYPE: "files",
   DIR_TYPE: "directories",
@@ -8764,7 +8813,7 @@ var ReaddirpStream = class extends import_node_stream.Readable {
     this._wantsDir = type ? DIR_TYPES.has(type) : false;
     this._wantsFile = type ? FILE_TYPES.has(type) : false;
     this._wantsEverything = type === EntryTypes.EVERYTHING_TYPE;
-    this._root = (0, import_node_path5.resolve)(root);
+    this._root = (0, import_node_path6.resolve)(root);
     this._isDirent = !opts.alwaysStat;
     this._statsProp = this._isDirent ? "dirent" : "stats";
     this._rdOptions = { encoding: "utf8", withFileTypes: this._isDirent };
@@ -8835,8 +8884,8 @@ var ReaddirpStream = class extends import_node_stream.Readable {
     let entry;
     const basename3 = this._isDirent ? dirent.name : dirent;
     try {
-      const fullPath = (0, import_node_path5.resolve)((0, import_node_path5.join)(path, basename3));
-      entry = { path: (0, import_node_path5.relative)(this._root, fullPath), fullPath, basename: basename3 };
+      const fullPath = (0, import_node_path6.resolve)((0, import_node_path6.join)(path, basename3));
+      entry = { path: (0, import_node_path6.relative)(this._root, fullPath), fullPath, basename: basename3 };
       entry[this._statsProp] = this._isDirent ? dirent : await this._stat(fullPath);
     } catch (err) {
       this._onError(err);
@@ -8870,7 +8919,7 @@ var ReaddirpStream = class extends import_node_stream.Readable {
         }
         if (entryRealPathStats.isDirectory()) {
           const len = entryRealPath.length;
-          if (full.startsWith(entryRealPath) && full.substr(len, 1) === import_node_path5.sep) {
+          if (full.startsWith(entryRealPath) && full.substr(len, 1) === import_node_path6.sep) {
             const recursiveError = new Error(`Circular symlink detected: "${full}" points to "${entryRealPath}"`);
             recursiveError.code = RECURSIVE_ERROR_CODE;
             return this._onError(recursiveError);
@@ -10418,18 +10467,18 @@ var Watcher = class {
 
 // server/core/cache.ts
 var import_promises10 = require("node:fs/promises");
-var import_node_path6 = require("node:path");
-var import_node_fs7 = require("node:fs");
+var import_node_path7 = require("node:path");
+var import_node_fs8 = require("node:fs");
 var Cache = class {
   constructor(ctx) {
     this.ctx = ctx;
   }
   path(key) {
-    return (0, import_node_path6.join)(this.ctx.cacheDir, `${key}.json`);
+    return (0, import_node_path7.join)(this.ctx.cacheDir, `${key}.json`);
   }
   async get(key) {
     const filePath = this.path(key);
-    if (!(0, import_node_fs7.existsSync)(filePath)) return null;
+    if (!(0, import_node_fs8.existsSync)(filePath)) return null;
     try {
       const raw2 = await (0, import_promises10.readFile)(filePath, "utf-8");
       return JSON.parse(raw2);
@@ -10443,7 +10492,7 @@ var Cache = class {
   }
   async delete(key) {
     const filePath = this.path(key);
-    if ((0, import_node_fs7.existsSync)(filePath)) {
+    if ((0, import_node_fs8.existsSync)(filePath)) {
       const { unlink } = await import("node:fs/promises");
       await unlink(filePath);
     }
@@ -10452,7 +10501,7 @@ var Cache = class {
 
 // server/core/writer.ts
 var import_promises11 = require("node:fs/promises");
-var import_node_fs8 = require("node:fs");
+var import_node_fs9 = require("node:fs");
 var Writer = class {
   locks = /* @__PURE__ */ new Map();
   async write(filePath, content) {
@@ -10467,7 +10516,7 @@ var Writer = class {
     return (0, import_promises11.readFile)(filePath, "utf-8");
   }
   async doWrite(filePath, content) {
-    if ((0, import_node_fs8.existsSync)(filePath)) {
+    if ((0, import_node_fs9.existsSync)(filePath)) {
       await (0, import_promises11.copyFile)(filePath, `${filePath}.bak`);
     }
     const tmpPath = `${filePath}.tmp`;
@@ -10564,26 +10613,26 @@ var ClaudeAdapter = class {
 };
 
 // server/core/project-context.ts
-var import_node_path7 = require("node:path");
+var import_node_path8 = require("node:path");
 var import_promises12 = require("node:fs/promises");
-var import_node_fs9 = require("node:fs");
+var import_node_fs10 = require("node:fs");
 var ProjectContext = class {
   projectRoot;
   seedDir;
   cacheDir;
   proposalsDir;
   constructor(projectPath) {
-    this.projectRoot = (0, import_node_path7.resolve)(projectPath);
-    this.seedDir = (0, import_node_path7.join)(this.projectRoot, ".seed-memory");
-    this.cacheDir = (0, import_node_path7.join)(this.seedDir, "cache");
-    this.proposalsDir = (0, import_node_path7.join)(this.seedDir, "proposals");
+    this.projectRoot = (0, import_node_path8.resolve)(projectPath);
+    this.seedDir = (0, import_node_path8.join)(this.projectRoot, ".seed-memory");
+    this.cacheDir = (0, import_node_path8.join)(this.seedDir, "cache");
+    this.proposalsDir = (0, import_node_path8.join)(this.seedDir, "proposals");
   }
   async initialize() {
     await (0, import_promises12.mkdir)(this.cacheDir, { recursive: true });
     await (0, import_promises12.mkdir)(this.proposalsDir, { recursive: true });
   }
   resolve(...segments) {
-    return (0, import_node_path7.join)(this.projectRoot, ...segments);
+    return (0, import_node_path8.join)(this.projectRoot, ...segments);
   }
   relative(absolutePath) {
     const rel = absolutePath.replace(this.projectRoot, "").replace(/^[/\\]/, "");
@@ -10595,41 +10644,41 @@ var ProjectContext = class {
       ".claude/CLAUDE.md",
       "CLAUDE.local.md"
     ];
-    return candidates.map((f) => this.resolve(f)).filter((f) => (0, import_node_fs9.existsSync)(f));
+    return candidates.map((f) => this.resolve(f)).filter((f) => (0, import_node_fs10.existsSync)(f));
   }
   get rulesDir() {
     return this.resolve(".claude", "rules");
   }
   get knowledgeDirs() {
     const dirs = ["docs", "research", "architecture", "runbooks", "ops"];
-    return dirs.map((d) => this.resolve(d)).filter((d) => (0, import_node_fs9.existsSync)(d));
+    return dirs.map((d) => this.resolve(d)).filter((d) => (0, import_node_fs10.existsSync)(d));
   }
 };
 
 // server/worker/worker-service.ts
-var import_node_path10 = require("node:path");
-var import_node_fs13 = require("node:fs");
+var import_node_path11 = require("node:path");
+var import_node_fs14 = require("node:fs");
 
 // server/worker/process-manager.ts
-var import_node_path8 = require("node:path");
+var import_node_path9 = require("node:path");
 var import_node_os2 = require("node:os");
 var import_node_crypto6 = require("node:crypto");
-var import_node_fs10 = require("node:fs");
-var import_node_path9 = require("node:path");
+var import_node_fs11 = require("node:fs");
+var import_node_path10 = require("node:path");
 var import_node_child_process4 = require("node:child_process");
-var WORKERS_DIR = (0, import_node_path9.join)((0, import_node_os2.homedir)(), ".seed", "workers");
+var WORKERS_DIR = (0, import_node_path10.join)((0, import_node_os2.homedir)(), ".seed", "workers");
 function ensureWorkersDir() {
-  if (!(0, import_node_fs10.existsSync)(WORKERS_DIR)) {
-    (0, import_node_fs10.mkdirSync)(WORKERS_DIR, { recursive: true });
+  if (!(0, import_node_fs11.existsSync)(WORKERS_DIR)) {
+    (0, import_node_fs11.mkdirSync)(WORKERS_DIR, { recursive: true });
   }
 }
 function canonicalizeProjectPath(rawPath) {
-  let p = (0, import_node_path8.resolve)(rawPath);
+  let p = (0, import_node_path9.resolve)(rawPath);
   try {
-    p = (0, import_node_fs10.realpathSync)(p);
+    p = (0, import_node_fs11.realpathSync)(p);
   } catch {
   }
-  if ((0, import_node_fs10.existsSync)((0, import_node_path9.join)(p, ".git")) || (0, import_node_fs10.existsSync)((0, import_node_path9.join)(p, "..", ".git"))) {
+  if ((0, import_node_fs11.existsSync)((0, import_node_path10.join)(p, ".git")) || (0, import_node_fs11.existsSync)((0, import_node_path10.join)(p, "..", ".git"))) {
     try {
       const toplevel = (0, import_node_child_process4.execSync)("git rev-parse --show-toplevel", {
         cwd: p,
@@ -10638,7 +10687,7 @@ function canonicalizeProjectPath(rawPath) {
         timeout: 5e3
       }).trim();
       if (toplevel) {
-        p = (0, import_node_path8.resolve)(toplevel);
+        p = (0, import_node_path9.resolve)(toplevel);
       }
     } catch {
     }
@@ -10646,28 +10695,28 @@ function canonicalizeProjectPath(rawPath) {
   if (process.platform === "win32" && /^[a-zA-Z]:/.test(p)) {
     p = p[0].toUpperCase() + p.slice(1).toLowerCase();
   }
-  return p.split(import_node_path8.sep).join("/");
+  return p.split(import_node_path9.sep).join("/");
 }
 function getProjectSlug(canonicalPath) {
   return (0, import_node_crypto6.createHash)("sha256").update(canonicalPath).digest("hex").slice(0, 12);
 }
 function getWorkerPidPath(canonicalPath) {
   ensureWorkersDir();
-  return (0, import_node_path9.join)(WORKERS_DIR, `worker-${getProjectSlug(canonicalPath)}.pid`);
+  return (0, import_node_path10.join)(WORKERS_DIR, `worker-${getProjectSlug(canonicalPath)}.pid`);
 }
 function writePidFile(canonicalPath, info) {
   ensureWorkersDir();
   const pidPath = getWorkerPidPath(canonicalPath);
-  (0, import_node_fs10.writeFileSync)(pidPath, JSON.stringify(info, null, 2), "utf-8");
+  (0, import_node_fs11.writeFileSync)(pidPath, JSON.stringify(info, null, 2), "utf-8");
 }
 function readPidFile(canonicalPath) {
   const pidPath = getWorkerPidPath(canonicalPath);
-  if (!(0, import_node_fs10.existsSync)(pidPath)) return null;
+  if (!(0, import_node_fs11.existsSync)(pidPath)) return null;
   try {
-    return JSON.parse((0, import_node_fs10.readFileSync)(pidPath, "utf-8"));
+    return JSON.parse((0, import_node_fs11.readFileSync)(pidPath, "utf-8"));
   } catch {
     try {
-      (0, import_node_fs10.unlinkSync)(pidPath);
+      (0, import_node_fs11.unlinkSync)(pidPath);
     } catch {
     }
     return null;
@@ -10676,7 +10725,7 @@ function readPidFile(canonicalPath) {
 function removePidFile(canonicalPath) {
   const pidPath = getWorkerPidPath(canonicalPath);
   try {
-    (0, import_node_fs10.unlinkSync)(pidPath);
+    (0, import_node_fs11.unlinkSync)(pidPath);
   } catch {
   }
 }
@@ -10712,22 +10761,22 @@ function listAllWorkers() {
   ensureWorkersDir();
   const results = [];
   try {
-    const files = (0, import_node_fs10.readdirSync)(WORKERS_DIR).filter((f) => f.endsWith(".pid"));
+    const files = (0, import_node_fs11.readdirSync)(WORKERS_DIR).filter((f) => f.endsWith(".pid"));
     for (const file of files) {
-      const fullPath = (0, import_node_path9.join)(WORKERS_DIR, file);
+      const fullPath = (0, import_node_path10.join)(WORKERS_DIR, file);
       try {
-        const info = JSON.parse((0, import_node_fs10.readFileSync)(fullPath, "utf-8"));
+        const info = JSON.parse((0, import_node_fs11.readFileSync)(fullPath, "utf-8"));
         const alive = isProcessAlive(info.pid);
         if (!alive) {
           try {
-            (0, import_node_fs10.unlinkSync)(fullPath);
+            (0, import_node_fs11.unlinkSync)(fullPath);
           } catch {
           }
         }
         results.push({ ...info, status: alive ? "alive" : "stale" });
       } catch {
         try {
-          (0, import_node_fs10.unlinkSync)(fullPath);
+          (0, import_node_fs11.unlinkSync)(fullPath);
         } catch {
         }
       }
@@ -10855,7 +10904,7 @@ var TaskQueue = class {
 
 // server/worker/agents/constitution-agent.ts
 var import_promises13 = require("node:fs/promises");
-var import_node_fs11 = require("node:fs");
+var import_node_fs12 = require("node:fs");
 var ANALYSIS_PROMPT2 = `You are a rule analysis engine. Analyze the following Claude Code configuration files and extract all rule blocks.
 
 For each rule you MUST provide:
@@ -10889,9 +10938,21 @@ Output strict JSON only, no markdown fencing:
   ]
 }`;
 async function runConstitutionAnalysis(ctx, _params, signal) {
+  function emitProgress(step, percent, message) {
+    process.stderr.write(`[Constitution] ${message}
+`);
+    ctx.sseEmitter.emit("analysis:progress", { step, percent, message, ts: Date.now() });
+  }
+  function emitLog(message) {
+    process.stderr.write(`[Constitution] ${message}
+`);
+    ctx.sseEmitter.emit("agent:log", { source: "constitution", message, ts: Date.now() });
+  }
+  emitProgress("reading_files", 5, "\u5F00\u59CB\u8BFB\u53D6\u6E90\u6587\u4EF6...");
   const sourceFiles = ctx.projectContext.constitutionFiles;
   const sources = [];
   const fileContents = [];
+  emitLog(`\u53D1\u73B0 ${sourceFiles.length} \u4E2A Constitution \u6587\u4EF6`);
   for (const absPath of sourceFiles) {
     const content = await (0, import_promises13.readFile)(absPath, "utf-8");
     const fileStat = await (0, import_promises13.stat)(absPath);
@@ -10903,6 +10964,7 @@ async function runConstitutionAnalysis(ctx, _params, signal) {
       lastModified: fileStat.mtime.toISOString()
     });
     fileContents.push({ path: relPath, content });
+    emitLog(`\u5DF2\u8BFB\u53D6: ${relPath} (${content.length} \u5B57\u8282, ${content.split("\n").length} \u884C)`);
   }
   let promptBody = "";
   for (const { path, content } of fileContents) {
@@ -10912,11 +10974,14 @@ ${content}
 `;
   }
   const fullPrompt = ANALYSIS_PROMPT2 + "\n\nFiles to analyze:\n" + promptBody;
+  emitProgress("running_ai", 20, "\u53D1\u9001\u7ED9 AI \u8FDB\u884C\u89C4\u5219\u5206\u6790\uFF0C\u8BF7\u7A0D\u5019...");
   const rawResult = await agentQuery({
     prompt: fullPrompt,
     cwd: ctx.projectContext.projectRoot,
     timeoutMs: 18e4,
     signal,
+    label: "Constitution",
+    onLog: (msg) => ctx.sseEmitter.emit("agent:log", { source: "constitution", message: msg, ts: Date.now() }),
     disallowedTools: [
       "Write",
       "Edit",
@@ -10927,6 +10992,7 @@ ${content}
       "TodoWrite"
     ]
   });
+  emitProgress("parsing", 90, "\u89E3\u6790 AI \u8F93\u51FA\u7ED3\u679C...");
   let parsed;
   try {
     const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
@@ -10947,21 +11013,21 @@ ${content}
         sourceFile: path,
         sourceLine: imp.line,
         resolvedPath: imp.directive,
-        exists: (0, import_node_fs11.existsSync)(ctx.projectContext.resolve(imp.directive))
+        exists: (0, import_node_fs12.existsSync)(ctx.projectContext.resolve(imp.directive))
       });
     }
   }
   if (parsed.imports) {
     for (const imp of parsed.imports) {
       if (!imports.find((i) => i.directive === imp.directive && i.sourceFile === imp.sourceFile)) {
-        imports.push({ ...imp, exists: (0, import_node_fs11.existsSync)(ctx.projectContext.resolve(imp.resolvedPath)) });
+        imports.push({ ...imp, exists: (0, import_node_fs12.existsSync)(ctx.projectContext.resolve(imp.resolvedPath)) });
       }
     }
   }
   const importedSources = [];
   for (const imp of imports) {
     const absPath = ctx.projectContext.resolve(imp.resolvedPath);
-    if ((0, import_node_fs11.existsSync)(absPath)) {
+    if ((0, import_node_fs12.existsSync)(absPath)) {
       try {
         const content = await (0, import_promises13.readFile)(absPath, "utf-8");
         const fileStat = await (0, import_promises13.stat)(absPath);
@@ -10983,6 +11049,8 @@ ${content}
     unresolved: rules.filter((r) => r.status === "unresolved").length,
     total: rules.length
   };
+  emitLog(`\u5206\u6790\u5B8C\u6210\uFF1A\u5171 ${rules.length} \u6761\u89C4\u5219\uFF08\u6709\u6548 ${summary.effective}\uFF0C\u51B2\u7A81 ${summary.conflicting}\uFF0C\u672A\u89E3\u51B3 ${summary.unresolved}\uFF09`);
+  emitProgress("done", 100, `\u5206\u6790\u5B8C\u6210\uFF0C\u5171\u63D0\u53D6 ${rules.length} \u6761\u89C4\u5219`);
   return {
     version: 2,
     analyzedAt: (/* @__PURE__ */ new Date()).toISOString(),
@@ -10999,7 +11067,7 @@ ${content}
 // server/worker/agents/proposal-agent.ts
 var import_node_crypto8 = require("node:crypto");
 var import_promises14 = require("node:fs/promises");
-var import_node_fs12 = require("node:fs");
+var import_node_fs13 = require("node:fs");
 async function runProposalEdit(ctx, params, signal) {
   const { rule, changes, editIntent, currentContent } = params;
   const prompt = `You are editing a Claude Code configuration file. The file content is:
@@ -11047,7 +11115,7 @@ Output raw file content only, no markdown fencing.`;
 async function runProposalCreate(ctx, params, signal) {
   const absPath = ctx.projectContext.resolve(params.targetFile);
   let currentContent = "";
-  if ((0, import_node_fs12.existsSync)(absPath)) {
+  if ((0, import_node_fs13.existsSync)(absPath)) {
     currentContent = await (0, import_promises14.readFile)(absPath, "utf-8");
   }
   const prompt = `You are editing a Claude Code configuration file. Current content:
@@ -11235,11 +11303,11 @@ var WorkerService = class {
   }
   writeUrlFile(projectRoot, url) {
     try {
-      const seedDir = (0, import_node_path10.join)(projectRoot, ".seed");
-      if (!(0, import_node_fs13.existsSync)(seedDir)) {
-        (0, import_node_fs13.mkdirSync)(seedDir, { recursive: true });
+      const seedDir = (0, import_node_path11.join)(projectRoot, ".seed");
+      if (!(0, import_node_fs14.existsSync)(seedDir)) {
+        (0, import_node_fs14.mkdirSync)(seedDir, { recursive: true });
       }
-      (0, import_node_fs13.writeFileSync)((0, import_node_path10.join)(seedDir, "memory-editor.url"), url, "utf-8");
+      (0, import_node_fs14.writeFileSync)((0, import_node_path11.join)(seedDir, "memory-editor.url"), url, "utf-8");
     } catch {
     }
   }
@@ -11255,8 +11323,8 @@ var WorkerService = class {
 
 // server/worker/spawner.ts
 var import_node_child_process5 = require("node:child_process");
-var import_node_path11 = require("node:path");
-var import_node_fs14 = require("node:fs");
+var import_node_path12 = require("node:path");
+var import_node_fs15 = require("node:fs");
 var import_node_os3 = require("node:os");
 async function ensureWorkerStarted(rawProjectPath, opts) {
   const canonical = canonicalizeProjectPath(rawProjectPath);
@@ -11274,19 +11342,19 @@ async function ensureWorkerStarted(rawProjectPath, opts) {
   const daemonArgs = ["daemon", "--project-path", rawProjectPath, "--port", String(port)];
   let workerCmd;
   let workerArgs;
-  const bundlePath = (0, import_node_path11.join)(thisDir, "worker.cjs");
-  if ((0, import_node_fs14.existsSync)(bundlePath)) {
+  const bundlePath = (0, import_node_path12.join)(thisDir, "worker.cjs");
+  if ((0, import_node_fs15.existsSync)(bundlePath)) {
     workerCmd = process.execPath;
     workerArgs = [bundlePath, ...daemonArgs];
   } else {
-    const entryScriptJs = (0, import_node_path11.resolve)(thisDir, "..", "index.js");
-    if ((0, import_node_fs14.existsSync)(entryScriptJs)) {
+    const entryScriptJs = (0, import_node_path12.resolve)(thisDir, "..", "index.js");
+    if ((0, import_node_fs15.existsSync)(entryScriptJs)) {
       workerCmd = process.execPath;
       workerArgs = [entryScriptJs, ...daemonArgs];
     } else {
-      const entryScript = (0, import_node_path11.resolve)(thisDir, "..", "index.ts");
-      const tsxBin = (0, import_node_path11.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
-      if ((0, import_node_fs14.existsSync)(tsxBin) || (0, import_node_fs14.existsSync)(tsxBin + ".cmd")) {
+      const entryScript = (0, import_node_path12.resolve)(thisDir, "..", "index.ts");
+      const tsxBin = (0, import_node_path12.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
+      if ((0, import_node_fs15.existsSync)(tsxBin) || (0, import_node_fs15.existsSync)(tsxBin + ".cmd")) {
         workerCmd = process.platform === "win32" ? tsxBin + ".cmd" : tsxBin;
         workerArgs = [entryScript, ...daemonArgs];
       } else {
@@ -11315,8 +11383,8 @@ function spawnInConsole(cmd, args, projectPath) {
   const title = `Seed Memory Editor - ${projectName}`;
   if (process.platform === "win32") {
     const innerCmd = [cmd, ...args].map((a) => a.includes(" ") ? `"${a}"` : a).join(" ");
-    const batPath = (0, import_node_path11.join)((0, import_node_os3.tmpdir)(), `seed-worker-${Date.now()}.cmd`);
-    (0, import_node_fs14.writeFileSync)(
+    const batPath = (0, import_node_path12.join)((0, import_node_os3.tmpdir)(), `seed-worker-${Date.now()}.cmd`);
+    (0, import_node_fs15.writeFileSync)(
       batPath,
       `@echo off\r
 title ${title}\r

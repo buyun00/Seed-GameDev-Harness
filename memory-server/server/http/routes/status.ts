@@ -1,5 +1,18 @@
 import { Hono } from 'hono'
+import { readFileSync, existsSync } from 'node:fs'
+import { join } from 'node:path'
 import type { AppContext } from '../../types.js'
+
+function readLanguage(projectRoot: string): string {
+  try {
+    const configPath = join(projectRoot, '.seed', 'config.json')
+    if (!existsSync(configPath)) return ''
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'))
+    return config.language || ''
+  } catch {
+    return ''
+  }
+}
 
 export function statusRoutes(ctx: AppContext) {
   const router = new Hono()
@@ -9,6 +22,7 @@ export function statusRoutes(ctx: AppContext) {
     return c.json({
       status: 'running',
       projectPath: ctx.projectContext.projectRoot,
+      language: readLanguage(ctx.projectContext.projectRoot),
       assets: {
         total: assets.length,
         constitution: assets.filter(a => a.kind === 'constitution').length,

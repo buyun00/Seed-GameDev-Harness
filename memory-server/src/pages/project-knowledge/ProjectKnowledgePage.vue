@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useProjectKnowledgeStore } from '@/stores/projectKnowledge'
 import { useProposalStore } from '@/stores/proposal'
 import { proposeDistill } from '@/api/projectKnowledge'
 import { useFileChange } from '@/composables/useFileChange'
+import { useI18n } from '@/i18n'
 import PageHeader from '@/layouts/PageHeader.vue'
 import InspectorSideSheet from '@/layouts/InspectorSideSheet.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -13,6 +14,7 @@ import type { KnowledgeObject } from '@/types/knowledge'
 
 const store = useProjectKnowledgeStore()
 const proposalStore = useProposalStore()
+const i18n = useI18n()
 
 onMounted(() => store.load())
 useFileChange(() => store.load())
@@ -29,25 +31,25 @@ async function distill(targetType: 'rule' | 'memory') {
   } catch { /* ignore */ }
 }
 
-const affinityLabels: Record<string, string> = {
-  affects_constitution: 'Affects Constitution',
-  candidate_for_memory: 'Memory Candidate',
-  reference_only: 'Reference Only',
-}
+const affinityLabels = computed(() => ({
+  affects_constitution: i18n.value.affinityAffectsConstitution,
+  candidate_for_memory: i18n.value.affinityMemoryCandidate,
+  reference_only: i18n.value.affinityReferenceOnly,
+}))
 </script>
 
 <template>
   <div class="knowledge-page">
-    <PageHeader title="Project Knowledge" subtitle="Project documentation and knowledge objects" />
+    <PageHeader :title="i18n.pageKnowledgeTitle" :subtitle="i18n.pageKnowledgeSubtitle" />
 
     <div class="knowledge-layout">
       <aside class="knowledge-sidebar">
-        <h4 class="sidebar-title">Categories</h4>
+        <h4 class="sidebar-title">{{ i18n.categoriesTitle }}</h4>
         <button
           :class="['cat-btn', { 'cat-btn--active': !store.filterCategory }]"
           @click="store.filterCategory = null"
         >
-          All <span class="cat-count">{{ store.objects.length }}</span>
+          {{ i18n.allCategory }} <span class="cat-count">{{ store.objects.length }}</span>
         </button>
         <button
           v-for="cat in store.categories"
@@ -61,8 +63,8 @@ const affinityLabels: Record<string, string> = {
       </aside>
 
       <main class="knowledge-main">
-        <div v-if="store.loading" class="loading">Loading...</div>
-        <EmptyState v-else-if="store.filteredObjects.length === 0" title="No knowledge objects" description="No project knowledge documents found." />
+        <div v-if="store.loading" class="loading">{{ i18n.loading }}</div>
+        <EmptyState v-else-if="store.filteredObjects.length === 0" :title="i18n.emptyNoKnowledge" :description="i18n.emptyNoKnowledgeDesc" />
         <div v-else class="knowledge-grid">
           <div
             v-for="obj in store.filteredObjects"
@@ -77,7 +79,7 @@ const affinityLabels: Record<string, string> = {
             <p class="knowledge-card__summary">{{ truncate(obj.summary, 120) }}</p>
             <div class="knowledge-card__meta">
               <span class="knowledge-card__cat">{{ obj.category.replace(/_/g, ' ') }}</span>
-              <span class="knowledge-card__affinity">{{ affinityLabels[obj.layerAffinity] || obj.layerAffinity }}</span>
+              <span class="knowledge-card__affinity">{{ affinityLabels[obj.layerAffinity as keyof typeof affinityLabels] || obj.layerAffinity }}</span>
               <span class="knowledge-card__date">{{ formatDate(obj.updatedAt) }}</span>
             </div>
           </div>
@@ -92,20 +94,20 @@ const affinityLabels: Record<string, string> = {
     >
       <template v-if="store.selectedObject">
         <div class="inspector-section">
-          <div class="detail-row"><span class="label">Category</span><span>{{ capitalize(store.selectedObject.category.replace(/_/g, ' ')) }}</span></div>
-          <div class="detail-row"><span class="label">Status</span><StatusBadge :status="store.selectedObject.status" /></div>
-          <div class="detail-row"><span class="label">Layer</span><span>{{ affinityLabels[store.selectedObject.layerAffinity] }}</span></div>
-          <div class="detail-row"><span class="label">Path</span><code>{{ store.selectedObject.sourcePath }}</code></div>
-          <div class="detail-row"><span class="label">Updated</span><span>{{ formatDate(store.selectedObject.updatedAt) }}</span></div>
+          <div class="detail-row"><span class="label">{{ i18n.labelCategory }}</span><span>{{ capitalize(store.selectedObject.category.replace(/_/g, ' ')) }}</span></div>
+          <div class="detail-row"><span class="label">{{ i18n.labelStatus }}</span><StatusBadge :status="store.selectedObject.status" /></div>
+          <div class="detail-row"><span class="label">{{ i18n.labelLayer }}</span><span>{{ affinityLabels[store.selectedObject.layerAffinity as keyof typeof affinityLabels] }}</span></div>
+          <div class="detail-row"><span class="label">{{ i18n.labelPath }}</span><code>{{ store.selectedObject.sourcePath }}</code></div>
+          <div class="detail-row"><span class="label">{{ i18n.labelUpdated }}</span><span>{{ formatDate(store.selectedObject.updatedAt) }}</span></div>
         </div>
         <div class="inspector-section">
-          <h4>Summary</h4>
+          <h4>{{ i18n.summaryHeading }}</h4>
           <p class="summary-text">{{ store.selectedObject.summary }}</p>
         </div>
       </template>
       <template #footer v-if="store.selectedObject">
-        <button class="btn btn--secondary" @click="distill('rule')">Distill to Rule</button>
-        <button class="btn btn--secondary" @click="distill('memory')">Distill to Memory</button>
+        <button class="btn btn--secondary" @click="distill('rule')">{{ i18n.distillToRule }}</button>
+        <button class="btn btn--secondary" @click="distill('memory')">{{ i18n.distillToMemory }}</button>
       </template>
     </InspectorSideSheet>
   </div>

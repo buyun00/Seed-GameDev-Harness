@@ -4,6 +4,7 @@ import { useAutoMemoryStore } from '@/stores/autoMemory'
 import { useProposalStore } from '@/stores/proposal'
 import { proposeMemoryEdit } from '@/api/autoMemory'
 import { useFileChange } from '@/composables/useFileChange'
+import { useI18n } from '@/i18n'
 import PageHeader from '@/layouts/PageHeader.vue'
 import InspectorSideSheet from '@/layouts/InspectorSideSheet.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -14,6 +15,7 @@ import type { MemoryObject, MemoryType, MemoryStatus } from '@/types/memory'
 
 const store = useAutoMemoryStore()
 const proposalStore = useProposalStore()
+const i18n = useI18n()
 const editing = ref(false)
 
 onMounted(() => store.load())
@@ -38,7 +40,7 @@ function selectMemory(obj: MemoryObject) {
 
 <template>
   <div class="memory-page">
-    <PageHeader title="Auto Memory" subtitle="Claude Code automatic memory system" />
+    <PageHeader :title="i18n.pageAutoMemoryTitle" :subtitle="i18n.pageAutoMemorySubtitle" />
 
     <div v-if="store.scanResult" class="memory-summary">
       <div class="summary-card" v-for="(val, key) in store.scanResult.summary" :key="key">
@@ -50,7 +52,7 @@ function selectMemory(obj: MemoryObject) {
     <div class="memory-layout">
       <aside class="memory-sidebar">
         <div class="filter-section">
-          <h4 class="filter-title">Type</h4>
+          <h4 class="filter-title">{{ i18n.filterType }}</h4>
           <button
             v-for="t in typeOptions" :key="t"
             :class="['filter-btn', { 'filter-btn--active': store.filterType === t }]"
@@ -58,7 +60,7 @@ function selectMemory(obj: MemoryObject) {
           >{{ t }}</button>
         </div>
         <div class="filter-section">
-          <h4 class="filter-title">Status</h4>
+          <h4 class="filter-title">{{ i18n.filterStatus }}</h4>
           <button
             v-for="s in statusOptions" :key="s"
             :class="['filter-btn', { 'filter-btn--active': store.filterStatus === s }]"
@@ -68,14 +70,14 @@ function selectMemory(obj: MemoryObject) {
         <div v-if="store.scanResult" class="diagnostics">
           <p class="diagnostics__method">Method: {{ store.scanResult.resolutionMethod }}</p>
           <p class="diagnostics__path" :title="store.scanResult.resolvedPath ?? ''">
-            {{ store.scanResult.resolvedPath ? truncate(store.scanResult.resolvedPath, 40) : 'Not resolved' }}
+            {{ store.scanResult.resolvedPath ? truncate(store.scanResult.resolvedPath, 40) : i18n.notResolved }}
           </p>
         </div>
       </aside>
 
       <main class="memory-main">
-        <div v-if="store.loading" class="loading">Loading...</div>
-        <EmptyState v-else-if="store.objects.length === 0" title="No memory objects" description="No auto memory found for this project." />
+        <div v-if="store.loading" class="loading">{{ i18n.loading }}</div>
+        <EmptyState v-else-if="store.objects.length === 0" :title="i18n.emptyNoMemory" :description="i18n.emptyNoMemoryDesc" />
         <div v-else class="memory-grid">
           <div
             v-for="obj in store.objects"
@@ -104,14 +106,14 @@ function selectMemory(obj: MemoryObject) {
     >
       <template v-if="store.selectedObject && !editing">
         <div class="inspector-section">
-          <div class="detail-row"><span class="label">Type</span><span>{{ store.selectedObject.type }}</span></div>
-          <div class="detail-row"><span class="label">Status</span><StatusBadge :status="store.selectedObject.status" /></div>
-          <div class="detail-row"><span class="label">Indexed</span><span>{{ store.selectedObject.indexed ? 'Yes' : 'No' }}</span></div>
-          <div class="detail-row"><span class="label">Path</span><code>{{ store.selectedObject.sourcePath }}</code></div>
-          <div class="detail-row"><span class="label">Updated</span><span>{{ formatDate(store.selectedObject.updatedAt) }}</span></div>
+          <div class="detail-row"><span class="label">{{ i18n.labelType }}</span><span>{{ store.selectedObject.type }}</span></div>
+          <div class="detail-row"><span class="label">{{ i18n.labelStatus }}</span><StatusBadge :status="store.selectedObject.status" /></div>
+          <div class="detail-row"><span class="label">{{ i18n.labelIndexed }}</span><span>{{ store.selectedObject.indexed ? i18n.yes : i18n.no }}</span></div>
+          <div class="detail-row"><span class="label">{{ i18n.labelPath }}</span><code>{{ store.selectedObject.sourcePath }}</code></div>
+          <div class="detail-row"><span class="label">{{ i18n.labelUpdated }}</span><span>{{ formatDate(store.selectedObject.updatedAt) }}</span></div>
         </div>
         <div class="inspector-section">
-          <h4>Content</h4>
+          <h4>{{ i18n.contentHeading }}</h4>
           <pre class="content-pre">{{ store.selectedObject.content }}</pre>
         </div>
       </template>
@@ -122,7 +124,7 @@ function selectMemory(obj: MemoryObject) {
         @cancel="editing = false"
       />
       <template #footer v-if="store.selectedObject && !editing">
-        <button class="btn btn--secondary" @click="editing = true">Edit</button>
+        <button class="btn btn--secondary" @click="editing = true">{{ i18n.editButton }}</button>
       </template>
     </InspectorSideSheet>
   </div>

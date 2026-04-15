@@ -3,10 +3,13 @@ import type { ConstitutionRule } from '@/types/constitution'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import ConfidenceIndicator from '@/components/common/ConfidenceIndicator.vue'
 import RelationTag from '@/components/common/RelationTag.vue'
+import { useI18n } from '@/i18n'
 import { truncate } from '@/utils/format'
 
 defineProps<{ rule: ConstitutionRule }>()
 defineEmits<{ select: [rule: ConstitutionRule] }>()
+
+const i18n = useI18n()
 </script>
 
 <template>
@@ -24,7 +27,7 @@ defineEmits<{ select: [rule: ConstitutionRule] }>()
     <div v-if="rule.relations.length" class="rule-card__relations">
       <RelationTag v-for="(rel, i) in rule.relations.slice(0, 3)" :key="i" :relation="rel" />
       <span v-if="rule.relations.length > 3" class="rule-card__more">
-        +{{ rule.relations.length - 3 }} more
+        {{ i18n.moreRelations(rule.relations.length - 3) }}
       </span>
     </div>
   </div>

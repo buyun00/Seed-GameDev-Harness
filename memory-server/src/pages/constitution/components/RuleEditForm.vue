@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { ConstitutionRule } from '@/types/constitution'
+import { useI18n } from '@/i18n'
 
 const props = defineProps<{ rule: ConstitutionRule }>()
 const emit = defineEmits<{
@@ -8,6 +9,7 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const i18n = useI18n()
 const title = ref(props.rule.title)
 const normalizedText = ref(props.rule.normalizedText)
 const editIntent = ref('')
@@ -24,21 +26,21 @@ function save() {
 <template>
   <div class="rule-edit">
     <div class="field">
-      <label class="field__label">Title</label>
+      <label class="field__label">{{ i18n.labelTitle }}</label>
       <input v-model="title" class="field__input" />
     </div>
     <div class="field">
-      <label class="field__label">Rule Content</label>
+      <label class="field__label">{{ i18n.labelRuleContent }}</label>
       <textarea v-model="normalizedText" class="field__textarea" rows="6" />
     </div>
     <div class="field">
-      <label class="field__label">Edit Intent <span class="required">*</span></label>
-      <input v-model="editIntent" class="field__input" placeholder="Describe what you're changing and why..." />
+      <label class="field__label">{{ i18n.labelEditIntent }} <span class="required">*</span></label>
+      <input v-model="editIntent" class="field__input" :placeholder="i18n.editIntentPlaceholder" />
     </div>
     <div class="rule-edit__actions">
-      <button class="btn btn--ghost" @click="$emit('cancel')">Cancel</button>
+      <button class="btn btn--ghost" @click="$emit('cancel')">{{ i18n.cancelButton }}</button>
       <button class="btn btn--primary" :disabled="!editIntent.trim()" @click="save">
-        Generate Proposal
+        {{ i18n.generateProposal }}
       </button>
     </div>
   </div>

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useConstitutionStore } from '@/stores/constitution'
+import { useI18n } from '@/i18n'
 import type { SourceFile } from '@/types/constitution'
 
 const store = useConstitutionStore()
+const i18n = useI18n()
 
 onMounted(() => store.loadSources())
 
@@ -19,7 +21,7 @@ function toggle(source: SourceFile & { expanded?: boolean }) {
         <span class="source-card__icon">{{ (source as any).expanded ? '▾' : '▸' }}</span>
         <span class="source-card__path">{{ source.path }}</span>
         <span v-if="!source.exists" class="source-card__badge source-card__badge--missing">
-          Not found
+          {{ i18n.fileNotFound }}
         </span>
         <span v-else class="source-card__badge source-card__badge--ok">
           {{ Math.round(source.content.length / 1024 * 10) / 10 }}KB

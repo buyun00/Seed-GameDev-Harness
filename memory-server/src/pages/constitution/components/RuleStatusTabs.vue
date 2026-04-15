@@ -1,17 +1,20 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useConstitutionStore } from '@/stores/constitution'
+import { useI18n } from '@/i18n'
 
 const store = useConstitutionStore()
+const i18n = useI18n()
 
 defineProps<{ activeTab: string }>()
 defineEmits<{ 'update:activeTab': [value: string] }>()
 
-const tabs = [
-  { key: 'effective', label: 'Effective', color: '#00b365' },
-  { key: 'shadowed', label: 'Shadowed', color: '#f59e0b' },
-  { key: 'conflicting', label: 'Conflicting', color: '#ef4444' },
-  { key: 'unresolved', label: 'Unresolved', color: '#9ca3af' },
-]
+const tabs = computed(() => [
+  { key: 'effective', label: i18n.value.tabEffective, color: '#00b365' },
+  { key: 'shadowed', label: i18n.value.tabShadowed, color: '#f59e0b' },
+  { key: 'conflicting', label: i18n.value.tabConflicting, color: '#ef4444' },
+  { key: 'unresolved', label: i18n.value.tabUnresolved, color: '#9ca3af' },
+])
 </script>
 
 <template>
@@ -24,7 +27,7 @@ const tabs = [
     >
       <span class="rule-tabs__dot" :style="{ background: tab.color }" />
       <span>{{ tab.label }}</span>
-      <span class="rule-tabs__count">{{ (store.statusSummary as any)[tab.key] ?? 0 }}</span>
+      <span class="rule-tabs__count">{{ (store.statusSummary as Record<string, number>)[tab.key] ?? 0 }}</span>
     </button>
   </div>
 </template>

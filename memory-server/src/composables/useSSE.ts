@@ -26,6 +26,7 @@ export function useSSE() {
       'file:changed',
       'analysis:progress',
       'analysis:complete',
+      'agent:log',
       'proposal:created',
       'proposal:applied',
       'scan:updated',
