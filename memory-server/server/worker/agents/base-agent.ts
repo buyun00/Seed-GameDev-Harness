@@ -26,6 +26,12 @@ export async function isAgentSDKAvailable(): Promise<boolean> {
   }
 }
 
+export async function getAgentBackendLabel(): Promise<string> {
+  return await isAgentSDKAvailable()
+    ? 'Claude Agent SDK'
+    : 'claude CLI fallback (SDK unavailable)'
+}
+
 /**
  * Run a query via Claude Agent SDK if available,
  * otherwise fallback to `claude --print` CLI.

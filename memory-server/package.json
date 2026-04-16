@@ -20,6 +20,7 @@
     "worker:restart": "node dist/worker.cjs restart"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.110",
     "@hono/node-server": "^1.13.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "chokidar": "^4.0.0",
@@ -29,13 +30,14 @@
     "remark": "^15.0.1",
     "remark-parse": "^11.0.0",
     "unified": "^11.0.5",
-    "zod": "^3.23.0"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@kousum/semi-ui-vue": "^2.78.0",
     "@types/diff": "^6.0.0",
     "@types/node": "^22.0.0",
     "@vitejs/plugin-vue": "^5.1.0",
+    "@vitejs/plugin-vue-jsx": "^4.1.0",
     "@vueuse/core": "^12.0.0",
     "axios": "^1.7.0",
     "concurrently": "^9.0.0",
@@ -46,7 +48,6 @@
     "typescript": "^5.6.0",
     "vditor": "^3.10.0",
     "vite": "^6.0.0",
-    "@vitejs/plugin-vue-jsx": "^4.1.0",
     "vue": "^3.5.0",
     "vue-router": "^4.4.0",
     "vue-tsc": "^2.1.0"

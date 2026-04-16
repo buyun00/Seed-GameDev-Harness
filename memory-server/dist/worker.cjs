@@ -7937,6 +7937,9 @@ async function isAgentSDKAvailable() {
     return false;
   }
 }
+async function getAgentBackendLabel() {
+  return await isAgentSDKAvailable() ? "Claude Agent SDK" : "claude CLI fallback (SDK unavailable)";
+}
 async function agentQuery(opts) {
   const sdkAvailable = await isAgentSDKAvailable();
   if (sdkAvailable) {
@@ -11678,6 +11681,7 @@ var WorkerService = class {
   shuttingDown = false;
   async start(rawProjectPath, port = 0) {
     this.canonicalPath = canonicalizeProjectPath(rawProjectPath);
+    const agentBackendLabel = await getAgentBackendLabel();
     const projectContext = new ProjectContext(rawProjectPath);
     await projectContext.initialize();
     const cache = new Cache(projectContext);
@@ -11747,6 +11751,8 @@ var WorkerService = class {
           process.stderr.write(`[Seed Worker] URL: ${url}
 `);
           process.stderr.write(`[Seed Worker] PID: ${process.pid}  Port: ${actualPort}
+`);
+          process.stderr.write(`[Seed Worker] Agent backend: ${agentBackendLabel}
 
 `);
           this.writeUrlFile(projectContext.projectRoot, url);
