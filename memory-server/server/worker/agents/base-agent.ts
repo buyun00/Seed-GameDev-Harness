@@ -1,5 +1,4 @@
 import { spawn } from 'node:child_process'
-import { resolve } from 'node:path'
 
 export interface AgentQueryOptions {
   prompt: string
@@ -16,7 +15,7 @@ export interface AgentQueryOptions {
 
 /**
  * Check if Claude Agent SDK is available.
- * Returns false if the module cannot be imported (P2 external dependency).
+ * Returns false if the module cannot be imported.
  */
 export async function isAgentSDKAvailable(): Promise<boolean> {
   try {
@@ -34,8 +33,10 @@ export async function isAgentSDKAvailable(): Promise<boolean> {
 export async function agentQuery(opts: AgentQueryOptions): Promise<string> {
   const sdkAvailable = await isAgentSDKAvailable()
   if (sdkAvailable) {
+    opts.onLog?.('Agent backend: Claude Agent SDK')
     return agentSDKQuery(opts)
   }
+  opts.onLog?.('Agent backend: claude CLI fallback (SDK unavailable)')
   return cliQuery(opts)
 }
 
@@ -67,7 +68,7 @@ async function agentSDKQuery(opts: AgentQueryOptions): Promise<string> {
       'WebFetch', 'WebSearch', 'TodoWrite',
     ]
 
-    termLog('SDK 模式启动...')
+    termLog('SDK mode started')
 
     let result = ''
     const messages = query({
@@ -83,39 +84,24 @@ async function agentSDKQuery(opts: AgentQueryOptions): Promise<string> {
     })
 
     for await (const message of messages) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const msg = message as any
-
-      if (msg.type === 'assistant') {
-        if (typeof msg.content === 'string') {
-          if (msg.content.trim()) {
-            forwardLog(msg.content.slice(0, 400))
-          }
-          result += msg.content
-        } else if (Array.isArray(msg.content)) {
-          for (const block of msg.content) {
-            if (block.type === 'text') {
-              if (block.text.trim()) {
-                forwardLog(block.text.slice(0, 400))
-              }
-              result += block.text
-            } else if (block.type === 'tool_use') {
-              const summary = `调用工具: ${block.name}(${JSON.stringify(block.input ?? {}).slice(0, 120)})`
-              forwardLog(summary)
-            }
-          }
+      const formatted = formatSdkMessage(message)
+      if (formatted.logs.length > 0) {
+        for (const line of formatted.logs) {
+          forwardLog(line)
         }
-      } else if (msg.type === 'tool_result') {
-        const preview = typeof msg.content === 'string'
-          ? msg.content.slice(0, 120)
-          : JSON.stringify(msg.content ?? '').slice(0, 120)
-        forwardLog(`工具结果: ${preview}`)
-      } else if (msg.type && msg.type !== 'user') {
-        termLog(`[${msg.type}]`)
+      } else {
+        const genericType = getMessageType(message)
+        if (genericType && genericType !== 'user') {
+          termLog(`[${genericType}]`)
+        }
+      }
+
+      if (formatted.resultText) {
+        result += formatted.resultText
       }
     }
 
-    termLog('SDK 查询完成')
+    termLog('SDK query completed')
     return result
   } finally {
     if (timeout) clearTimeout(timeout)
@@ -130,8 +116,6 @@ function cliQuery(opts: AgentQueryOptions): Promise<string> {
   if (opts.systemPrompt) {
     args.push('--append-system-prompt', opts.systemPrompt)
   }
-  // Note: prompt is NOT passed as a CLI arg — it is written to stdin below.
-  // Claude CLI reads from stdin when a pipe is open, and ignores positional args in that case.
 
   return new Promise<string>((resolvePromise, reject) => {
     const proc = spawn('claude', args, {
@@ -141,7 +125,6 @@ function cliQuery(opts: AgentQueryOptions): Promise<string> {
       cwd: opts.cwd,
     })
 
-    // Write prompt to stdin and close it so Claude CLI doesn't wait for more input
     proc.stdin.write(opts.prompt, 'utf-8')
     proc.stdin.end()
 
@@ -157,11 +140,13 @@ function cliQuery(opts: AgentQueryOptions): Promise<string> {
     let stdout = ''
     let stderr = ''
 
-    proc.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString() })
+    proc.stdout.on('data', (chunk: Buffer) => {
+      stdout += chunk.toString()
+    })
+
     proc.stderr.on('data', (chunk: Buffer) => {
       const text = chunk.toString()
       stderr += text
-      // 实时打印到终端
       process.stderr.write(`${prefix} ${text}`)
       if (opts.onLog) {
         for (const line of text.split('\n')) {
@@ -185,4 +170,142 @@ function cliQuery(opts: AgentQueryOptions): Promise<string> {
 
     proc.on('error', reject)
   })
+}
+
+function getMessageType(message: unknown): string | undefined {
+  if (!message || typeof message !== 'object') {
+    return undefined
+  }
+  const record = message as { type?: unknown }
+  return typeof record.type === 'string' ? record.type : undefined
+}
+
+function formatSdkMessage(message: unknown): { logs: string[]; resultText: string } {
+  if (!message || typeof message !== 'object') {
+    return { logs: [], resultText: '' }
+  }
+
+  const msg = message as {
+    type?: string
+    content?: unknown
+    name?: unknown
+    input?: unknown
+    result?: unknown
+    subtype?: unknown
+  }
+
+  const logs: string[] = []
+  let resultText = ''
+
+  if (msg.type === 'assistant') {
+    const blocks = normalizeContentBlocks(msg.content)
+    for (const block of blocks) {
+      if (block.kind === 'text') {
+        if (block.text.trim()) {
+          logs.push(...toLogLines(`assistant: ${block.text}`))
+        }
+        resultText += block.text
+      } else if (block.kind === 'tool_use') {
+        const renderedInput = stringifyForLog(block.input)
+        logs.push(...toLogLines(`tool_use: ${block.name}${renderedInput ? ` ${renderedInput}` : ''}`))
+      } else if (block.kind === 'other') {
+        logs.push(...toLogLines(`assistant:${block.label} ${block.text}`))
+      }
+    }
+    return { logs, resultText }
+  }
+
+  if (msg.type === 'tool_result') {
+    const rendered = stringifyForLog(msg.content)
+    logs.push(...toLogLines(`tool_result: ${rendered}`))
+    return { logs, resultText }
+  }
+
+  if (msg.type === 'result') {
+    const rendered = stringifyForLog(msg.result ?? msg.content)
+    if (rendered) {
+      logs.push(...toLogLines(`result: ${rendered}`))
+    }
+    return { logs, resultText }
+  }
+
+  const rendered = stringifyForLog(msg.content)
+  const typeLabel = msg.type ?? 'event'
+  const subtype = typeof msg.subtype === 'string' ? `:${msg.subtype}` : ''
+  const suffix = rendered ? ` ${rendered}` : ''
+  logs.push(...toLogLines(`${typeLabel}${subtype}${suffix}`))
+  return { logs, resultText }
+}
+
+function normalizeContentBlocks(content: unknown): Array<
+  | { kind: 'text'; text: string }
+  | { kind: 'tool_use'; name: string; input: unknown }
+  | { kind: 'other'; label: string; text: string }
+> {
+  if (typeof content === 'string') {
+    return [{ kind: 'text', text: content }]
+  }
+
+  if (!Array.isArray(content)) {
+    return content == null ? [] : [{ kind: 'other', label: 'content', text: stringifyForLog(content) }]
+  }
+
+  const blocks: Array<
+    | { kind: 'text'; text: string }
+    | { kind: 'tool_use'; name: string; input: unknown }
+    | { kind: 'other'; label: string; text: string }
+  > = []
+
+  for (const rawBlock of content) {
+    if (!rawBlock || typeof rawBlock !== 'object') {
+      blocks.push({ kind: 'other', label: 'block', text: stringifyForLog(rawBlock) })
+      continue
+    }
+
+    const block = rawBlock as {
+      type?: unknown
+      text?: unknown
+      name?: unknown
+      input?: unknown
+    }
+
+    if (block.type === 'text' && typeof block.text === 'string') {
+      blocks.push({ kind: 'text', text: block.text })
+      continue
+    }
+
+    if (block.type === 'tool_use' && typeof block.name === 'string') {
+      blocks.push({ kind: 'tool_use', name: block.name, input: block.input })
+      continue
+    }
+
+    blocks.push({
+      kind: 'other',
+      label: typeof block.type === 'string' ? block.type : 'block',
+      text: stringifyForLog(rawBlock),
+    })
+  }
+
+  return blocks
+}
+
+function stringifyForLog(value: unknown): string {
+  if (typeof value === 'string') {
+    return value
+  }
+  if (value == null) {
+    return ''
+  }
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
+}
+
+function toLogLines(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map(line => line.trimEnd())
+    .filter(line => line.trim().length > 0)
 }

@@ -7940,8 +7940,10 @@ async function isAgentSDKAvailable() {
 async function agentQuery(opts) {
   const sdkAvailable = await isAgentSDKAvailable();
   if (sdkAvailable) {
+    opts.onLog?.("Agent backend: Claude Agent SDK");
     return agentSDKQuery(opts);
   }
+  opts.onLog?.("Agent backend: claude CLI fallback (SDK unavailable)");
   return cliQuery(opts);
 }
 async function agentSDKQuery(opts) {
@@ -7970,7 +7972,7 @@ async function agentSDKQuery(opts) {
       "WebSearch",
       "TodoWrite"
     ];
-    termLog("SDK \u6A21\u5F0F\u542F\u52A8...");
+    termLog("SDK mode started");
     let result = "";
     const messages = query({
       prompt: async function* () {
@@ -7984,34 +7986,22 @@ async function agentSDKQuery(opts) {
       }
     });
     for await (const message of messages) {
-      const msg = message;
-      if (msg.type === "assistant") {
-        if (typeof msg.content === "string") {
-          if (msg.content.trim()) {
-            forwardLog(msg.content.slice(0, 400));
-          }
-          result += msg.content;
-        } else if (Array.isArray(msg.content)) {
-          for (const block of msg.content) {
-            if (block.type === "text") {
-              if (block.text.trim()) {
-                forwardLog(block.text.slice(0, 400));
-              }
-              result += block.text;
-            } else if (block.type === "tool_use") {
-              const summary = `\u8C03\u7528\u5DE5\u5177: ${block.name}(${JSON.stringify(block.input ?? {}).slice(0, 120)})`;
-              forwardLog(summary);
-            }
-          }
+      const formatted = formatSdkMessage(message);
+      if (formatted.logs.length > 0) {
+        for (const line of formatted.logs) {
+          forwardLog(line);
         }
-      } else if (msg.type === "tool_result") {
-        const preview = typeof msg.content === "string" ? msg.content.slice(0, 120) : JSON.stringify(msg.content ?? "").slice(0, 120);
-        forwardLog(`\u5DE5\u5177\u7ED3\u679C: ${preview}`);
-      } else if (msg.type && msg.type !== "user") {
-        termLog(`[${msg.type}]`);
+      } else {
+        const genericType = getMessageType(message);
+        if (genericType && genericType !== "user") {
+          termLog(`[${genericType}]`);
+        }
+      }
+      if (formatted.resultText) {
+        result += formatted.resultText;
       }
     }
-    termLog("SDK \u67E5\u8BE2\u5B8C\u6210");
+    termLog("SDK query completed");
     return result;
   } finally {
     if (timeout) clearTimeout(timeout);
@@ -8067,6 +8057,102 @@ function cliQuery(opts) {
     });
     proc.on("error", reject);
   });
+}
+function getMessageType(message) {
+  if (!message || typeof message !== "object") {
+    return void 0;
+  }
+  const record = message;
+  return typeof record.type === "string" ? record.type : void 0;
+}
+function formatSdkMessage(message) {
+  if (!message || typeof message !== "object") {
+    return { logs: [], resultText: "" };
+  }
+  const msg = message;
+  const logs = [];
+  let resultText = "";
+  if (msg.type === "assistant") {
+    const blocks = normalizeContentBlocks(msg.content);
+    for (const block of blocks) {
+      if (block.kind === "text") {
+        if (block.text.trim()) {
+          logs.push(...toLogLines(`assistant: ${block.text}`));
+        }
+        resultText += block.text;
+      } else if (block.kind === "tool_use") {
+        const renderedInput = stringifyForLog(block.input);
+        logs.push(...toLogLines(`tool_use: ${block.name}${renderedInput ? ` ${renderedInput}` : ""}`));
+      } else if (block.kind === "other") {
+        logs.push(...toLogLines(`assistant:${block.label} ${block.text}`));
+      }
+    }
+    return { logs, resultText };
+  }
+  if (msg.type === "tool_result") {
+    const rendered2 = stringifyForLog(msg.content);
+    logs.push(...toLogLines(`tool_result: ${rendered2}`));
+    return { logs, resultText };
+  }
+  if (msg.type === "result") {
+    const rendered2 = stringifyForLog(msg.result ?? msg.content);
+    if (rendered2) {
+      logs.push(...toLogLines(`result: ${rendered2}`));
+    }
+    return { logs, resultText };
+  }
+  const rendered = stringifyForLog(msg.content);
+  const typeLabel = msg.type ?? "event";
+  const subtype = typeof msg.subtype === "string" ? `:${msg.subtype}` : "";
+  const suffix = rendered ? ` ${rendered}` : "";
+  logs.push(...toLogLines(`${typeLabel}${subtype}${suffix}`));
+  return { logs, resultText };
+}
+function normalizeContentBlocks(content) {
+  if (typeof content === "string") {
+    return [{ kind: "text", text: content }];
+  }
+  if (!Array.isArray(content)) {
+    return content == null ? [] : [{ kind: "other", label: "content", text: stringifyForLog(content) }];
+  }
+  const blocks = [];
+  for (const rawBlock of content) {
+    if (!rawBlock || typeof rawBlock !== "object") {
+      blocks.push({ kind: "other", label: "block", text: stringifyForLog(rawBlock) });
+      continue;
+    }
+    const block = rawBlock;
+    if (block.type === "text" && typeof block.text === "string") {
+      blocks.push({ kind: "text", text: block.text });
+      continue;
+    }
+    if (block.type === "tool_use" && typeof block.name === "string") {
+      blocks.push({ kind: "tool_use", name: block.name, input: block.input });
+      continue;
+    }
+    blocks.push({
+      kind: "other",
+      label: typeof block.type === "string" ? block.type : "block",
+      text: stringifyForLog(rawBlock)
+    });
+  }
+  return blocks;
+}
+function stringifyForLog(value) {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value == null) {
+    return "";
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+function toLogLines(text) {
+  return text.split(/\r?\n/).map((line) => line.trimEnd()).filter((line) => line.trim().length > 0);
 }
 
 // server/core/constitution-analysis-runner.ts
