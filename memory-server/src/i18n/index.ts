@@ -613,6 +613,9 @@ export function useI18n() {
   })
   return new Proxy({} as I18nStrings, {
     get(_target, prop) {
+      if (prop === 'value') {
+        return strings.value
+      }
       return strings.value[prop as keyof I18nStrings]
     },
   })
