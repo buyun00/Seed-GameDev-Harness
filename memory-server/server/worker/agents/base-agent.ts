@@ -81,9 +81,7 @@ async function agentSDKQuery(opts: AgentQueryOptions): Promise<string> {
 
     let result = ''
     const messages = sdkQuery({
-      prompt: async function* () {
-        yield opts.prompt
-      },
+      prompt: opts.prompt,
       options: {
         cwd: opts.cwd ?? process.cwd(),
         pathToClaudeCodeExecutable: claudeExecutable,

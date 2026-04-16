@@ -23545,9 +23545,7 @@ async function agentSDKQuery(opts) {
     termLog(`Claude executable: ${claudeExecutable}`);
     let result = "";
     const messages = I$$({
-      prompt: async function* () {
-        yield opts.prompt;
-      },
+      prompt: opts.prompt,
       options: {
         cwd: opts.cwd ?? process.cwd(),
         pathToClaudeCodeExecutable: claudeExecutable,
