@@ -2,6 +2,7 @@ export type SseEventType =
   | 'file:changed'
   | 'analysis:progress'
   | 'analysis:complete'
+  | 'analysis:error'
   | 'agent:log'
   | 'proposal:created'
   | 'proposal:applied'

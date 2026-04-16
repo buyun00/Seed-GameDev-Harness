@@ -61,6 +61,7 @@ export function constitutionRoutes(ctx: AppContext) {
       return c.json(result)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Analysis failed'
+      ctx.sseEmitter.emit('analysis:error', { message, ts: Date.now() })
       return c.json({ error: message }, 500)
     }
   })

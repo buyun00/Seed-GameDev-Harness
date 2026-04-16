@@ -27,6 +27,12 @@ defineEmits<{ analyze: [] }>()
         >
           {{ i18n.changedFiles }} {{ changedFilesText }}
         </span>
+        <span
+          v-if="store.analysisError"
+          class="analysis-banner__detail analysis-banner__detail--error"
+        >
+          {{ store.analysisError }}
+        </span>
       </div>
     </div>
     <div class="analysis-banner__actions">
@@ -77,6 +83,12 @@ defineEmits<{ analyze: [] }>()
   border-left: 4px solid #e65c00;
 }
 
+.analysis-banner--error {
+  background: #fdecea;
+  color: #b42318;
+  border-left: 4px solid #d92d20;
+}
+
 .analysis-banner__content {
   display: flex;
   align-items: flex-start;
@@ -110,6 +122,10 @@ defineEmits<{ analyze: [] }>()
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.analysis-banner__detail--error {
+  opacity: 1;
 }
 
 .analysis-banner__actions {

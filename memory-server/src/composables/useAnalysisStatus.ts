@@ -7,6 +7,7 @@ export function useAnalysisStatus() {
   const i18n = useI18n()
 
   const statusType = computed(() => {
+    if (store.analysisError) return 'error'
     switch (store.analysisStatus) {
       case 'up_to_date': return 'success'
       case 'outdated': return 'warning'
@@ -15,6 +16,7 @@ export function useAnalysisStatus() {
   })
 
   const statusText = computed(() => {
+    if (store.analysisError) return 'Analysis failed'
     switch (store.analysisStatus) {
       case 'up_to_date': return i18n.value.statusUpToDate(formatDate(store.analyzedAt))
       case 'outdated': return i18n.value.statusOutdated(formatDate(store.analyzedAt))

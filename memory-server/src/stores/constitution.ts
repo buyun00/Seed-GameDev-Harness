@@ -16,6 +16,7 @@ export const useConstitutionStore = defineStore('constitution', () => {
   const progressStep = ref('')
   const progressPercent = ref(0)
   const progressLogs = ref<string[]>([])
+  const analysisError = ref('')
 
   const effectiveRules = computed(() => rules.value.filter(r => r.status === 'effective'))
   const shadowedRules = computed(() => rules.value.filter(r => r.status === 'shadowed'))
@@ -51,6 +52,7 @@ export const useConstitutionStore = defineStore('constitution', () => {
     }
     if (progressStep.value === 'done' || progressPercent.value >= 100) {
       analyzing.value = false
+      analysisError.value = ''
     }
   }
 
@@ -69,6 +71,7 @@ export const useConstitutionStore = defineStore('constitution', () => {
 
   function finishAnalysis() {
     analyzing.value = false
+    analysisError.value = ''
     if (progressPercent.value < 100) {
       progressPercent.value = 100
     }
@@ -77,8 +80,16 @@ export const useConstitutionStore = defineStore('constitution', () => {
     }
   }
 
+  function failAnalysis(message: string) {
+    analyzing.value = false
+    progressStep.value = 'failed'
+    analysisError.value = message
+    progressLogs.value = [...progressLogs.value.slice(-99), `[${new Date().toLocaleTimeString()}] ERROR: ${message}`]
+  }
+
   async function analyze() {
     analyzing.value = true
+    analysisError.value = ''
     clearProgress()
     try {
       const data = await constitutionApi.runAnalysis()
@@ -87,7 +98,10 @@ export const useConstitutionStore = defineStore('constitution', () => {
       rules.value = data.rules || []
       statusSummary.value = data.statusSummary || {}
       changedFiles.value = []
-    } catch { /* ignore */ }
+      analysisError.value = ''
+    } catch (error) {
+      failAnalysis(extractErrorMessage(error))
+    }
   }
 
   async function proposeEdit(ruleId: string, changes: { title?: string; normalizedText?: string }, editIntent: string): Promise<Proposal | null> {
@@ -108,10 +122,22 @@ export const useConstitutionStore = defineStore('constitution', () => {
 
   return {
     analysisStatus, analyzedAt, rules, statusSummary, changedFiles,
-    sources, loading, analyzing,
+    sources, loading, analyzing, analysisError,
     progressStep, progressPercent, progressLogs,
     effectiveRules, shadowedRules, conflictingRules, unresolvedRules,
     load, loadSources, analyze, proposeEdit, proposeCreate,
-    onProgressEvent, onAgentLog, clearProgress, finishAnalysis,
+    onProgressEvent, onAgentLog, clearProgress, finishAnalysis, failAnalysis,
   }
 })
+
+function extractErrorMessage(error: unknown): string {
+  const maybeAxios = error as {
+    response?: { data?: { error?: string; message?: string } }
+    message?: string
+  }
+
+  return maybeAxios?.response?.data?.error
+    || maybeAxios?.response?.data?.message
+    || maybeAxios?.message
+    || 'Analysis failed'
+}

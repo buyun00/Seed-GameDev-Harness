@@ -33,6 +33,12 @@ const handleAnalysisComplete = async () => {
   store.finishAnalysis()
   await store.load()
 }
+const handleAnalysisError = (data: Record<string, unknown>) => {
+  const message = typeof data.message === 'string' && data.message.trim()
+    ? data.message
+    : 'Analysis failed'
+  store.failAnalysis(message)
+}
 const handleAgentLog = (data: Record<string, unknown>) => store.onAgentLog(data)
 
 onMounted(() => {
@@ -42,6 +48,7 @@ onMounted(() => {
   sse.on('scan:updated', handleFileUpdated)
   sse.on('analysis:progress', handleAnalysisProgress)
   sse.on('analysis:complete', handleAnalysisComplete)
+  sse.on('analysis:error', handleAnalysisError)
   sse.on('agent:log', handleAgentLog)
 })
 
@@ -50,6 +57,7 @@ onUnmounted(() => {
   sse.off('scan:updated', handleFileUpdated)
   sse.off('analysis:progress', handleAnalysisProgress)
   sse.off('analysis:complete', handleAnalysisComplete)
+  sse.off('analysis:error', handleAnalysisError)
   sse.off('agent:log', handleAgentLog)
 })
 
