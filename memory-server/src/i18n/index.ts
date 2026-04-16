@@ -611,5 +611,9 @@ export function useI18n() {
       ruleCategoryLabel: (category: ConstitutionRuleCategory) => categoryLabels[code]?.[category] ?? categoryLabels.en[category] ?? category,
     }
   })
-  return strings
+  return new Proxy({} as I18nStrings, {
+    get(_target, prop) {
+      return strings.value[prop as keyof I18nStrings]
+    },
+  })
 }
