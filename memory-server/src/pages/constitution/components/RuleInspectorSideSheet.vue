@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { ConstitutionRule } from '@/types/constitution'
+import type { ConstitutionRule, ConstitutionRuleCategory } from '@/types/constitution'
 import InspectorSideSheet from '@/layouts/InspectorSideSheet.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import RelationTag from '@/components/common/RelationTag.vue'
@@ -12,13 +12,38 @@ const props = defineProps<{
   visible: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   close: []
-  edit: [rule: ConstitutionRule, changes: { title?: string; normalizedText?: string }, intent: string]
+  edit: [rule: ConstitutionRule, changes: {
+    category: ConstitutionRuleCategory
+    normalizedText: string
+    scopeMode: 'current_rule' | 'same_file' | 'same_category' | 'custom'
+    scopeDescription: string
+  }]
 }>()
 
 const editing = ref(false)
+const submitting = ref(false)
 const i18n = useI18n()
+
+async function handleSave(
+  rule: ConstitutionRule,
+  changes: {
+    category: ConstitutionRuleCategory
+    normalizedText: string
+    scopeMode: 'current_rule' | 'same_file' | 'same_category' | 'custom'
+    scopeDescription: string
+  },
+) {
+  if (submitting.value) return
+  submitting.value = true
+  try {
+    await Promise.resolve(emit('edit', rule, changes))
+    editing.value = false
+  } finally {
+    submitting.value = false
+  }
+}
 </script>
 
 <template>
@@ -67,8 +92,9 @@ const i18n = useI18n()
     <RuleEditForm
       v-if="rule && editing"
       :rule="rule"
+      :submitting="submitting"
       @cancel="editing = false"
-      @save="(changes, intent) => { $emit('edit', rule!, changes, intent); editing = false }"
+      @save="(changes) => handleSave(rule!, changes)"
     />
 
     <template #footer v-if="rule && !editing">

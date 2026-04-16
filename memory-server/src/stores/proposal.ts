@@ -2,8 +2,10 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import * as proposalApi from '@/api/proposal'
 import type { Proposal } from '@/types/proposal'
+import { useConstitutionStore } from './constitution'
 
 export const useProposalStore = defineStore('proposal', () => {
+  const constitutionStore = useConstitutionStore()
   const currentProposal = ref<Proposal | null>(null)
   const reviewVisible = ref(false)
   const applying = ref(false)
@@ -23,6 +25,7 @@ export const useProposalStore = defineStore('proposal', () => {
     applying.value = true
     try {
       await proposalApi.applyProposal(currentProposal.value.id)
+      await constitutionStore.load()
       hideReview()
       return true
     } catch {

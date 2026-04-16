@@ -94,8 +94,13 @@ function jumpToCategory(category: ConstitutionRuleCategory) {
   })
 }
 
-async function handleEdit(rule: ConstitutionRule, changes: { title?: string; normalizedText?: string }, intent: string) {
-  const proposal = await store.proposeEdit(rule.id, changes, intent)
+async function handleEdit(rule: ConstitutionRule, changes: {
+  category: ConstitutionRuleCategory
+  normalizedText: string
+  scopeMode: 'current_rule' | 'same_file' | 'same_category' | 'custom'
+  scopeDescription: string
+}) {
+  const proposal = await store.proposeEdit(rule.id, changes)
   if (proposal) {
     proposalStore.showReview(proposal)
   }

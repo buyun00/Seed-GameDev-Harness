@@ -1,3 +1,5 @@
+import type { ConstitutionRule } from './constitution-rule.js'
+
 export type ProposalType =
   | 'constitution_edit'
   | 'constitution_create'
@@ -26,4 +28,10 @@ export interface Proposal {
   status: ProposalStatus
   createdAt: string
   appliedAt?: string
+  constitutionPatch?: {
+    files: Array<{
+      path: string
+      rules: ConstitutionRule[]
+    }>
+  }
 }

@@ -19,8 +19,12 @@ export async function runAnalysis(): Promise<ConstitutionState> {
 
 export async function proposeEdit(params: {
   ruleId: string
-  changes: { title?: string; normalizedText?: string }
-  editIntent: string
+  changes: {
+    category: import('@/types/constitution').ConstitutionRuleCategory
+    normalizedText: string
+    scopeMode: 'current_rule' | 'same_file' | 'same_category' | 'custom'
+    scopeDescription: string
+  }
 }): Promise<Proposal> {
   const { data } = await api.post('/constitution/propose-edit', params)
   return data

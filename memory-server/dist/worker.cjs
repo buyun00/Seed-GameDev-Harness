@@ -24239,43 +24239,102 @@ var ConstitutionAnalyzer = class {
     }
     return { fresh: changed.length === 0, changedFiles: changed };
   }
-  async proposeEdit(rule, changes, editIntent, currentContent) {
-    const prompt = `You are editing a Claude Code configuration file. The file content is:
+  async proposeEdit(rule, changes, cached) {
+    const editableFiles = await Promise.all(
+      this.ctx.projectContext.constitutionFiles.map(async (absPath) => {
+        const path = this.ctx.projectContext.relative(absPath);
+        return {
+          path,
+          content: await (0, import_promises6.readFile)(absPath, "utf-8")
+        };
+      })
+    );
+    const prompt = `You are editing one or more Claude Code constitution files.
 
-\`\`\`
-${currentContent}
-\`\`\`
+Primary selected rule:
+${JSON.stringify({
+      id: rule.id,
+      sourceFile: rule.sourceFile,
+      sourceSpan: rule.sourceSpan,
+      category: rule.category,
+      normalizedText: rule.normalizedText,
+      originalExcerpt: rule.originalExcerpt
+    }, null, 2)}
 
-I need to modify the following rule block (located around line ${rule.sourceSpan.startLine}):
-Original text: "${rule.originalExcerpt}"
+Requested target category: ${changes.category}
+Requested rule content:
+${changes.normalizedText}
 
-Edit intent: ${editIntent}
-${changes.title ? `New title: ${changes.title}` : ""}
-${changes.normalizedText ? `New rule text: ${changes.normalizedText}` : ""}
+Requested scope mode: ${changes.scopeMode}
+Requested scope description:
+${changes.scopeDescription}
 
-Output the COMPLETE modified file content. Only modify the targeted rule block. Do not change anything else.
-Output raw file content only, no markdown fencing.`;
+Existing extracted rules:
+${JSON.stringify(cached.rules.map((item) => ({
+      id: item.id,
+      sourceFile: item.sourceFile,
+      category: item.category,
+      status: item.status,
+      normalizedText: item.normalizedText
+    })), null, 2)}
+
+Editable constitution files:
+${JSON.stringify(editableFiles, null, 2)}
+
+Modify the files according to the request. Return strict JSON only:
+{
+  "summary": "short summary",
+  "files": [
+    {
+      "path": "CLAUDE.md",
+      "content": "complete modified file content",
+      "extractedRules": [
+        "L10-10 :: core_principles :: \u6838\u5FC3\u539F\u5219 :: \u4E8B\u5B9E\u5FC5\u987B\u5206\u6563\u6D41\u52A8\uFF0C\u65B9\u5411\u5FC5\u987B\u96C6\u4E2D\u88C1\u51B3"
+      ]
+    }
+  ]
+}
+
+Rules:
+- Include only files that actually changed.
+- path must be one of the editable file paths provided above.
+- content must be the COMPLETE file content after modification.
+- extractedRules must list ALL extracted rules for that changed file after modification, using the exact extraction line format.
+- Do not wrap the JSON in markdown fences.
+- Do not add prose before or after the JSON object.`;
     const result = await agentQuery({
       prompt,
       cwd: this.ctx.projectContext.projectRoot,
       timeoutMs: 12e4
     });
-    const proposedContent = result.trim();
-    const diff2 = createPatch(rule.sourceFile, currentContent, proposedContent, "original", "proposed");
+    const parsed = this.parseProposalEditResult(result, editableFiles);
+    const affectedFiles = parsed.files.map((file) => {
+      const original = editableFiles.find((candidate) => candidate.path === file.path)?.content ?? "";
+      return {
+        path: file.path,
+        action: original ? "modify" : "create",
+        diff: createPatch(file.path, original, file.content, "original", "proposed"),
+        originalContent: original || void 0,
+        proposedContent: file.content
+      };
+    });
     const proposal = {
       id: (0, import_node_crypto2.randomUUID)(),
       type: "constitution_edit",
-      source: `Edit rule: ${rule.title}`,
-      affectedFiles: [{
-        path: rule.sourceFile,
-        action: "modify",
-        diff: diff2,
-        originalContent: currentContent,
-        proposedContent
-      }],
-      summary: `Edit constitution rule "${rule.title}": ${editIntent}`,
+      source: `Edit rule: ${rule.normalizedText}`,
+      affectedFiles,
+      summary: parsed.summary || `Edit constitution rule: ${rule.normalizedText}`,
       status: "pending",
-      createdAt: (/* @__PURE__ */ new Date()).toISOString()
+      createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+      constitutionPatch: {
+        files: parsed.files.map((file) => ({
+          path: file.path,
+          rules: parseConstitutionAnalysisResult(
+            file.extractedRules.join("\n"),
+            { path: file.path, content: file.content }
+          )
+        }))
+      }
     };
     await this.saveProposal(proposal);
     return proposal;
@@ -24327,6 +24386,137 @@ Output the COMPLETE modified file content. Output raw file content only, no mark
     const filePath = `${this.ctx.projectContext.proposalsDir}/${proposal.id}.json`;
     await this.ctx.writer.write(filePath, JSON.stringify(proposal, null, 2));
     this.ctx.sseEmitter.emit("proposal:created", { id: proposal.id, type: proposal.type });
+  }
+  async refreshCachedAnalysisFromProposal(proposal) {
+    if (!proposal.constitutionPatch?.files?.length) return;
+    const cached = await this.ctx.cache.get("constitution-analysis");
+    if (!cached) return;
+    const changedPaths = new Set(proposal.constitutionPatch.files.map((file) => file.path));
+    const previousRules = cached.rules.filter((rule) => changedPaths.has(rule.sourceFile));
+    const previousRuleIds = new Set(previousRules.map((rule) => rule.id));
+    const previousCategories = new Set(previousRules.map((rule) => rule.category));
+    const untouchedRules = cached.rules.filter((rule) => !changedPaths.has(rule.sourceFile)).map((rule) => {
+      const filteredRelations = rule.relations.filter((relation) => !previousRuleIds.has(relation.targetRuleId));
+      const touchedByPatch = filteredRelations.length !== rule.relations.length || previousCategories.has(rule.category);
+      return touchedByPatch ? { ...rule, status: "unresolved", relations: filteredRelations } : rule;
+    });
+    const patchedRules = proposal.constitutionPatch.files.flatMap((file) => file.rules);
+    const rules = finalizeComparedRules([...untouchedRules, ...patchedRules]);
+    const sources = await this.buildUpdatedSources(cached.sources);
+    const imports = cached.imports;
+    const importedSources = cached.importedSources;
+    const statusSummary = summarizeConstitutionRules(rules);
+    await this.ctx.cache.set("constitution-analysis", {
+      ...cached,
+      analyzedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      sources,
+      imports,
+      importedSources,
+      rules,
+      relations: rules.flatMap((current) => current.relations),
+      statusSummary
+    });
+  }
+  parseProposalEditResult(rawResult, editableFiles) {
+    const parsed = this.tryParseObject(rawResult);
+    if (!parsed) {
+      throw new Error("Proposal generation returned invalid JSON");
+    }
+    const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
+    const files = Array.isArray(parsed.files) ? parsed.files : [];
+    const allowedPaths = new Set(editableFiles.map((file) => file.path));
+    const normalizedFiles = files.map((file) => this.normalizeProposalEditFile(file, allowedPaths)).filter((file) => file !== null);
+    if (normalizedFiles.length === 0) {
+      throw new Error("Proposal generation returned no changed files");
+    }
+    return { summary, files: normalizedFiles };
+  }
+  normalizeProposalEditFile(rawFile, allowedPaths) {
+    if (!rawFile || typeof rawFile !== "object") return null;
+    const record = rawFile;
+    const path = typeof record.path === "string" ? record.path.trim() : "";
+    const content = typeof record.content === "string" ? record.content : "";
+    const extractedRules = Array.isArray(record.extractedRules) ? record.extractedRules.filter((line) => typeof line === "string" && line.trim().length > 0) : [];
+    if (!path || !allowedPaths.has(path) || !content.trim() || extractedRules.length === 0) {
+      return null;
+    }
+    return {
+      path,
+      content: content.trimEnd(),
+      extractedRules
+    };
+  }
+  tryParseObject(raw2) {
+    const candidates = /* @__PURE__ */ new Set();
+    const trimmed = raw2.trim();
+    if (trimmed) candidates.add(trimmed);
+    const fencedMatches = raw2.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi);
+    for (const match2 of fencedMatches) {
+      if (match2[1]?.trim()) candidates.add(match2[1].trim());
+    }
+    const balanced = this.extractBalancedJsonObject(raw2);
+    if (balanced) candidates.add(balanced);
+    for (const candidate of candidates) {
+      try {
+        const parsed = JSON.parse(candidate);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch {
+      }
+    }
+    return null;
+  }
+  extractBalancedJsonObject(raw2) {
+    let start = -1;
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let index = 0; index < raw2.length; index++) {
+      const char = raw2[index];
+      if (start === -1) {
+        if (char === "{") {
+          start = index;
+          depth = 1;
+        }
+        continue;
+      }
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+      if (char === "{") depth++;
+      if (char === "}") depth--;
+      if (depth === 0) {
+        return raw2.slice(start, index + 1);
+      }
+    }
+    return null;
+  }
+  async buildUpdatedSources(previousSources) {
+    const next = [];
+    for (const source of previousSources) {
+      const absPath = this.ctx.projectContext.resolve(source.path);
+      if (!(0, import_node_fs3.existsSync)(absPath)) continue;
+      const content = await (0, import_promises6.readFile)(absPath, "utf-8");
+      const fileStat = await (0, import_promises6.stat)(absPath);
+      next.push({
+        path: source.path,
+        hash: hashString(content),
+        size: content.length,
+        lastModified: fileStat.mtime.toISOString()
+      });
+    }
+    return next;
   }
 };
 
@@ -24458,7 +24648,7 @@ function constitutionRoutes(ctx) {
       return c.json({ error: "anchor_mismatch", message: matchResult.reason }, 409);
     }
     try {
-      const proposal = await analyzer.proposeEdit(rule, body.changes, body.editIntent, currentContent);
+      const proposal = await analyzer.proposeEdit(rule, body.changes, cached);
       return c.json(proposal);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Proposal generation failed";
@@ -24484,6 +24674,7 @@ var import_node_path2 = require("node:path");
 var import_node_fs5 = require("node:fs");
 function proposalRoutes(ctx) {
   const router = new Hono2();
+  const constitutionAnalyzer = new ConstitutionAnalyzer(ctx);
   router.get("/", async (c) => {
     const dir = ctx.projectContext.proposalsDir;
     if (!(0, import_node_fs5.existsSync)(dir)) return c.json({ proposals: [] });
@@ -24534,7 +24725,14 @@ function proposalRoutes(ctx) {
     proposal.status = "applied";
     proposal.appliedAt = (/* @__PURE__ */ new Date()).toISOString();
     await ctx.writer.write(filePath, JSON.stringify(proposal, null, 2));
+    if (proposal.type === "constitution_edit" || proposal.type === "constitution_create") {
+      await constitutionAnalyzer.refreshCachedAnalysisFromProposal(proposal);
+    }
     ctx.sseEmitter.emit("proposal:applied", { id, appliedFiles });
+    ctx.sseEmitter.emit("analysis:complete", {
+      rulesCount: proposal.constitutionPatch?.files.flatMap((file) => file.rules).length ?? 0,
+      analyzedAt: proposal.appliedAt
+    });
     await ctx.scanner.scan();
     return c.json({ applied: true, affectedFiles: appliedFiles });
   });
@@ -26736,8 +26934,8 @@ var FSWatcher = class extends import_events3.EventEmitter {
     }
     return this._userIgnored(path, stats);
   }
-  _isntIgnored(path, stat7) {
-    return !this._isIgnored(path, stat7);
+  _isntIgnored(path, stat8) {
+    return !this._isIgnored(path, stat8);
   }
   /**
    * Provides a set of common helpers and properties relating to symlink handling.

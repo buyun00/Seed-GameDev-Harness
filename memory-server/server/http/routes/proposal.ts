@@ -4,9 +4,11 @@ import { join } from 'node:path'
 import { existsSync } from 'node:fs'
 import type { AppContext } from '../../types.js'
 import type { Proposal } from '../../models/proposal.js'
+import { ConstitutionAnalyzer } from '../../analyzers/constitution-analyzer.js'
 
 export function proposalRoutes(ctx: AppContext) {
   const router = new Hono()
+  const constitutionAnalyzer = new ConstitutionAnalyzer(ctx)
 
   router.get('/', async (c) => {
     const dir = ctx.projectContext.proposalsDir
@@ -68,7 +70,15 @@ export function proposalRoutes(ctx: AppContext) {
     proposal.appliedAt = new Date().toISOString()
     await ctx.writer.write(filePath, JSON.stringify(proposal, null, 2))
 
+    if (proposal.type === 'constitution_edit' || proposal.type === 'constitution_create') {
+      await constitutionAnalyzer.refreshCachedAnalysisFromProposal(proposal)
+    }
+
     ctx.sseEmitter.emit('proposal:applied', { id, appliedFiles })
+    ctx.sseEmitter.emit('analysis:complete', {
+      rulesCount: proposal.constitutionPatch?.files.flatMap(file => file.rules).length ?? 0,
+      analyzedAt: proposal.appliedAt,
+    })
     await ctx.scanner.scan()
 
     return c.json({ applied: true, affectedFiles: appliedFiles })

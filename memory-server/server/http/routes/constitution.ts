@@ -69,8 +69,12 @@ export function constitutionRoutes(ctx: AppContext) {
   router.post('/propose-edit', async (c) => {
     const body = await c.req.json<{
       ruleId: string
-      changes: { title?: string; normalizedText?: string }
-      editIntent: string
+      changes: {
+        category: import('../../models/constitution-rule.js').ConstitutionRuleCategory
+        normalizedText: string
+        scopeMode: 'current_rule' | 'same_file' | 'same_category' | 'custom'
+        scopeDescription: string
+      }
     }>()
 
     const cached = await ctx.cache.get<ConstitutionAnalysisCache>('constitution-analysis')
@@ -97,7 +101,7 @@ export function constitutionRoutes(ctx: AppContext) {
     }
 
     try {
-      const proposal = await analyzer.proposeEdit(rule, body.changes, body.editIntent, currentContent)
+      const proposal = await analyzer.proposeEdit(rule, body.changes, cached)
       return c.json(proposal)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Proposal generation failed'

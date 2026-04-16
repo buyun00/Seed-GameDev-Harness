@@ -519,11 +519,11 @@ const relationLabels: Record<string, Record<string, string>> = {
     likely_supersedes: 'Likely Supersedes',
   },
   zh: {
-    shadowed_by: '被覆盖于',
-    conflicts_with: '冲突于',
-    overlaps_with: '重叠于',
-    reinforced_by: '被强化于',
-    more_specific_than: '更具体于',
+    shadowed_by: '被覆盖',
+    conflicts_with: '冲突',
+    overlaps_with: '重叠',
+    reinforced_by: '被强化',
+    more_specific_than: '更具体',
     likely_supersedes: '可能取代',
   },
   ja: {

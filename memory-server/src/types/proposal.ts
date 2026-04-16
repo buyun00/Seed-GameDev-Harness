@@ -6,6 +6,11 @@ export interface FileChange {
   proposedContent?: string
 }
 
+export interface ConstitutionPatchFile {
+  path: string
+  rules: import('./constitution').ConstitutionRule[]
+}
+
 export interface Proposal {
   id: string
   type: string
@@ -15,4 +20,7 @@ export interface Proposal {
   status: 'pending' | 'approved' | 'applied' | 'rejected'
   createdAt: string
   appliedAt?: string
+  constitutionPatch?: {
+    files: ConstitutionPatchFile[]
+  }
 }

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as constitutionApi from '@/api/constitution'
-import type { ConstitutionRule, AnalysisStatus, SourceFile } from '@/types/constitution'
+import type { ConstitutionRule, ConstitutionRuleCategory, AnalysisStatus, SourceFile } from '@/types/constitution'
 import type { Proposal } from '@/types/proposal'
 
 export const useConstitutionStore = defineStore('constitution', () => {
@@ -104,9 +104,17 @@ export const useConstitutionStore = defineStore('constitution', () => {
     }
   }
 
-  async function proposeEdit(ruleId: string, changes: { title?: string; normalizedText?: string }, editIntent: string): Promise<Proposal | null> {
+  async function proposeEdit(
+    ruleId: string,
+    changes: {
+      category: ConstitutionRuleCategory
+      normalizedText: string
+      scopeMode: 'current_rule' | 'same_file' | 'same_category' | 'custom'
+      scopeDescription: string
+    },
+  ): Promise<Proposal | null> {
     try {
-      return await constitutionApi.proposeEdit({ ruleId, changes, editIntent })
+      return await constitutionApi.proposeEdit({ ruleId, changes })
     } catch {
       return null
     }
