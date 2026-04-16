@@ -24698,7 +24698,7 @@ async function openPathInDefaultApp(absPath) {
       child = (0, import_node_child_process2.spawn)("powershell.exe", [
         "-NoProfile",
         "-Command",
-        `Start-Process -LiteralPath '${escaped}'`
+        `Start-Process -FilePath '${escaped}'`
       ], { detached: true, stdio: "ignore" });
     } else if (process.platform === "darwin") {
       child = (0, import_node_child_process2.spawn)("open", [absPath], { detached: true, stdio: "ignore" });

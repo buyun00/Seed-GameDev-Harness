@@ -165,7 +165,7 @@ async function openPathInDefaultApp(absPath: string): Promise<void> {
       child = spawn('powershell.exe', [
         '-NoProfile',
         '-Command',
-        `Start-Process -LiteralPath '${escaped}'`,
+        `Start-Process -FilePath '${escaped}'`,
       ], { detached: true, stdio: 'ignore' })
     } else if (process.platform === 'darwin') {
       child = spawn('open', [absPath], { detached: true, stdio: 'ignore' })
