@@ -176,7 +176,7 @@ const translations: Record<string, LangStrings> = {
     normalizedRule: 'Normalized Rule',
     originalExcerpt: 'Original Excerpt',
     relationsHeading: 'Relations',
-    editRuleButton: 'Edit Rule',
+    editRuleButton: 'Open Document',
 
     labelTitle: 'Title',
     labelRuleContent: 'Rule Content',
@@ -269,7 +269,7 @@ const translations: Record<string, LangStrings> = {
     normalizedRule: '规范化规则',
     originalExcerpt: '原始摘录',
     relationsHeading: '关联',
-    editRuleButton: '编辑规则',
+    editRuleButton: '打开文档',
 
     labelTitle: '标题',
     labelRuleContent: '规则内容',
@@ -362,7 +362,7 @@ const translations: Record<string, LangStrings> = {
     normalizedRule: '正規化ルール',
     originalExcerpt: '元の抜粋',
     relationsHeading: '関連',
-    editRuleButton: 'ルールを編集',
+    editRuleButton: '文書を開く',
 
     labelTitle: 'タイトル',
     labelRuleContent: 'ルール内容',
@@ -455,7 +455,7 @@ const translations: Record<string, LangStrings> = {
     normalizedRule: '정규화된 규칙',
     originalExcerpt: '원본 발췌',
     relationsHeading: '관계',
-    editRuleButton: '규칙 편집',
+    editRuleButton: '문서 열기',
 
     labelTitle: '제목',
     labelRuleContent: '규칙 내용',

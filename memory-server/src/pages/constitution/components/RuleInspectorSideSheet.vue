@@ -1,54 +1,27 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { ConstitutionRule, ConstitutionRuleCategory } from '@/types/constitution'
+import type { ConstitutionRule } from '@/types/constitution'
 import InspectorSideSheet from '@/layouts/InspectorSideSheet.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import RelationTag from '@/components/common/RelationTag.vue'
-import RuleEditForm from './RuleEditForm.vue'
 import { useI18n } from '@/i18n'
 
 const props = defineProps<{
   rule: ConstitutionRule | null
   visible: boolean
+  opening?: boolean
 }>()
 
 const emit = defineEmits<{
   close: []
-  edit: [rule: ConstitutionRule, changes: {
-    category: ConstitutionRuleCategory
-    normalizedText: string
-    scopeMode: 'current_rule' | 'same_file' | 'same_category' | 'custom'
-    scopeDescription: string
-  }]
+  openSource: [rule: ConstitutionRule]
 }>()
 
-const editing = ref(false)
-const submitting = ref(false)
 const i18n = useI18n()
-
-async function handleSave(
-  rule: ConstitutionRule,
-  changes: {
-    category: ConstitutionRuleCategory
-    normalizedText: string
-    scopeMode: 'current_rule' | 'same_file' | 'same_category' | 'custom'
-    scopeDescription: string
-  },
-) {
-  if (submitting.value) return
-  submitting.value = true
-  try {
-    await Promise.resolve(emit('edit', rule, changes))
-    editing.value = false
-  } finally {
-    submitting.value = false
-  }
-}
 </script>
 
 <template>
-  <InspectorSideSheet :visible="visible" :title="i18n.normalizedRule" @close="$emit('close'); editing = false">
-    <template v-if="rule && !editing">
+  <InspectorSideSheet :visible="visible" :title="i18n.normalizedRule" @close="$emit('close')">
+    <template v-if="rule">
       <div class="detail-section">
         <div class="detail-row">
           <span class="detail-label">{{ i18n.labelStatus }}</span>
@@ -89,16 +62,11 @@ async function handleSave(
       </div>
     </template>
 
-    <RuleEditForm
-      v-if="rule && editing"
-      :rule="rule"
-      :submitting="submitting"
-      @cancel="editing = false"
-      @save="(changes) => handleSave(rule!, changes)"
-    />
-
-    <template #footer v-if="rule && !editing">
-      <button class="btn btn--secondary" @click="editing = true">{{ i18n.editRuleButton }}</button>
+    <template #footer v-if="rule">
+      <button class="btn btn--secondary" :disabled="opening" @click="emit('openSource', rule)">
+        <span v-if="opening" class="spinner" />
+        <span>{{ i18n.editRuleButton }}</span>
+      </button>
     </template>
   </InspectorSideSheet>
 </template>
@@ -173,6 +141,13 @@ async function handleSave(
   font-weight: 500;
   cursor: pointer;
   border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .btn--secondary {
   background: #1c1f26;
@@ -180,5 +155,16 @@ async function handleSave(
 }
 .btn--secondary:hover {
   background: #2d3139;
+}
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

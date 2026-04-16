@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as constitutionApi from '@/api/constitution'
 import type { ConstitutionRule, ConstitutionRuleCategory, AnalysisStatus, SourceFile } from '@/types/constitution'
-import type { Proposal } from '@/types/proposal'
 
 export const useConstitutionStore = defineStore('constitution', () => {
   const analysisStatus = ref<AnalysisStatus>('none')
@@ -104,6 +103,15 @@ export const useConstitutionStore = defineStore('constitution', () => {
     }
   }
 
+  async function openSource(ruleId: string): Promise<boolean> {
+    try {
+      await constitutionApi.openRuleSource(ruleId)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   async function proposeEdit(
     ruleId: string,
     changes: {
@@ -133,7 +141,7 @@ export const useConstitutionStore = defineStore('constitution', () => {
     sources, loading, analyzing, analysisError,
     progressStep, progressPercent, progressLogs,
     effectiveRules, shadowedRules, conflictingRules, unresolvedRules,
-    load, loadSources, analyze, proposeEdit, proposeCreate,
+    load, loadSources, analyze, openSource, proposeEdit, proposeCreate,
     onProgressEvent, onAgentLog, clearProgress, finishAnalysis, failAnalysis,
   }
 })

@@ -17,6 +17,11 @@ export async function runAnalysis(): Promise<ConstitutionState> {
   return data
 }
 
+export async function openRuleSource(ruleId: string): Promise<{ opened: boolean; path: string }> {
+  const { data } = await api.post('/constitution/open-source', { ruleId })
+  return data
+}
+
 export async function proposeEdit(params: {
   ruleId: string
   changes: {

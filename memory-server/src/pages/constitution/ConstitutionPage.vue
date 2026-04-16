@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useConstitutionStore } from '@/stores/constitution'
-import { useProposalStore } from '@/stores/proposal'
 import { useSSE } from '@/composables/useSSE'
 import { useI18n } from '@/i18n'
 import PageHeader from '@/layouts/PageHeader.vue'
@@ -18,13 +17,13 @@ import {
 } from '@/types/constitution'
 
 const store = useConstitutionStore()
-const proposalStore = useProposalStore()
 const i18n = useI18n()
 
 const activeStatusTab = ref('effective')
 const mainTab = ref<'rules' | 'sources'>('rules')
 const selectedRule = ref<ConstitutionRule | null>(null)
 const inspectorVisible = ref(false)
+const openingRuleId = ref<string | null>(null)
 const sse = useSSE()
 
 const filteredRules = computed(() => {
@@ -94,15 +93,12 @@ function jumpToCategory(category: ConstitutionRuleCategory) {
   })
 }
 
-async function handleEdit(rule: ConstitutionRule, changes: {
-  category: ConstitutionRuleCategory
-  normalizedText: string
-  scopeMode: 'current_rule' | 'same_file' | 'same_category' | 'custom'
-  scopeDescription: string
-}) {
-  const proposal = await store.proposeEdit(rule.id, changes)
-  if (proposal) {
-    proposalStore.showReview(proposal)
+async function handleOpenSource(rule: ConstitutionRule) {
+  openingRuleId.value = rule.id
+  try {
+    await store.openSource(rule.id)
+  } finally {
+    openingRuleId.value = null
   }
 }
 </script>
@@ -200,8 +196,9 @@ async function handleEdit(rule: ConstitutionRule, changes: {
     <RuleInspectorSideSheet
       :rule="selectedRule"
       :visible="inspectorVisible"
+      :opening="selectedRule?.id === openingRuleId"
       @close="inspectorVisible = false"
-      @edit="handleEdit"
+      @open-source="handleOpenSource"
     />
   </div>
 </template>

@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import type { AppContext } from '../../types.js'
 import { hashString } from '../../utils/hash.js'
 import { ConstitutionAnalyzer } from '../../analyzers/constitution-analyzer.js'
@@ -126,5 +127,56 @@ export function constitutionRoutes(ctx: AppContext) {
     }
   })
 
+  router.post('/open-source', async (c) => {
+    const body = await c.req.json<{ ruleId: string }>()
+    const cached = await ctx.cache.get<ConstitutionAnalysisCache>('constitution-analysis')
+    if (!cached) {
+      return c.json({ error: 'No analysis available. Run analysis first.' }, 400)
+    }
+
+    const rule = cached.rules.find(item => item.id === body.ruleId)
+    if (!rule) {
+      return c.json({ error: `Rule ${body.ruleId} not found` }, 404)
+    }
+
+    const absPath = ctx.projectContext.resolve(rule.sourceFile)
+    if (!existsSync(absPath)) {
+      return c.json({ error: `Source file ${rule.sourceFile} not found` }, 404)
+    }
+
+    try {
+      await openPathInDefaultApp(absPath)
+      return c.json({ opened: true, path: rule.sourceFile })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to open source file'
+      return c.json({ error: message }, 500)
+    }
+  })
+
   return router
+}
+
+async function openPathInDefaultApp(absPath: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    let child
+
+    if (process.platform === 'win32') {
+      const escaped = absPath.replace(/'/g, "''")
+      child = spawn('powershell.exe', [
+        '-NoProfile',
+        '-Command',
+        `Start-Process -LiteralPath '${escaped}'`,
+      ], { detached: true, stdio: 'ignore' })
+    } else if (process.platform === 'darwin') {
+      child = spawn('open', [absPath], { detached: true, stdio: 'ignore' })
+    } else {
+      child = spawn('xdg-open', [absPath], { detached: true, stdio: 'ignore' })
+    }
+
+    child.once('error', reject)
+    child.once('spawn', () => {
+      child.unref()
+      resolve()
+    })
+  })
 }
