@@ -7929,24 +7929,31 @@ function toNonNegativeInteger(value) {
 
 // server/worker/agents/base-agent.ts
 var import_node_child_process = require("node:child_process");
-async function isAgentSDKAvailable() {
+async function detectAgentBackend() {
   try {
     await import("@anthropic-ai/claude-agent-sdk");
-    return true;
-  } catch {
-    return false;
+    return {
+      available: true,
+      label: "Claude Agent SDK"
+    };
+  } catch (error) {
+    return {
+      available: false,
+      label: "claude CLI fallback (SDK unavailable)",
+      error: error instanceof Error ? error.stack || error.message : String(error)
+    };
   }
-}
-async function getAgentBackendLabel() {
-  return await isAgentSDKAvailable() ? "Claude Agent SDK" : "claude CLI fallback (SDK unavailable)";
 }
 async function agentQuery(opts) {
-  const sdkAvailable = await isAgentSDKAvailable();
-  if (sdkAvailable) {
-    opts.onLog?.("Agent backend: Claude Agent SDK");
+  const backend = await detectAgentBackend();
+  if (backend.available) {
+    opts.onLog?.(`Agent backend: ${backend.label}`);
     return agentSDKQuery(opts);
   }
-  opts.onLog?.("Agent backend: claude CLI fallback (SDK unavailable)");
+  opts.onLog?.(`Agent backend: ${backend.label}`);
+  if (backend.error) {
+    opts.onLog?.(`Agent backend error: ${backend.error}`);
+  }
   return cliQuery(opts);
 }
 async function agentSDKQuery(opts) {
@@ -11681,7 +11688,7 @@ var WorkerService = class {
   shuttingDown = false;
   async start(rawProjectPath, port = 0) {
     this.canonicalPath = canonicalizeProjectPath(rawProjectPath);
-    const agentBackendLabel = await getAgentBackendLabel();
+    const agentBackend = await detectAgentBackend();
     const projectContext = new ProjectContext(rawProjectPath);
     await projectContext.initialize();
     const cache = new Cache(projectContext);
@@ -11752,9 +11759,17 @@ var WorkerService = class {
 `);
           process.stderr.write(`[Seed Worker] PID: ${process.pid}  Port: ${actualPort}
 `);
-          process.stderr.write(`[Seed Worker] Agent backend: ${agentBackendLabel}
-
+          process.stderr.write(`[Seed Worker] Agent backend: ${agentBackend.label}
 `);
+          process.stderr.write(`[Seed Worker] Node: ${process.execPath}
+`);
+          process.stderr.write(`[Seed Worker] CWD: ${process.cwd()}
+`);
+          if (agentBackend.error) {
+            process.stderr.write(`[Seed Worker] Agent backend error: ${agentBackend.error}
+`);
+          }
+          process.stderr.write("\n");
           this.writeUrlFile(projectContext.projectRoot, url);
           this.registerSignalHandlers();
           resolveStart({ port: actualPort });

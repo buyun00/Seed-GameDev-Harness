@@ -13,23 +13,40 @@ export interface AgentQueryOptions {
   onLog?: (msg: string) => void
 }
 
+export interface AgentBackendInfo {
+  available: boolean
+  label: string
+  error?: string
+}
+
 /**
  * Check if Claude Agent SDK is available.
  * Returns false if the module cannot be imported.
  */
-export async function isAgentSDKAvailable(): Promise<boolean> {
+export async function detectAgentBackend(): Promise<AgentBackendInfo> {
   try {
     await import('@anthropic-ai/claude-agent-sdk')
-    return true
-  } catch {
-    return false
+    return {
+      available: true,
+      label: 'Claude Agent SDK',
+    }
+  } catch (error) {
+    return {
+      available: false,
+      label: 'claude CLI fallback (SDK unavailable)',
+      error: error instanceof Error ? error.stack || error.message : String(error),
+    }
   }
 }
 
+export async function isAgentSDKAvailable(): Promise<boolean> {
+  const backend = await detectAgentBackend()
+  return backend.available
+}
+
 export async function getAgentBackendLabel(): Promise<string> {
-  return await isAgentSDKAvailable()
-    ? 'Claude Agent SDK'
-    : 'claude CLI fallback (SDK unavailable)'
+  const backend = await detectAgentBackend()
+  return backend.label
 }
 
 /**
@@ -37,12 +54,15 @@ export async function getAgentBackendLabel(): Promise<string> {
  * otherwise fallback to `claude --print` CLI.
  */
 export async function agentQuery(opts: AgentQueryOptions): Promise<string> {
-  const sdkAvailable = await isAgentSDKAvailable()
-  if (sdkAvailable) {
-    opts.onLog?.('Agent backend: Claude Agent SDK')
+  const backend = await detectAgentBackend()
+  if (backend.available) {
+    opts.onLog?.(`Agent backend: ${backend.label}`)
     return agentSDKQuery(opts)
   }
-  opts.onLog?.('Agent backend: claude CLI fallback (SDK unavailable)')
+  opts.onLog?.(`Agent backend: ${backend.label}`)
+  if (backend.error) {
+    opts.onLog?.(`Agent backend error: ${backend.error}`)
+  }
   return cliQuery(opts)
 }
 

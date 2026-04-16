@@ -19,7 +19,7 @@ import { runConstitutionAnalysis, type ConstitutionAnalysisParams } from './agen
 import { runProposalEdit, runProposalCreate, type ProposalEditParams, type ProposalCreateParams } from './agents/proposal-agent.js'
 import { runMemoryAnalysis, type MemoryAnalysisParams } from './agents/memory-agent.js'
 import { runKnowledgeDistill, type KnowledgeDistillParams } from './agents/knowledge-agent.js'
-import { getAgentBackendLabel } from './agents/base-agent.js'
+import { detectAgentBackend } from './agents/base-agent.js'
 import type { AppContext, SessionStore } from '../types.js'
 
 export class WorkerService {
@@ -30,7 +30,7 @@ export class WorkerService {
 
   async start(rawProjectPath: string, port: number = 0): Promise<{ port: number }> {
     this.canonicalPath = canonicalizeProjectPath(rawProjectPath)
-    const agentBackendLabel = await getAgentBackendLabel()
+    const agentBackend = await detectAgentBackend()
 
     const projectContext = new ProjectContext(rawProjectPath)
     await projectContext.initialize()
@@ -107,7 +107,13 @@ export class WorkerService {
           process.stderr.write(`\n[Seed Worker] Serving ${this.canonicalPath}\n`)
           process.stderr.write(`[Seed Worker] URL: ${url}\n`)
           process.stderr.write(`[Seed Worker] PID: ${process.pid}  Port: ${actualPort}\n`)
-          process.stderr.write(`[Seed Worker] Agent backend: ${agentBackendLabel}\n\n`)
+          process.stderr.write(`[Seed Worker] Agent backend: ${agentBackend.label}\n`)
+          process.stderr.write(`[Seed Worker] Node: ${process.execPath}\n`)
+          process.stderr.write(`[Seed Worker] CWD: ${process.cwd()}\n`)
+          if (agentBackend.error) {
+            process.stderr.write(`[Seed Worker] Agent backend error: ${agentBackend.error}\n`)
+          }
+          process.stderr.write('\n')
 
           // Write URL to project .seed/ for easy discovery
           this.writeUrlFile(projectContext.projectRoot, url)
