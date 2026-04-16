@@ -7589,6 +7589,12 @@ Comparison requirements:
 - Do not invent new rules or rewrite rule text.
 - Every input rule id must appear exactly once in the output.
 - Relations must only target existing input rule ids.
+- Never wrap the answer in markdown fences or add any prose before/after the JSON object.
+- Do not use ASCII double quotes inside description text. If you need quotation marks inside description, use Chinese quotes or single quotes.
+- Descriptions may be short plain phrases, or an empty string when not needed.
+- Never create self-relations.
+- effective rules must not use shadowed_by relations.
+- shadowed rules should normally use shadowed_by, conflicting rules should use conflicts_with.
 
 Output strict JSON only, no markdown fencing:
 {
@@ -7770,6 +7776,12 @@ function tryParseJsonObject(rawResult) {
   if (balancedObject) {
     candidates.add(balancedObject);
   }
+  for (const candidate of [...candidates]) {
+    const repaired = repairCommonJsonIssues(candidate);
+    if (repaired && repaired !== candidate) {
+      candidates.add(repaired);
+    }
+  }
   for (const candidate of candidates) {
     try {
       const parsed = JSON.parse(candidate);
@@ -7818,6 +7830,53 @@ function extractBalancedJsonObject(raw2) {
     }
   }
   return null;
+}
+function repairCommonJsonIssues(raw2) {
+  return escapeUnescapedInnerQuotes(raw2);
+}
+function escapeUnescapedInnerQuotes(raw2) {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+  for (let i2 = 0; i2 < raw2.length; i2++) {
+    const char = raw2[i2];
+    if (!inString) {
+      result += char;
+      if (char === '"') {
+        inString = true;
+      }
+      continue;
+    }
+    if (escaped) {
+      result += char;
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      result += char;
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      if (isLikelyJsonStringTerminator(raw2, i2 + 1)) {
+        result += char;
+        inString = false;
+      } else {
+        result += '\\"';
+      }
+      continue;
+    }
+    result += char;
+  }
+  return result;
+}
+function isLikelyJsonStringTerminator(raw2, startIndex) {
+  for (let i2 = startIndex; i2 < raw2.length; i2++) {
+    const char = raw2[i2];
+    if (/\s/.test(char)) continue;
+    return char === ":" || char === "," || char === "}" || char === "]";
+  }
+  return true;
 }
 function sanitizeExtractedRule(rawRule, file, index) {
   if (!rawRule || typeof rawRule !== "object") return null;
@@ -7899,7 +7958,7 @@ function sanitizeComparisonDecision(rawRule, inputIds) {
   }
   const status = normalizeStatus(record.status);
   const relations = Array.isArray(record.relations) ? record.relations.map((rawRelation) => sanitizeRelation(rawRelation, id, inputIds)).filter((relation) => relation !== null) : [];
-  return { id, status, relations };
+  return { id, status, relations: normalizeComparisonRelations(status, relations) };
 }
 function sanitizeRelation(rawRelation, sourceRuleId, inputIds) {
   if (!rawRelation || typeof rawRelation !== "object") return null;
@@ -7914,6 +7973,14 @@ function sanitizeRelation(rawRelation, sourceRuleId, inputIds) {
     targetRuleId,
     description: description ?? ""
   };
+}
+function normalizeComparisonRelations(status, relations) {
+  return dedupeRelations(relations.filter((relation) => {
+    if (status === "effective" && relation.type === "shadowed_by") return false;
+    if (status === "shadowed" && relation.type === "conflicts_with") return false;
+    if (status === "conflicting" && relation.type === "shadowed_by") return false;
+    return true;
+  }));
 }
 function normalizeSourceSpan(rawSpan) {
   if (!rawSpan || typeof rawSpan !== "object") return null;
