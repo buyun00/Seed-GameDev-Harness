@@ -10,7 +10,7 @@
     "dev:server": "tsx watch server/index.ts -- daemon --project-path .",
     "build": "npm run build:client && npm run build:worker",
     "build:client": "vite build",
-    "build:worker": "esbuild server/index.ts --bundle --platform=node --target=node18 --outfile=dist/worker.cjs --format=cjs --external:@anthropic-ai/claude-agent-sdk",
+    "build:worker": "esbuild server/index.ts --bundle --platform=node --target=node18 --outfile=dist/worker.cjs --format=cjs",
     "build:server": "tsc -p tsconfig.server.json",
     "start": "node dist/worker.cjs daemon --project-path .",
     "typecheck": "vue-tsc --noEmit && tsc -p tsconfig.server.json --noEmit",

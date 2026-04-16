@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk'
 
 export interface AgentQueryOptions {
   prompt: string
@@ -24,51 +24,29 @@ export interface AgentBackendInfo {
  * Returns false if the module cannot be imported.
  */
 export async function detectAgentBackend(): Promise<AgentBackendInfo> {
-  try {
-    await import('@anthropic-ai/claude-agent-sdk')
-    return {
-      available: true,
-      label: 'Claude Agent SDK',
-    }
-  } catch (error) {
-    return {
-      available: false,
-      label: 'claude CLI fallback (SDK unavailable)',
-      error: error instanceof Error ? error.stack || error.message : String(error),
-    }
+  return {
+    available: true,
+    label: 'Claude Agent SDK',
   }
 }
 
 export async function isAgentSDKAvailable(): Promise<boolean> {
-  const backend = await detectAgentBackend()
-  return backend.available
+  return true
 }
 
 export async function getAgentBackendLabel(): Promise<string> {
-  const backend = await detectAgentBackend()
-  return backend.label
+  return 'Claude Agent SDK'
 }
 
 /**
- * Run a query via Claude Agent SDK if available,
- * otherwise fallback to `claude --print` CLI.
+ * Run a query via Claude Agent SDK.
  */
 export async function agentQuery(opts: AgentQueryOptions): Promise<string> {
-  const backend = await detectAgentBackend()
-  if (backend.available) {
-    opts.onLog?.(`Agent backend: ${backend.label}`)
-    return agentSDKQuery(opts)
-  }
-  opts.onLog?.(`Agent backend: ${backend.label}`)
-  if (backend.error) {
-    opts.onLog?.(`Agent backend error: ${backend.error}`)
-  }
-  return cliQuery(opts)
+  opts.onLog?.('Agent backend: Claude Agent SDK')
+  return agentSDKQuery(opts)
 }
 
 async function agentSDKQuery(opts: AgentQueryOptions): Promise<string> {
-  const { query } = await import('@anthropic-ai/claude-agent-sdk')
-
   const ac = new AbortController()
   if (opts.signal) {
     opts.signal.addEventListener('abort', () => ac.abort())
@@ -97,7 +75,7 @@ async function agentSDKQuery(opts: AgentQueryOptions): Promise<string> {
     termLog('SDK mode started')
 
     let result = ''
-    const messages = query({
+    const messages = sdkQuery({
       prompt: async function* () {
         yield opts.prompt
       },
@@ -132,70 +110,6 @@ async function agentSDKQuery(opts: AgentQueryOptions): Promise<string> {
   } finally {
     if (timeout) clearTimeout(timeout)
   }
-}
-
-/**
- * Fallback: run `claude --print` CLI subprocess.
- */
-function cliQuery(opts: AgentQueryOptions): Promise<string> {
-  const args = ['--print', '--output-format', 'json']
-  if (opts.systemPrompt) {
-    args.push('--append-system-prompt', opts.systemPrompt)
-  }
-
-  return new Promise<string>((resolvePromise, reject) => {
-    const proc = spawn('claude', args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      shell: true,
-      timeout: opts.timeoutMs ?? 120_000,
-      cwd: opts.cwd,
-    })
-
-    proc.stdin.write(opts.prompt, 'utf-8')
-    proc.stdin.end()
-
-    if (opts.signal) {
-      opts.signal.addEventListener('abort', () => {
-        proc.kill()
-        reject(new Error('Aborted'))
-      })
-    }
-
-    const prefix = opts.label ? `[${opts.label}]` : '[Agent]'
-
-    let stdout = ''
-    let stderr = ''
-
-    proc.stdout.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString()
-    })
-
-    proc.stderr.on('data', (chunk: Buffer) => {
-      const text = chunk.toString()
-      stderr += text
-      process.stderr.write(`${prefix} ${text}`)
-      if (opts.onLog) {
-        for (const line of text.split('\n')) {
-          if (line.trim()) opts.onLog(line)
-        }
-      }
-    })
-
-    proc.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`claude exited with code ${code}: ${stderr}`))
-        return
-      }
-      try {
-        const parsed = JSON.parse(stdout)
-        resolvePromise(typeof parsed.result === 'string' ? parsed.result : stdout)
-      } catch {
-        resolvePromise(stdout)
-      }
-    })
-
-    proc.on('error', reject)
-  })
 }
 
 function getMessageType(message: unknown): string | undefined {
