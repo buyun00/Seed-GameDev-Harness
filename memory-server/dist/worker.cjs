@@ -23631,9 +23631,11 @@ function formatSdkMessage(message) {
     return { logs, resultText };
   }
   if (msg.type === "result") {
-    const rendered2 = stringifyForLog(msg.result ?? msg.content);
+    const rawResult = msg.result ?? msg.content;
+    const rendered2 = stringifyForLog(rawResult);
     if (rendered2) {
       logs.push(...toLogLines(`result: ${rendered2}`));
+      resultText += rendered2;
     }
     return { logs, resultText };
   }

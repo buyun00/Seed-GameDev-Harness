@@ -194,9 +194,11 @@ function formatSdkMessage(message: unknown): { logs: string[]; resultText: strin
   }
 
   if (msg.type === 'result') {
-    const rendered = stringifyForLog(msg.result ?? msg.content)
+    const rawResult = msg.result ?? msg.content
+    const rendered = stringifyForLog(rawResult)
     if (rendered) {
       logs.push(...toLogLines(`result: ${rendered}`))
+      resultText += rendered
     }
     return { logs, resultText }
   }
