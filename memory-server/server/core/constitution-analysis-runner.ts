@@ -1,12 +1,19 @@
 import { existsSync } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
-import type { ConstitutionAnalysisCache, ConstitutionRule, ImportDirective, SourceFileRecord } from '../models/constitution-rule.js'
+import type {
+  ConstitutionAnalysisCache,
+  ConstitutionRule,
+  ConstitutionRuleCategory,
+  ImportDirective,
+  SourceFileRecord,
+} from '../models/constitution-rule.js'
 import type { AppContext } from '../types.js'
 import { hashString } from '../utils/hash.js'
 import { extractImports } from '../utils/markdown.js'
 import {
   buildConstitutionFilePrompt,
   buildConstitutionComparisonPrompt,
+  finalizeComparedRules,
   parseConstitutionAnalysisResult,
   parseConstitutionComparisonResult,
   summarizeConstitutionRules,
@@ -21,6 +28,19 @@ export interface ConstitutionAnalysisRunnerOptions {
 
 const MAX_ANALYSIS_ATTEMPTS = 3
 const MAX_COMPARISON_ATTEMPTS = 3
+const CATEGORY_COMPARE_BASE_PROGRESS = 85
+const CATEGORY_COMPARE_PROGRESS_SPAN = 10
+const CATEGORY_ORDER: ConstitutionRuleCategory[] = [
+  'language_output',
+  'core_principles',
+  'agent_collaboration',
+  'tools_commands',
+  'escalation_decision',
+  'memory_context',
+  'activation_conditions',
+  'safety_constraints',
+  'other',
+]
 
 export async function runConstitutionAnalysisPipeline(
   ctx: AppContext,
@@ -69,10 +89,44 @@ export async function runConstitutionAnalysisPipeline(
     options.onLog?.(`${file.path}: extracted ${rules.length} rule(s)`)
   }
 
-  options.onProgress?.('post_processing', 85, 'Comparing extracted rules globally...')
+  options.onProgress?.('post_processing', CATEGORY_COMPARE_BASE_PROGRESS, 'Comparing extracted rules by category...')
 
-  const { rawResult: comparisonRawResult, rules } = await compareRulesWithRetries(ctx, extractedRules, options)
-  rawResults.push(`--- global-comparison ---\n${comparisonRawResult}`)
+  const groupedRules = groupRulesByCategory(extractedRules)
+  const comparisonTasks = groupedRules.map(async ([category, rules], index) => {
+    const compareProgress = CATEGORY_COMPARE_BASE_PROGRESS
+      + Math.round((index / Math.max(groupedRules.length, 1)) * CATEGORY_COMPARE_PROGRESS_SPAN)
+    options.onLog?.(`category-${category}: queued ${rules.length} rule(s) for comparison`)
+    options.onProgress?.(
+      'post_processing',
+      compareProgress,
+      `Comparing ${getCategoryDisplayName(category)} (${index + 1}/${groupedRules.length})...`,
+    )
+
+    if (rules.length <= 1) {
+      options.onLog?.(`category-${category}: skipped LLM comparison (${rules.length} rule)`)
+      return {
+        category,
+        rawResult: JSON.stringify({ rules: rules.map(rule => ({ id: rule.id, status: rule.status, relations: rule.relations })) }),
+        rules,
+      }
+    }
+
+    const result = await compareRulesWithRetries(ctx, category, rules, options)
+    options.onLog?.(`category-${category}: comparison completed (${result.rules.length} rule(s))`)
+    return {
+      category,
+      ...result,
+    }
+  })
+
+  const comparisonResults = await Promise.all(comparisonTasks)
+  for (const result of comparisonResults) {
+    rawResults.push(`--- compare-${result.category} ---\n${result.rawResult}`)
+  }
+
+  const rules = finalizeComparedRules(
+    comparisonResults.flatMap(result => result.rules),
+  )
   const imports = buildImports(ctx, fileContents)
   const importedSources = await collectImportedSources(ctx, imports)
   const summary = summarizeConstitutionRules(rules)
@@ -137,6 +191,7 @@ async function analyzeFileWithRetries(
 
 async function compareRulesWithRetries(
   ctx: AppContext,
+  category: ConstitutionRuleCategory,
   extractedRules: ConstitutionRule[],
   options: ConstitutionAnalysisRunnerOptions,
 ): Promise<{ rawResult: string; rules: ConstitutionRule[] }> {
@@ -148,16 +203,16 @@ async function compareRulesWithRetries(
   let lastRawResult = ''
 
   for (let attempt = 1; attempt <= MAX_COMPARISON_ATTEMPTS; attempt++) {
-    options.onLog?.(`global-comparison: attempt ${attempt}/${MAX_COMPARISON_ATTEMPTS}`)
+    options.onLog?.(`category-${category}: comparison attempt ${attempt}/${MAX_COMPARISON_ATTEMPTS}`)
 
     try {
       const rawResult = await agentQuery({
-        prompt: buildConstitutionComparisonPrompt(extractedRules),
+        prompt: buildConstitutionComparisonPrompt(category, extractedRules),
         cwd: ctx.projectContext.projectRoot,
         timeoutMs: 180_000,
         signal: options.signal,
         label: 'ConstitutionCompare',
-        onLog: (message) => options.onLog?.(`[global-comparison] ${message}`),
+        onLog: (message) => options.onLog?.(`[compare:${category}] ${message}`),
         disallowedTools: [
           'Write', 'Edit', 'MultiEdit', 'Shell',
           'WebFetch', 'WebSearch', 'TodoWrite',
@@ -169,17 +224,55 @@ async function compareRulesWithRetries(
       return { rawResult, rules }
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
-      options.onLog?.(`global-comparison: attempt ${attempt} failed - ${lastError.message}`)
+      options.onLog?.(`category-${category}: attempt ${attempt} failed - ${lastError.message}`)
     }
   }
 
   const preview = lastRawResult.trim().slice(0, 300)
   const previewSuffix = lastRawResult.trim().length > 300 ? '...' : ''
   throw new Error(
-    `Global constitution comparison failed after ${MAX_COMPARISON_ATTEMPTS} attempts: `
+    `Constitution comparison failed for category ${category} after ${MAX_COMPARISON_ATTEMPTS} attempts: `
     + `${lastError?.message ?? 'Unknown error'}`
     + (preview ? ` | last output: ${preview}${previewSuffix}` : ''),
   )
+}
+
+function groupRulesByCategory(
+  rules: ConstitutionRule[],
+): Array<[ConstitutionRuleCategory, ConstitutionRule[]]> {
+  const groups = new Map<ConstitutionRuleCategory, ConstitutionRule[]>()
+
+  for (const rule of rules) {
+    const bucket = groups.get(rule.category) ?? []
+    bucket.push(rule)
+    groups.set(rule.category, bucket)
+  }
+
+  return [...groups.entries()]
+    .sort((left, right) => CATEGORY_ORDER.indexOf(left[0]) - CATEGORY_ORDER.indexOf(right[0]))
+}
+
+function getCategoryDisplayName(category: ConstitutionRuleCategory): string {
+  switch (category) {
+    case 'language_output':
+      return 'language/output rules'
+    case 'core_principles':
+      return 'core principles'
+    case 'agent_collaboration':
+      return 'agent collaboration'
+    case 'tools_commands':
+      return 'tools and commands'
+    case 'escalation_decision':
+      return 'escalation and decisions'
+    case 'memory_context':
+      return 'memory and context'
+    case 'activation_conditions':
+      return 'activation conditions'
+    case 'safety_constraints':
+      return 'safety constraints'
+    default:
+      return 'other rules'
+  }
 }
 
 function buildImports(

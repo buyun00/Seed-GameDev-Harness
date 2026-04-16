@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ConstitutionRule } from '@/types/constitution'
+import { RULE_CATEGORY_LABELS, type ConstitutionRule } from '@/types/constitution'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import RelationTag from '@/components/common/RelationTag.vue'
 import { useI18n } from '@/i18n'
@@ -19,6 +19,7 @@ const i18n = useI18n()
     </div>
     <p class="rule-card__text">{{ truncate(rule.normalizedText, 160) }}</p>
     <div class="rule-card__meta">
+      <span class="rule-card__category">{{ RULE_CATEGORY_LABELS[rule.category] }}</span>
       <span class="rule-card__source">{{ rule.sourceFile }}</span>
       <span class="rule-card__lines">L{{ rule.sourceSpan.startLine }}-{{ rule.sourceSpan.endLine }}</span>
     </div>
@@ -64,10 +65,18 @@ const i18n = useI18n()
 }
 .rule-card__meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   font-size: 12px;
   color: #9ca3af;
+}
+.rule-card__category {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f0f1f3;
+  color: #4d5560;
+  font-weight: 600;
 }
 .rule-card__source {
   font-family: 'SF Mono', Monaco, Consolas, monospace;

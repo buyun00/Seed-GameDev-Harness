@@ -1,6 +1,18 @@
+export type ConstitutionRuleCategory =
+  | 'language_output'
+  | 'core_principles'
+  | 'agent_collaboration'
+  | 'tools_commands'
+  | 'escalation_decision'
+  | 'memory_context'
+  | 'activation_conditions'
+  | 'safety_constraints'
+  | 'other'
+
 export interface ConstitutionRule {
   id: string
   title: string
+  category: ConstitutionRuleCategory
   normalizedText: string
   originalExcerpt: string
   sourceFile: string

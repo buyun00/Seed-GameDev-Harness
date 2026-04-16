@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useConstitutionStore } from '@/stores/constitution'
 import { useProposalStore } from '@/stores/proposal'
 import { useSSE } from '@/composables/useSSE'
@@ -11,7 +11,12 @@ import RuleCard from './components/RuleCard.vue'
 import RuleInspectorSideSheet from './components/RuleInspectorSideSheet.vue'
 import SourceDocumentsPanel from './components/SourceDocumentsPanel.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import type { ConstitutionRule } from '@/types/constitution'
+import {
+  RULE_CATEGORY_LABELS,
+  RULE_CATEGORY_ORDER,
+  type ConstitutionRule,
+  type ConstitutionRuleCategory,
+} from '@/types/constitution'
 
 const store = useConstitutionStore()
 const proposalStore = useProposalStore()
@@ -26,6 +31,22 @@ const sse = useSSE()
 const filteredRules = computed(() => {
   return store.rules.filter(r => r.status === activeStatusTab.value)
 })
+
+const groupedRules = computed(() => {
+  return RULE_CATEGORY_ORDER
+    .map(category => ({
+      category,
+      label: RULE_CATEGORY_LABELS[category],
+      rules: filteredRules.value.filter(rule => rule.category === category),
+    }))
+    .filter(group => group.rules.length > 0)
+})
+
+const activeCategory = ref<ConstitutionRuleCategory | null>(null)
+
+watch(groupedRules, (groups) => {
+  activeCategory.value = groups[0]?.category ?? null
+}, { immediate: true })
 
 const handleFileUpdated = () => store.load()
 const handleAnalysisProgress = (data: Record<string, unknown>) => store.onProgressEvent(data)
@@ -64,6 +85,14 @@ onUnmounted(() => {
 function selectRule(rule: ConstitutionRule) {
   selectedRule.value = rule
   inspectorVisible.value = true
+}
+
+function jumpToCategory(category: ConstitutionRuleCategory) {
+  activeCategory.value = category
+  document.getElementById(`rule-category-${category}`)?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  })
 }
 
 async function handleEdit(rule: ConstitutionRule, changes: { title?: string; normalizedText?: string }, intent: string) {
@@ -108,18 +137,52 @@ async function handleEdit(rule: ConstitutionRule, changes: { title?: string; nor
         />
 
         <EmptyState
-          v-else-if="filteredRules.length === 0"
+          v-else-if="groupedRules.length === 0"
           :title="i18n.emptyNoRulesInCategory"
           :description="i18n.emptyNoRulesDesc(activeStatusTab)"
         />
 
-        <div v-else class="rules-grid">
-          <RuleCard
-            v-for="rule in filteredRules"
-            :key="rule.id"
-            :rule="rule"
-            @select="selectRule"
-          />
+        <div v-else class="rules-layout">
+          <div class="rules-groups">
+            <section
+              v-for="group in groupedRules"
+              :id="`rule-category-${group.category}`"
+              :key="group.category"
+              class="category-section"
+            >
+              <div class="category-section__header">
+                <div>
+                  <div class="category-section__eyebrow">{{ i18n.labelType }}</div>
+                  <h3 class="category-section__title">{{ group.label }}</h3>
+                </div>
+                <span class="category-section__count">{{ group.rules.length }}</span>
+              </div>
+
+              <div class="rules-grid">
+                <RuleCard
+                  v-for="rule in group.rules"
+                  :key="rule.id"
+                  :rule="rule"
+                  @select="selectRule"
+                />
+              </div>
+            </section>
+          </div>
+
+          <aside class="rules-sidebar">
+            <div class="rules-sidebar__card">
+              <div class="rules-sidebar__title">类型导航</div>
+              <button
+                v-for="group in groupedRules"
+                :key="group.category"
+                :class="['rules-sidebar__item', { 'rules-sidebar__item--active': activeCategory === group.category }]"
+                @click="jumpToCategory(group.category)"
+              >
+                <span>{{ group.label }}</span>
+                <span class="rules-sidebar__count">{{ group.rules.length }}</span>
+              </button>
+            </div>
+          </aside>
         </div>
       </div>
     </template>
@@ -178,5 +241,106 @@ async function handleEdit(rule: ConstitutionRule, changes: { title?: string; nor
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.rules-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 20px;
+  align-items: start;
+}
+.rules-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.category-section {
+  border: 1px solid #e8eaed;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  padding: 16px;
+}
+.category-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.category-section__eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a9099;
+  margin-bottom: 4px;
+}
+.category-section__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1c1f26;
+}
+.category-section__count {
+  min-width: 28px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #1c1f26;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+.rules-sidebar {
+  position: sticky;
+  top: 20px;
+}
+.rules-sidebar__card {
+  border: 1px solid #e8eaed;
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rules-sidebar__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1c1f26;
+  padding: 4px 6px 8px;
+}
+.rules-sidebar__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #f6f7f9;
+  color: #444a53;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.rules-sidebar__item:hover {
+  background: #eceff3;
+  color: #1c1f26;
+  transform: translateY(-1px);
+}
+.rules-sidebar__item--active {
+  background: #1c1f26;
+  color: #fff;
+}
+.rules-sidebar__count {
+  font-size: 12px;
+  opacity: 0.8;
+}
+@media (max-width: 980px) {
+  .rules-layout {
+    grid-template-columns: 1fr;
+  }
+  .rules-sidebar {
+    position: static;
+    order: -1;
+  }
 }
 </style>
