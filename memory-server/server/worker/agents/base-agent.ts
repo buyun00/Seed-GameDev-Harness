@@ -1,4 +1,5 @@
 import { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk'
+import { spawnSync } from 'node:child_process'
 
 export interface AgentQueryOptions {
   prompt: string
@@ -18,6 +19,8 @@ export interface AgentBackendInfo {
   label: string
   error?: string
 }
+
+let cachedClaudeExecutablePath: string | null | undefined
 
 /**
  * Check if Claude Agent SDK is available.
@@ -71,8 +74,10 @@ async function agentSDKQuery(opts: AgentQueryOptions): Promise<string> {
       'Write', 'Edit', 'MultiEdit', 'Shell',
       'WebFetch', 'WebSearch', 'TodoWrite',
     ]
+    const claudeExecutable = resolveClaudeExecutablePath()
 
     termLog('SDK mode started')
+    termLog(`Claude executable: ${claudeExecutable}`)
 
     let result = ''
     const messages = sdkQuery({
@@ -81,6 +86,7 @@ async function agentSDKQuery(opts: AgentQueryOptions): Promise<string> {
       },
       options: {
         cwd: opts.cwd ?? process.cwd(),
+        pathToClaudeCodeExecutable: claudeExecutable,
         disallowedTools,
         abortController: ac,
         ...(opts.systemPrompt ? { systemPrompt: opts.systemPrompt } : {}),
@@ -110,6 +116,34 @@ async function agentSDKQuery(opts: AgentQueryOptions): Promise<string> {
   } finally {
     if (timeout) clearTimeout(timeout)
   }
+}
+
+function resolveClaudeExecutablePath(): string {
+  if (cachedClaudeExecutablePath !== undefined) {
+    return cachedClaudeExecutablePath ?? 'claude'
+  }
+
+  const explicit = process.env.CLAUDE_CODE_EXECUTABLE?.trim()
+  if (explicit) {
+    cachedClaudeExecutablePath = explicit
+    return explicit
+  }
+
+  const command = process.platform === 'win32' ? 'where.exe' : 'which'
+  const lookup = spawnSync(command, ['claude'], {
+    encoding: 'utf-8',
+    windowsHide: true,
+  })
+
+  const resolved = lookup.status === 0
+    ? lookup.stdout
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .find(line => line.length > 0)
+    : undefined
+
+  cachedClaudeExecutablePath = resolved ?? 'claude'
+  return cachedClaudeExecutablePath
 }
 
 function getMessageType(message: unknown): string | undefined {

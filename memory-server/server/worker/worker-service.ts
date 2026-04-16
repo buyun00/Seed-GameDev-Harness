@@ -110,6 +110,7 @@ export class WorkerService {
           process.stderr.write(`[Seed Worker] Agent backend: ${agentBackend.label}\n`)
           process.stderr.write(`[Seed Worker] Node: ${process.execPath}\n`)
           process.stderr.write(`[Seed Worker] CWD: ${process.cwd()}\n`)
+          process.stderr.write(`[Seed Worker] CLAUDE_CODE_EXECUTABLE: ${process.env.CLAUDE_CODE_EXECUTABLE ?? '(auto)'}\n`)
           if (agentBackend.error) {
             process.stderr.write(`[Seed Worker] Agent backend error: ${agentBackend.error}\n`)
           }

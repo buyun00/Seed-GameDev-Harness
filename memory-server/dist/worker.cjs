@@ -23503,6 +23503,8 @@ function Dy($, X) {
 }
 
 // server/worker/agents/base-agent.ts
+var import_node_child_process = require("node:child_process");
+var cachedClaudeExecutablePath;
 async function detectAgentBackend() {
   return {
     available: true,
@@ -23538,7 +23540,9 @@ async function agentSDKQuery(opts) {
       "WebSearch",
       "TodoWrite"
     ];
+    const claudeExecutable = resolveClaudeExecutablePath();
     termLog("SDK mode started");
+    termLog(`Claude executable: ${claudeExecutable}`);
     let result = "";
     const messages = I$$({
       prompt: async function* () {
@@ -23546,6 +23550,7 @@ async function agentSDKQuery(opts) {
       },
       options: {
         cwd: opts.cwd ?? process.cwd(),
+        pathToClaudeCodeExecutable: claudeExecutable,
         disallowedTools,
         abortController: ac,
         ...opts.systemPrompt ? { systemPrompt: opts.systemPrompt } : {}
@@ -23572,6 +23577,24 @@ async function agentSDKQuery(opts) {
   } finally {
     if (timeout) clearTimeout(timeout);
   }
+}
+function resolveClaudeExecutablePath() {
+  if (cachedClaudeExecutablePath !== void 0) {
+    return cachedClaudeExecutablePath ?? "claude";
+  }
+  const explicit = process.env.CLAUDE_CODE_EXECUTABLE?.trim();
+  if (explicit) {
+    cachedClaudeExecutablePath = explicit;
+    return explicit;
+  }
+  const command = process.platform === "win32" ? "where.exe" : "which";
+  const lookup = (0, import_node_child_process.spawnSync)(command, ["claude"], {
+    encoding: "utf-8",
+    windowsHide: true
+  });
+  const resolved = lookup.status === 0 ? lookup.stdout.split(/\r?\n/).map((line) => line.trim()).find((line) => line.length > 0) : void 0;
+  cachedClaudeExecutablePath = resolved ?? "claude";
+  return cachedClaudeExecutablePath;
 }
 function getMessageType(message) {
   if (!message || typeof message !== "object") {
@@ -24234,7 +24257,7 @@ function proposalRoutes(ctx) {
 }
 
 // server/core/memory-path-resolver.ts
-var import_node_child_process = require("node:child_process");
+var import_node_child_process2 = require("node:child_process");
 var import_node_fs6 = require("node:fs");
 var import_node_path3 = require("node:path");
 var import_node_os = require("node:os");
@@ -24292,7 +24315,7 @@ var MemoryPathResolver = class {
       const isFile = (0, import_node_fs6.statSync)(dotGitPath).isFile();
       if (isFile) {
         try {
-          const commonDir = (0, import_node_child_process.execSync)("git rev-parse --git-common-dir", { cwd: root, encoding: "utf-8" }).trim();
+          const commonDir = (0, import_node_child_process2.execSync)("git rev-parse --git-common-dir", { cwd: root, encoding: "utf-8" }).trim();
           const resolved = (0, import_node_path3.resolve)(root, commonDir);
           const mainRoot = (0, import_node_path3.resolve)(resolved, "..");
           return {
@@ -24305,7 +24328,7 @@ var MemoryPathResolver = class {
         }
       } else {
         try {
-          const toplevel = (0, import_node_child_process.execSync)("git rev-parse --show-toplevel", { cwd: root, encoding: "utf-8" }).trim();
+          const toplevel = (0, import_node_child_process2.execSync)("git rev-parse --show-toplevel", { cwd: root, encoding: "utf-8" }).trim();
           return {
             slug: this.slugify(toplevel),
             method: "git_toplevel",
@@ -26647,7 +26670,7 @@ var Writer = class {
 };
 
 // server/core/claude-adapter.ts
-var import_node_child_process2 = require("node:child_process");
+var import_node_child_process3 = require("node:child_process");
 var ClaudeAdapter = class {
   async invoke(inv) {
     const args = ["--print", "--output-format", "json"];
@@ -26656,7 +26679,7 @@ var ClaudeAdapter = class {
     }
     args.push(inv.prompt);
     return new Promise((resolve7, reject) => {
-      const proc = (0, import_node_child_process2.spawn)("claude", args, {
+      const proc = (0, import_node_child_process3.spawn)("claude", args, {
         stdio: ["pipe", "pipe", "pipe"],
         shell: true,
         timeout: inv.timeout ?? 12e4
@@ -26690,7 +26713,7 @@ var ClaudeAdapter = class {
       args.push("--append-system-prompt", inv.systemPrompt);
     }
     args.push(inv.prompt);
-    const proc = (0, import_node_child_process2.spawn)("claude", args, {
+    const proc = (0, import_node_child_process3.spawn)("claude", args, {
       stdio: ["pipe", "pipe", "pipe"],
       shell: true,
       timeout: inv.timeout ?? 12e4
@@ -26786,7 +26809,7 @@ var import_node_os2 = require("node:os");
 var import_node_crypto6 = require("node:crypto");
 var import_node_fs12 = require("node:fs");
 var import_node_path10 = require("node:path");
-var import_node_child_process3 = require("node:child_process");
+var import_node_child_process4 = require("node:child_process");
 var WORKERS_DIR = (0, import_node_path10.join)((0, import_node_os2.homedir)(), ".seed", "workers");
 function ensureWorkersDir() {
   if (!(0, import_node_fs12.existsSync)(WORKERS_DIR)) {
@@ -26801,7 +26824,7 @@ function canonicalizeProjectPath(rawPath) {
   }
   if ((0, import_node_fs12.existsSync)((0, import_node_path10.join)(p, ".git")) || (0, import_node_fs12.existsSync)((0, import_node_path10.join)(p, "..", ".git"))) {
     try {
-      const toplevel = (0, import_node_child_process3.execSync)("git rev-parse --show-toplevel", {
+      const toplevel = (0, import_node_child_process4.execSync)("git rev-parse --show-toplevel", {
         cwd: p,
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],
@@ -26853,7 +26876,7 @@ function removePidFile(canonicalPath) {
 function isProcessAlive(pid) {
   if (process.platform === "win32") {
     try {
-      const result = (0, import_node_child_process3.spawnSync)("tasklist", ["/FI", `PID eq ${pid}`, "/NH", "/FO", "CSV"], {
+      const result = (0, import_node_child_process4.spawnSync)("tasklist", ["/FI", `PID eq ${pid}`, "/NH", "/FO", "CSV"], {
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],
         timeout: 5e3,
@@ -27270,6 +27293,8 @@ var WorkerService = class {
 `);
           process.stderr.write(`[Seed Worker] CWD: ${process.cwd()}
 `);
+          process.stderr.write(`[Seed Worker] CLAUDE_CODE_EXECUTABLE: ${process.env.CLAUDE_CODE_EXECUTABLE ?? "(auto)"}
+`);
           if (agentBackend.error) {
             process.stderr.write(`[Seed Worker] Agent backend error: ${agentBackend.error}
 `);
@@ -27320,7 +27345,7 @@ var WorkerService = class {
 };
 
 // server/worker/spawner.ts
-var import_node_child_process4 = require("node:child_process");
+var import_node_child_process5 = require("node:child_process");
 var import_node_path12 = require("node:path");
 var import_node_fs15 = require("node:fs");
 var import_node_os3 = require("node:os");
@@ -27393,7 +27418,7 @@ pause >nul\r
 `,
       "utf-8"
     );
-    const child = (0, import_node_child_process4.spawn)("cmd.exe", ["/c", "start", '""', batPath], {
+    const child = (0, import_node_child_process5.spawn)("cmd.exe", ["/c", "start", '""', batPath], {
       detached: true,
       stdio: "ignore"
     });
@@ -27401,7 +27426,7 @@ pause >nul\r
   } else if (process.platform === "darwin") {
     const fullCmd = [cmd, ...args].map((a2) => `"${a2}"`).join(" ");
     const script = `tell application "Terminal" to do script "${fullCmd}"`;
-    const child = (0, import_node_child_process4.spawn)("osascript", ["-e", script], {
+    const child = (0, import_node_child_process5.spawn)("osascript", ["-e", script], {
       detached: true,
       stdio: "ignore"
     });
@@ -27412,19 +27437,19 @@ pause >nul\r
     for (const term of terminals) {
       try {
         if (term === "gnome-terminal") {
-          const child = (0, import_node_child_process4.spawn)(term, ["--title", title, "--", cmd, ...args], {
+          const child = (0, import_node_child_process5.spawn)(term, ["--title", title, "--", cmd, ...args], {
             detached: true,
             stdio: "ignore"
           });
           child.unref();
         } else if (term === "xterm") {
-          const child = (0, import_node_child_process4.spawn)(term, ["-T", title, "-e", cmd, ...args], {
+          const child = (0, import_node_child_process5.spawn)(term, ["-T", title, "-e", cmd, ...args], {
             detached: true,
             stdio: "ignore"
           });
           child.unref();
         } else {
-          const child = (0, import_node_child_process4.spawn)(term, ["-e", cmd, ...args], {
+          const child = (0, import_node_child_process5.spawn)(term, ["-e", cmd, ...args], {
             detached: true,
             stdio: "ignore"
           });
@@ -27436,7 +27461,7 @@ pause >nul\r
       }
     }
     if (!launched) {
-      const child = (0, import_node_child_process4.spawn)(cmd, args, {
+      const child = (0, import_node_child_process5.spawn)(cmd, args, {
         detached: true,
         stdio: "ignore"
       });
