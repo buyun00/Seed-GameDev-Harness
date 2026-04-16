@@ -1,5 +1,6 @@
 import { computed } from 'vue'
 import { useAppStore } from '@/stores/app'
+import type { ConstitutionRuleCategory } from '@/types/constitution'
 
 type LangStrings = {
   connectingToServer: string
@@ -92,6 +93,12 @@ type LangStrings = {
   applyChanges: string
 
   fileNotFound: string
+}
+
+type I18nStrings = LangStrings & {
+  statusLabel: (status: string) => string
+  relationLabel: (relationType: string) => string
+  ruleCategoryLabel: (category: ConstitutionRuleCategory) => string
 }
 
 const translations: Record<string, LangStrings> = {
@@ -475,6 +482,115 @@ const nameToCode: Record<string, string> = {
   '한국어': 'ko', korean: 'ko',
 }
 
+const statusLabels: Record<string, Record<string, string>> = {
+  en: {
+    effective: 'Effective',
+    shadowed: 'Shadowed',
+    conflicting: 'Conflicting',
+    unresolved: 'Unresolved',
+  },
+  zh: {
+    effective: '有效',
+    shadowed: '被覆盖',
+    conflicting: '冲突',
+    unresolved: '未解决',
+  },
+  ja: {
+    effective: '有効',
+    shadowed: '上書き',
+    conflicting: '競合',
+    unresolved: '未解決',
+  },
+  ko: {
+    effective: '유효',
+    shadowed: '가려짐',
+    conflicting: '충돌',
+    unresolved: '미해결',
+  },
+}
+
+const relationLabels: Record<string, Record<string, string>> = {
+  en: {
+    shadowed_by: 'Shadowed By',
+    conflicts_with: 'Conflicts With',
+    overlaps_with: 'Overlaps With',
+    reinforced_by: 'Reinforced By',
+    more_specific_than: 'More Specific Than',
+    likely_supersedes: 'Likely Supersedes',
+  },
+  zh: {
+    shadowed_by: '被覆盖于',
+    conflicts_with: '冲突于',
+    overlaps_with: '重叠于',
+    reinforced_by: '被强化于',
+    more_specific_than: '更具体于',
+    likely_supersedes: '可能取代',
+  },
+  ja: {
+    shadowed_by: '上位ルールに吸収',
+    conflicts_with: '競合',
+    overlaps_with: '重複',
+    reinforced_by: '補強される',
+    more_specific_than: 'より具体的',
+    likely_supersedes: '置き換える可能性',
+  },
+  ko: {
+    shadowed_by: '상위 규칙에 가려짐',
+    conflicts_with: '충돌',
+    overlaps_with: '겹침',
+    reinforced_by: '보강됨',
+    more_specific_than: '더 구체적',
+    likely_supersedes: '대체 가능',
+  },
+}
+
+const categoryLabels: Record<string, Record<ConstitutionRuleCategory, string>> = {
+  en: {
+    language_output: 'Language & Output',
+    core_principles: 'Core Principles',
+    agent_collaboration: 'Agent Collaboration',
+    tools_commands: 'Tools & Commands',
+    escalation_decision: 'Escalation & Decisions',
+    memory_context: 'Memory & Context',
+    activation_conditions: 'Activation Conditions',
+    safety_constraints: 'Safety Constraints',
+    other: 'Other',
+  },
+  zh: {
+    language_output: '语言与输出',
+    core_principles: '核心原则',
+    agent_collaboration: 'Agent/团队协作',
+    tools_commands: '工具与命令',
+    escalation_decision: '升级与决策',
+    memory_context: '记忆与上下文',
+    activation_conditions: '激活条件',
+    safety_constraints: '安全限制',
+    other: '其他',
+  },
+  ja: {
+    language_output: '言語と出力',
+    core_principles: '中核原則',
+    agent_collaboration: 'Agent/チーム連携',
+    tools_commands: 'ツールとコマンド',
+    escalation_decision: 'エスカレーションと意思決定',
+    memory_context: '記憶とコンテキスト',
+    activation_conditions: '有効化条件',
+    safety_constraints: '安全制約',
+    other: 'その他',
+  },
+  ko: {
+    language_output: '언어 및 출력',
+    core_principles: '핵심 원칙',
+    agent_collaboration: 'Agent/팀 협업',
+    tools_commands: '도구 및 명령',
+    escalation_decision: '승급 및 의사결정',
+    memory_context: '메모리 및 컨텍스트',
+    activation_conditions: '활성화 조건',
+    safety_constraints: '안전 제약',
+    other: '기타',
+  },
+}
+
 function resolveCode(raw: string): string {
   if (!raw) return 'en'
   const lower = raw.toLowerCase().trim()
@@ -485,6 +601,15 @@ function resolveCode(raw: string): string {
 export function useI18n() {
   const appStore = useAppStore()
   const lang = computed(() => resolveCode(appStore.status?.language ?? ''))
-  const strings = computed(() => translations[lang.value] ?? translations.en)
+  const strings = computed<I18nStrings>(() => {
+    const code = lang.value
+    const base = translations[code] ?? translations.en
+    return {
+      ...base,
+      statusLabel: (status: string) => statusLabels[code]?.[status] ?? statusLabels.en[status] ?? status,
+      relationLabel: (relationType: string) => relationLabels[code]?.[relationType] ?? relationLabels.en[relationType] ?? relationType,
+      ruleCategoryLabel: (category: ConstitutionRuleCategory) => categoryLabels[code]?.[category] ?? categoryLabels.en[category] ?? category,
+    }
+  })
   return strings
 }

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Relation } from '@/types/constitution'
+import { useI18n } from '@/i18n'
 
 const props = defineProps<{ relation: Relation }>()
 
-const label = computed(() => props.relation.type.replace(/_/g, ' '))
+const i18n = useI18n()
+const label = computed(() => i18n.relationLabel(props.relation.type))
 const color = computed(() => {
   const map: Record<string, string> = {
     shadowed_by: 'orange',

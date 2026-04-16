@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { statusColor, capitalize } from '@/utils/format'
+import { statusColor } from '@/utils/format'
+import { useI18n } from '@/i18n'
 
 const props = defineProps<{ status: string }>()
 
 const color = computed(() => statusColor(props.status))
+const i18n = useI18n()
 </script>
 
 <template>
   <span class="status-badge" :data-color="color">
-    {{ capitalize(status) }}
+    {{ i18n.statusLabel(status) }}
   </span>
 </template>
 

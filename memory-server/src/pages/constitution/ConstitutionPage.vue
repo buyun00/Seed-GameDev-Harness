@@ -12,7 +12,6 @@ import RuleInspectorSideSheet from './components/RuleInspectorSideSheet.vue'
 import SourceDocumentsPanel from './components/SourceDocumentsPanel.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import {
-  RULE_CATEGORY_LABELS,
   RULE_CATEGORY_ORDER,
   type ConstitutionRule,
   type ConstitutionRuleCategory,
@@ -36,7 +35,7 @@ const groupedRules = computed(() => {
   return RULE_CATEGORY_ORDER
     .map(category => ({
       category,
-      label: RULE_CATEGORY_LABELS[category],
+      label: i18n.ruleCategoryLabel(category),
       rules: filteredRules.value.filter(rule => rule.category === category),
     }))
     .filter(group => group.rules.length > 0)

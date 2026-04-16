@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { RULE_CATEGORY_LABELS, type ConstitutionRule } from '@/types/constitution'
+import type { ConstitutionRule } from '@/types/constitution'
 import InspectorSideSheet from '@/layouts/InspectorSideSheet.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import RelationTag from '@/components/common/RelationTag.vue'
@@ -22,7 +22,7 @@ const i18n = useI18n()
 </script>
 
 <template>
-  <InspectorSideSheet :visible="visible" :title="rule?.title ?? ''" @close="$emit('close'); editing = false">
+  <InspectorSideSheet :visible="visible" :title="i18n.normalizedRule" @close="$emit('close'); editing = false">
     <template v-if="rule && !editing">
       <div class="detail-section">
         <div class="detail-row">
@@ -31,7 +31,7 @@ const i18n = useI18n()
         </div>
         <div class="detail-row">
           <span class="detail-label">{{ i18n.labelType }}</span>
-          <span>{{ RULE_CATEGORY_LABELS[rule.category] }}</span>
+          <span>{{ i18n.ruleCategoryLabel(rule.category) }}</span>
         </div>
         <div class="detail-row">
           <span class="detail-label">{{ i18n.labelSource }}</span>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RULE_CATEGORY_LABELS, type ConstitutionRule } from '@/types/constitution'
+import type { ConstitutionRule } from '@/types/constitution'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import RelationTag from '@/components/common/RelationTag.vue'
 import { useI18n } from '@/i18n'
@@ -14,12 +14,11 @@ const i18n = useI18n()
 <template>
   <div class="rule-card" @click="$emit('select', rule)">
     <div class="rule-card__header">
-      <h4 class="rule-card__title">{{ rule.title }}</h4>
       <StatusBadge :status="rule.status" />
     </div>
-    <p class="rule-card__text">{{ truncate(rule.normalizedText, 160) }}</p>
+    <p class="rule-card__text">{{ truncate(rule.normalizedText, 220) }}</p>
     <div class="rule-card__meta">
-      <span class="rule-card__category">{{ RULE_CATEGORY_LABELS[rule.category] }}</span>
+      <span class="rule-card__category">{{ i18n.ruleCategoryLabel(rule.category) }}</span>
       <span class="rule-card__source">{{ rule.sourceFile }}</span>
       <span class="rule-card__lines">L{{ rule.sourceSpan.startLine }}-{{ rule.sourceSpan.endLine }}</span>
     </div>
@@ -47,20 +46,14 @@ const i18n = useI18n()
 }
 .rule-card__header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   margin-bottom: 8px;
 }
-.rule-card__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1c1f26;
-}
 .rule-card__text {
-  font-size: 13px;
-  color: #65686f;
-  line-height: 1.5;
+  font-size: 14px;
+  color: #1c1f26;
+  line-height: 1.65;
   margin-bottom: 10px;
 }
 .rule-card__meta {
