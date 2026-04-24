@@ -26,13 +26,13 @@ export class Watcher {
     })
 
     this.fsWatcher.on('change', (path) => {
-      this.handleChange(path as string)
+      this.handleChange(path as string, 'change')
     })
     this.fsWatcher.on('add', (path) => {
-      this.handleChange(path as string)
+      this.handleChange(path as string, 'add')
     })
     this.fsWatcher.on('unlink', (path) => {
-      this.handleChange(path as string)
+      this.handleChange(path as string, 'unlink')
     })
   }
 
@@ -40,10 +40,10 @@ export class Watcher {
     this.fsWatcher?.close()
   }
 
-  private async handleChange(filePath: string) {
+  private async handleChange(filePath: string, event: 'change' | 'add' | 'unlink') {
     const relativePath = this.ctx.relative(filePath)
     const kind = this.inferKind(relativePath)
-    await this.scanner.scan()
+    await this.scanner.scanFile(filePath, event)
     this.sseEmitter.emit('file:changed', { path: relativePath, kind })
     this.sseEmitter.emit('scan:updated', {})
   }

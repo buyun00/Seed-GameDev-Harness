@@ -8,8 +8,61 @@ export class TaskQueue {
   private queue: string[] = []
   private processing = false
   private abortControllers = new Map<string, AbortController>()
+  /** Max number of finished tasks to retain */
+  private readonly maxRetained: number
+  /** How long (ms) to keep finished tasks before they become eligible for eviction */
+  private readonly retentionMs: number
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null
 
-  constructor(private sseEmitter: SseEmitter) {}
+  constructor(
+    private sseEmitter: SseEmitter,
+    opts?: { maxRetained?: number; retentionMs?: number },
+  ) {
+    this.maxRetained = opts?.maxRetained ?? 200
+    this.retentionMs = opts?.retentionMs ?? 30 * 60 * 1000 // 30 minutes
+    this.cleanupTimer = setInterval(() => this.cleanup(), 60_000)
+    // Allow the timer to not block process exit
+    if (this.cleanupTimer.unref) this.cleanupTimer.unref()
+  }
+
+  dispose(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer)
+      this.cleanupTimer = null
+    }
+  }
+
+  /**
+   * Remove finished tasks that exceed retention time or count limit.
+   */
+  private cleanup(): void {
+    const now = Date.now()
+    const finished: Array<{ id: string; completedAt: number }> = []
+
+    for (const task of this.tasks.values()) {
+      if (task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled') {
+        const completedAt = task.completedAt ? new Date(task.completedAt).getTime() : 0
+        finished.push({ id: task.id, completedAt })
+      }
+    }
+
+    // Remove tasks older than retentionMs
+    for (const { id, completedAt } of finished) {
+      if (now - completedAt > this.retentionMs) {
+        this.tasks.delete(id)
+      }
+    }
+
+    // If still over limit, remove oldest first
+    const remaining = finished
+      .filter(f => this.tasks.has(f.id))
+      .sort((a, b) => a.completedAt - b.completedAt)
+
+    while (remaining.length > this.maxRetained) {
+      const oldest = remaining.shift()!
+      this.tasks.delete(oldest.id)
+    }
+  }
 
   registerHandler<TParams, TResult>(type: TaskType, handler: TaskHandler<TParams, TResult>): void {
     this.handlers.set(type, handler as TaskHandler)

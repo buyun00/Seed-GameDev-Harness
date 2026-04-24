@@ -8,14 +8,43 @@ import type { Asset, AssetKind } from '../models/asset.js'
 
 export class Scanner {
   private assets = new Map<string, Asset>()
+  /** Maps absolute file path → asset id for incremental lookups */
+  private pathIndex = new Map<string, string>()
 
   constructor(private ctx: ProjectContext) {}
 
   async scan(): Promise<void> {
     this.assets.clear()
+    this.pathIndex.clear()
     await this.scanConstitution()
     await this.scanRules()
     await this.scanKnowledgeDirs()
+  }
+
+  /**
+   * Incrementally update a single file instead of re-scanning everything.
+   * - change/add: re-read the file and update (or insert) its asset
+   * - unlink: remove the asset from the map
+   */
+  async scanFile(absolutePath: string, event: 'change' | 'add' | 'unlink'): Promise<void> {
+    const relativePath = this.ctx.relative(absolutePath)
+    const id = stableId(relativePath)
+
+    if (event === 'unlink') {
+      this.assets.delete(id)
+      this.pathIndex.delete(absolutePath)
+      return
+    }
+
+    // Determine kind and tags from path
+    const { kind, tags } = this.inferKindAndTags(relativePath)
+    await this.addAsset(absolutePath, kind, tags)
+  }
+
+  private inferKindAndTags(relativePath: string): { kind: AssetKind; tags: string[] } {
+    if (relativePath.includes('CLAUDE')) return { kind: 'constitution', tags: [] }
+    if (relativePath.startsWith('.claude/rules')) return { kind: 'knowledge', tags: ['rules'] }
+    return { kind: 'knowledge', tags: [] }
   }
 
   getAll(): Asset[] {
@@ -63,6 +92,12 @@ export class Scanner {
       const raw = await readFile(filePath, 'utf-8')
       const relativePath = this.ctx.relative(filePath)
       const id = stableId(relativePath)
+      const newHash = hashString(raw)
+
+      // Skip if content hasn't changed
+      const existing = this.assets.get(id)
+      if (existing && existing.fileHash === newHash) return
+
       const title = extractTitle(raw, relativePath)
       const { excerpt } = parseMarkdown(raw)
       const fileStat = await stat(filePath)
@@ -76,9 +111,10 @@ export class Scanner {
         status: 'active',
         updatedAt: fileStat.mtime.toISOString(),
         tags,
-        fileHash: hashString(raw),
+        fileHash: newHash,
       }
       this.assets.set(id, asset)
+      this.pathIndex.set(filePath, id)
     } catch {
       // skip unreadable files
     }
