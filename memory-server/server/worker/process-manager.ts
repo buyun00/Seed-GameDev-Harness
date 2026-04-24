@@ -67,9 +67,9 @@ export function canonicalizeProjectPath(rawPath: string): string {
     }
   }
 
-  // Windows case normalisation
+  // Windows: only normalise the drive letter to uppercase, preserve the rest
   if (process.platform === 'win32' && /^[a-zA-Z]:/.test(p)) {
-    p = p[0].toUpperCase() + p.slice(1).toLowerCase()
+    p = p[0].toUpperCase() + p.slice(1)
   }
 
   return p.split(sep).join('/')
