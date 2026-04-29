@@ -57,8 +57,10 @@ async function main() {
           }
           writeFileSync(join(seedDir, 'memory-editor.url'), url, 'utf-8');
 
-          // Open the Memory Editor UI in the default browser
-          openBrowser(url);
+          // Only open browser on first launch, not on reconnection
+          if (!info.alreadyRunning) {
+            openBrowser(url);
+          }
         }
       } catch { /* ignore parse errors */ }
     }

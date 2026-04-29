@@ -36,11 +36,12 @@ async function cmdStart() {
   const port = parseInt(values.port as string, 10) || 0
   try {
     const result = await ensureWorkerStarted(raw, { port })
-    process.stderr.write(`[Seed Worker] Worker ready on port ${result.port}\n`)
+    process.stderr.write(`[Seed Worker] Worker ready on port ${result.port} (alreadyRunning=${result.alreadyRunning})\n`)
     process.stdout.write(JSON.stringify({
       status: 'ok',
       port: result.port,
       projectPath: canonicalizeProjectPath(raw),
+      alreadyRunning: result.alreadyRunning,
     }))
   } catch (err) {
     process.stderr.write(`[Seed Worker] Failed to start: ${err}\n`)
