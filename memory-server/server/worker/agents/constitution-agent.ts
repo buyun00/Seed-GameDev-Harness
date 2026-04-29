@@ -1,6 +1,7 @@
 import type { ConstitutionAnalysisCache } from '../../models/constitution-rule.js'
 import type { AppContext } from '../../types.js'
 import { runConstitutionAnalysisPipeline } from '../../core/constitution-analysis-runner.js'
+import { emitAgentLog } from './agent-utils.js'
 
 export interface ConstitutionAnalysisParams {
   projectPath: string
@@ -16,15 +17,10 @@ export async function runConstitutionAnalysis(
     ctx.sseEmitter.emit('analysis:progress', { step, percent, message, ts: Date.now() })
   }
 
-  function emitLog(message: string) {
-    process.stderr.write(`[Constitution] ${message}\n`)
-    ctx.sseEmitter.emit('agent:log', { source: 'constitution', message, ts: Date.now() })
-  }
-
   const result = await runConstitutionAnalysisPipeline(ctx, {
     signal,
     onProgress: emitProgress,
-    onLog: emitLog,
+    onLog: (msg) => emitAgentLog(ctx.sseEmitter, 'constitution', msg),
   })
 
   await ctx.cache.set('constitution-analysis', result)
@@ -33,7 +29,8 @@ export async function runConstitutionAnalysis(
     analyzedAt: result.analyzedAt,
   })
 
-  emitLog(
+  emitAgentLog(
+    ctx.sseEmitter, 'constitution',
     `Analysis complete: ${result.rules.length} rule(s) `
     + `(effective ${result.statusSummary.effective}, conflicting ${result.statusSummary.conflicting}, unresolved ${result.statusSummary.unresolved})`,
   )

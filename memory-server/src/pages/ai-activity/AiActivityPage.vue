@@ -96,7 +96,7 @@ function toggleAutoScroll() {
             <span class="active-card__elapsed">{{ formatElapsed(store.activeTask.createdAt) }}</span>
           </div>
           <div class="active-card__bar">
-            <div class="active-card__bar-fill"></div>
+            <div class="active-card__bar-fill" :style="{ width: (store.activeTask.progressPercent || 30) + '%' }"></div>
           </div>
           <p v-if="store.activeTask.progress" class="active-card__progress">{{ store.activeTask.progress }}</p>
         </div>
@@ -226,15 +226,9 @@ function toggleAutoScroll() {
 }
 .active-card__bar-fill {
   height: 100%;
-  width: 30%;
   background: linear-gradient(90deg, #3b82f6, #8b5cf6);
   border-radius: 2px;
-  animation: bar-anim 2s ease-in-out infinite;
-}
-@keyframes bar-anim {
-  0% { width: 10%; margin-left: 0; }
-  50% { width: 60%; }
-  100% { width: 10%; margin-left: 90%; }
+  transition: width 0.5s ease;
 }
 .active-card__progress {
   font-size: 12px;

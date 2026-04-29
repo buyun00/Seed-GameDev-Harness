@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { createPatch } from 'diff'
 import { agentQuery } from './base-agent.js'
+import { emitAgentLog } from './agent-utils.js'
 import type { AppContext } from '../../types.js'
 import type { ConstitutionRule } from '../../models/constitution-rule.js'
 import type { Proposal } from '../../models/proposal.js'
@@ -27,14 +28,9 @@ export async function runProposalEdit(
   params: ProposalEditParams,
   signal: AbortSignal,
 ): Promise<Proposal> {
-  function emitLog(message: string) {
-    process.stderr.write(`[Proposal] ${message}\n`)
-    ctx.sseEmitter.emit('agent:log', { source: 'proposal', message, ts: Date.now() })
-  }
-
   const { rule, changes, editIntent, currentContent } = params
 
-  emitLog(`Starting proposal: edit rule "${rule.title}"`)
+  emitAgentLog(ctx.sseEmitter, 'proposal', `Starting proposal: edit rule "${rule.title}"`)
 
   const prompt = `You are editing a Claude Code configuration file. The file content is:
 
@@ -59,7 +55,7 @@ Output raw file content only, no markdown fencing.`
     signal,
     disallowedTools: ['Write', 'Edit', 'MultiEdit', 'Shell', 'WebFetch', 'WebSearch'],
     label: 'Proposal',
-    onLog: emitLog,
+    onLog: (msg) => emitAgentLog(ctx.sseEmitter, 'proposal', msg),
   })
 
   const proposedContent = result.trim()
@@ -90,18 +86,13 @@ export async function runProposalCreate(
   params: ProposalCreateParams,
   signal: AbortSignal,
 ): Promise<Proposal> {
-  function emitLog(message: string) {
-    process.stderr.write(`[Proposal] ${message}\n`)
-    ctx.sseEmitter.emit('agent:log', { source: 'proposal', message, ts: Date.now() })
-  }
-
   const absPath = ctx.projectContext.resolve(params.targetFile)
   let currentContent = ''
   if (existsSync(absPath)) {
     currentContent = await readFile(absPath, 'utf-8')
   }
 
-  emitLog(`Starting proposal: create rule "${params.title}"`)
+  emitAgentLog(ctx.sseEmitter, 'proposal', `Starting proposal: create rule "${params.title}"`)
 
   const prompt = `You are editing a Claude Code configuration file. Current content:
 
@@ -123,7 +114,7 @@ Output the COMPLETE modified file content. Output raw file content only, no mark
     signal,
     disallowedTools: ['Write', 'Edit', 'MultiEdit', 'Shell', 'WebFetch', 'WebSearch'],
     label: 'Proposal',
-    onLog: emitLog,
+    onLog: (msg) => emitAgentLog(ctx.sseEmitter, 'proposal', msg),
   })
 
   const proposedContent = result.trim()

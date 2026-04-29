@@ -1,5 +1,6 @@
 import { agentQuery } from './base-agent.js'
 import type { AppContext } from '../../types.js'
+import { emitAgentLog } from './agent-utils.js'
 
 export interface KnowledgeDistillParams {
   content: string
@@ -12,16 +13,11 @@ export async function runKnowledgeDistill(
   params: KnowledgeDistillParams,
   signal: AbortSignal,
 ): Promise<string> {
-  function emitLog(message: string) {
-    process.stderr.write(`[Knowledge] ${message}\n`)
-    ctx.sseEmitter.emit('agent:log', { source: 'knowledge', message, ts: Date.now() })
-  }
-
   const prompt = params.targetType === 'rule'
     ? `Distill the following document into a concise rule suitable for .claude/rules/. Create a markdown file with appropriate frontmatter (paths if applicable). Source document:\n\n${params.content}\n\nOutput the complete rule file content, no fencing.`
     : `Distill the following document into a concise memory note. Source document:\n\n${params.content}\n\nOutput the complete memory file content, no fencing.`
 
-  emitLog(`Starting ${params.targetType} distillation: "${params.title}"`)
+  emitAgentLog(ctx.sseEmitter, 'knowledge', `Starting ${params.targetType} distillation: "${params.title}"`)
 
   const result = await agentQuery({
     prompt,
@@ -30,9 +26,9 @@ export async function runKnowledgeDistill(
     signal,
     disallowedTools: ['Write', 'Edit', 'MultiEdit', 'Shell', 'WebFetch', 'WebSearch'],
     label: 'Knowledge',
-    onLog: emitLog,
+    onLog: (msg) => emitAgentLog(ctx.sseEmitter, 'knowledge', msg),
   })
 
-  emitLog(`Distillation complete: "${params.title}"`)
+  emitAgentLog(ctx.sseEmitter, 'knowledge', `Distillation complete: "${params.title}"`)
   return result
 }

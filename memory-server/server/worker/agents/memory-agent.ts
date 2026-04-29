@@ -1,5 +1,6 @@
 import { agentQuery } from './base-agent.js'
 import type { AppContext } from '../../types.js'
+import { emitAgentLog } from './agent-utils.js'
 
 export interface MemoryAnalysisParams {
   memoryId: string
@@ -11,17 +12,12 @@ export async function runMemoryAnalysis(
   params: MemoryAnalysisParams,
   signal: AbortSignal,
 ): Promise<string> {
-  function emitLog(message: string) {
-    process.stderr.write(`[Memory] ${message}\n`)
-    ctx.sseEmitter.emit('agent:log', { source: 'memory', message, ts: Date.now() })
-  }
-
   const prompt = `Analyze and apply the following changes to a memory topic file.
 Changes: ${JSON.stringify(params.changes)}
 
 Provide the optimized file content. Output raw content only, no markdown fencing.`
 
-  emitLog(`Analyzing memory changes for: "${params.memoryId}"`)
+  emitAgentLog(ctx.sseEmitter, 'memory', `Analyzing memory changes for: "${params.memoryId}"`)
 
   const result = await agentQuery({
     prompt,
@@ -30,9 +26,9 @@ Provide the optimized file content. Output raw content only, no markdown fencing
     signal,
     disallowedTools: ['Write', 'Edit', 'MultiEdit', 'Shell', 'WebFetch', 'WebSearch'],
     label: 'Memory',
-    onLog: emitLog,
+    onLog: (msg) => emitAgentLog(ctx.sseEmitter, 'memory', msg),
   })
 
-  emitLog('Memory analysis complete')
+  emitAgentLog(ctx.sseEmitter, 'memory', 'Memory analysis complete')
   return result
 }

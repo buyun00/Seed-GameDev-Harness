@@ -13,6 +13,7 @@ export interface ActivityTask {
   type: string
   status: string
   progress?: string
+  progressPercent?: number
   error?: string
   createdAt: string
 }
@@ -79,11 +80,25 @@ export const useAiActivityStore = defineStore('aiActivity', () => {
     }
 
     if (type.startsWith('task:')) {
+      if (!data.taskId || !data.type || !data.status) {
+        console.warn('Invalid task event:', data)
+        return
+      }
+
+      const progressPercent =
+        type === 'task:enqueued' ? 5
+        : type === 'task:progress' ? 50
+        : type === 'task:complete' ? 100
+        : type === 'task:failed' ? 100
+        : type === 'task:cancelled' ? 100
+        : undefined
+
       upsertTask({
-        id: (data.taskId as string) || '',
-        type: (data.type as string) || '',
-        status: (data.status as string) || '',
+        id: data.taskId as string,
+        type: data.type as string,
+        status: data.status as string,
         progress: data.progress as string,
+        progressPercent,
         error: data.error as string,
         createdAt: (data.createdAt as string) || new Date().toISOString(),
       })
