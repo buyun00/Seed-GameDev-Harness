@@ -6,10 +6,16 @@
  * 从 hook stdin 获取 cwd（项目路径），启动对应项目的 worker。
  */
 
-import { spawnSync } from 'node:child_process';
+import { spawnSync, spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { readStdin } from './lib/stdin.mjs';
+
+function openBrowser(url) {
+  const cmd = process.platform === 'win32' ? 'cmd' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+  const args = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
+  spawn(cmd, args, { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+}
 
 async function main() {
   try {
@@ -50,6 +56,9 @@ async function main() {
             mkdirSync(seedDir, { recursive: true });
           }
           writeFileSync(join(seedDir, 'memory-editor.url'), url, 'utf-8');
+
+          // Open the Memory Editor UI in the default browser
+          openBrowser(url);
         }
       } catch { /* ignore parse errors */ }
     }
