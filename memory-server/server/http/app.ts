@@ -46,11 +46,10 @@ export function createApp(ctx: AppContext) {
   })
 
   app.get('/api/auth/bootstrap', (c) => {
-    const remoteAddr = c.req.header('x-forwarded-for')
-      ?? (c.env as Record<string, unknown>)?.remoteAddr as string
-      ?? '127.0.0.1'
+    const incoming = (c.env as Record<string, any>)?.incoming
+    const remoteAddr = incoming?.socket?.remoteAddress
 
-    if (!isLocalhost(remoteAddr)) {
+    if (!remoteAddr || !isLocalhost(remoteAddr)) {
       return c.json({ error: 'Bootstrap only available from localhost' }, 403)
     }
 

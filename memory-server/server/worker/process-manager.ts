@@ -10,6 +10,8 @@ import {
   readdirSync,
   realpathSync,
   statSync,
+  openSync,
+  closeSync,
 } from 'node:fs'
 import { join } from 'node:path'
 import { execSync, spawnSync } from 'node:child_process'
@@ -105,6 +107,37 @@ export function readPidFile(canonicalPath: string): PidInfo | null {
 export function removePidFile(canonicalPath: string): void {
   const pidPath = getWorkerPidPath(canonicalPath)
   try { unlinkSync(pidPath) } catch { /* ignore */ }
+}
+
+export function acquirePidFile(canonicalPath: string, info: PidInfo): boolean {
+  ensureWorkersDir()
+  const pidPath = getWorkerPidPath(canonicalPath)
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const fd = openSync(pidPath, 'wx')
+      try {
+        writeFileSync(fd, JSON.stringify(info, null, 2), 'utf-8')
+      } finally {
+        closeSync(fd)
+      }
+      return true
+    } catch (err: any) {
+      if (err.code !== 'EEXIST') throw err
+
+      const existing = readPidFile(canonicalPath)
+      if (existing && isProcessAlive(existing.pid)) {
+        return false
+      }
+      try { unlinkSync(pidPath) } catch { /* ignore */ }
+    }
+  }
+  return false
+}
+
+export function updatePidFile(canonicalPath: string, info: PidInfo): void {
+  const pidPath = getWorkerPidPath(canonicalPath)
+  writeFileSync(pidPath, JSON.stringify(info, null, 2), 'utf-8')
 }
 
 export function isProcessAlive(pid: number): boolean {

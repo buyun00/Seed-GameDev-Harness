@@ -11,7 +11,8 @@ import { join } from 'node:path'
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import {
   canonicalizeProjectPath,
-  writePidFile,
+  acquirePidFile,
+  updatePidFile,
   removePidFile,
 } from './process-manager.js'
 import { TaskQueue } from './queue/task-queue.js'
@@ -20,110 +21,132 @@ import { runProposalEdit, runProposalCreate, type ProposalEditParams, type Propo
 import { runMemoryAnalysis, type MemoryAnalysisParams } from './agents/memory-agent.js'
 import { runKnowledgeDistill, type KnowledgeDistillParams } from './agents/knowledge-agent.js'
 import { detectAgentBackend } from './agents/base-agent.js'
-import type { AppContext, SessionStore } from '../types.js'
+import type { AppContext } from '../types.js'
+import { SessionStore } from '../types.js'
 
 export class WorkerService {
   private server: ServerType | null = null
   private watcher: Watcher | null = null
+  private sessionStore: SessionStore | null = null
+  private taskQueue: TaskQueue | null = null
   private canonicalPath: string = ''
   private shuttingDown = false
 
   async start(rawProjectPath: string, port: number = 0): Promise<{ port: number }> {
     this.canonicalPath = canonicalizeProjectPath(rawProjectPath)
-    const agentBackend = await detectAgentBackend()
 
-    const projectContext = new ProjectContext(rawProjectPath)
-    await projectContext.initialize()
-
-    const cache = new Cache(projectContext)
-    const writer = new Writer()
-    const sseEmitter = new SseEmitter()
-    const claudeAdapter = new ClaudeAdapter()
-    const scanner = new Scanner(projectContext)
-    const watcher = new Watcher(projectContext, scanner, sseEmitter)
-    this.watcher = watcher
-
-    const sessionStore: SessionStore = new Set<string>()
-    const taskQueue = new TaskQueue(sseEmitter)
-
-    const ctx: AppContext = {
-      projectContext,
-      scanner,
-      watcher,
-      cache,
-      writer,
-      sseEmitter,
-      claudeAdapter,
-      sessionStore,
-      startedAt: Date.now(),
-      shutdownFn: () => this.shutdown(),
-      taskQueue,
+    const acquired = acquirePidFile(this.canonicalPath, {
+      pid: process.pid,
+      port: 0,
+      projectPath: this.canonicalPath,
+      startedAt: new Date().toISOString(),
+    })
+    if (!acquired) {
+      throw new Error(`Another worker is already running for ${this.canonicalPath}`)
     }
 
-    // Register task handlers
-    taskQueue.registerHandler<ConstitutionAnalysisParams, unknown>(
-      'constitution_analysis',
-      (params, signal) => runConstitutionAnalysis(ctx, params, signal),
-    )
-    taskQueue.registerHandler<ProposalEditParams, unknown>(
-      'proposal_generation',
-      (params, signal) => runProposalEdit(ctx, params, signal),
-    )
-    taskQueue.registerHandler<ProposalCreateParams, unknown>(
-      'proposal_create',
-      (params, signal) => runProposalCreate(ctx, params, signal),
-    )
-    taskQueue.registerHandler<MemoryAnalysisParams, unknown>(
-      'memory_analysis',
-      (params, signal) => runMemoryAnalysis(ctx, params, signal),
-    )
-    taskQueue.registerHandler<KnowledgeDistillParams, unknown>(
-      'knowledge_distill',
-      (params, signal) => runKnowledgeDistill(ctx, params, signal),
-    )
+    try {
+      const agentBackend = await detectAgentBackend()
 
-    await scanner.scan()
-    watcher.start()
+      const projectContext = new ProjectContext(rawProjectPath)
+      await projectContext.initialize()
 
-    const app = createApp(ctx)
+      const cache = new Cache(projectContext)
+      const writer = new Writer()
+      const sseEmitter = new SseEmitter()
+      const claudeAdapter = new ClaudeAdapter()
+      const scanner = new Scanner(projectContext)
+      const watcher = new Watcher(projectContext, scanner, sseEmitter)
+      this.watcher = watcher
 
-    return new Promise<{ port: number }>((resolveStart) => {
-      this.server = serve(
-        {
-          fetch: app.fetch,
-          hostname: '127.0.0.1',
-          port,
-        },
-        (info) => {
-          const actualPort = info.port
-          writePidFile(this.canonicalPath, {
-            pid: process.pid,
-            port: actualPort,
-            projectPath: this.canonicalPath,
-            startedAt: new Date().toISOString(),
-          })
+      const sessionStore = new SessionStore()
+      this.sessionStore = sessionStore
+      const taskQueue = new TaskQueue(sseEmitter)
+      this.taskQueue = taskQueue
 
-          const url = `http://127.0.0.1:${actualPort}/`
-          process.stderr.write(`\n[Seed Worker] Serving ${this.canonicalPath}\n`)
-          process.stderr.write(`[Seed Worker] URL: ${url}\n`)
-          process.stderr.write(`[Seed Worker] PID: ${process.pid}  Port: ${actualPort}\n`)
-          process.stderr.write(`[Seed Worker] Agent backend: ${agentBackend.label}\n`)
-          process.stderr.write(`[Seed Worker] Node: ${process.execPath}\n`)
-          process.stderr.write(`[Seed Worker] CWD: ${process.cwd()}\n`)
-          process.stderr.write(`[Seed Worker] CLAUDE_CODE_EXECUTABLE: ${process.env.CLAUDE_CODE_EXECUTABLE ?? '(auto)'}\n`)
-          if (agentBackend.error) {
-            process.stderr.write(`[Seed Worker] Agent backend error: ${agentBackend.error}\n`)
-          }
-          process.stderr.write('\n')
+      const ctx: AppContext = {
+        projectContext,
+        scanner,
+        watcher,
+        cache,
+        writer,
+        sseEmitter,
+        claudeAdapter,
+        sessionStore,
+        startedAt: Date.now(),
+        shutdownFn: () => this.shutdown(),
+        taskQueue,
+      }
 
-          // Write URL to project .seed/ for easy discovery
-          this.writeUrlFile(projectContext.projectRoot, url)
-
-          this.registerSignalHandlers()
-          resolveStart({ port: actualPort })
-        },
+      // Register task handlers
+      taskQueue.registerHandler<ConstitutionAnalysisParams, unknown>(
+        'constitution_analysis',
+        (params, signal) => runConstitutionAnalysis(ctx, params, signal),
       )
-    })
+      taskQueue.registerHandler<ProposalEditParams, unknown>(
+        'proposal_generation',
+        (params, signal) => runProposalEdit(ctx, params, signal),
+      )
+      taskQueue.registerHandler<ProposalCreateParams, unknown>(
+        'proposal_create',
+        (params, signal) => runProposalCreate(ctx, params, signal),
+      )
+      taskQueue.registerHandler<MemoryAnalysisParams, unknown>(
+        'memory_analysis',
+        (params, signal) => runMemoryAnalysis(ctx, params, signal),
+      )
+      taskQueue.registerHandler<KnowledgeDistillParams, unknown>(
+        'knowledge_distill',
+        (params, signal) => runKnowledgeDistill(ctx, params, signal),
+      )
+
+      await Writer.cleanupStaleFiles(projectContext.projectRoot)
+      await scanner.scan()
+      watcher.start()
+
+      const app = createApp(ctx)
+
+      return await new Promise<{ port: number }>((resolveStart) => {
+        this.server = serve(
+          {
+            fetch: app.fetch,
+            hostname: '127.0.0.1',
+            port,
+          },
+          (info) => {
+            const actualPort = info.port
+            updatePidFile(this.canonicalPath, {
+              pid: process.pid,
+              port: actualPort,
+              projectPath: this.canonicalPath,
+              startedAt: new Date().toISOString(),
+            })
+
+            const url = `http://127.0.0.1:${actualPort}/`
+            process.stderr.write(`\n[Seed Worker] Serving ${this.canonicalPath}\n`)
+            process.stderr.write(`[Seed Worker] URL: ${url}\n`)
+            process.stderr.write(`[Seed Worker] PID: ${process.pid}  Port: ${actualPort}\n`)
+            process.stderr.write(`[Seed Worker] Agent backend: ${agentBackend.label}\n`)
+            process.stderr.write(`[Seed Worker] Node: ${process.execPath}\n`)
+            process.stderr.write(`[Seed Worker] CWD: ${process.cwd()}\n`)
+            process.stderr.write(`[Seed Worker] CLAUDE_CODE_EXECUTABLE: ${process.env.CLAUDE_CODE_EXECUTABLE ?? '(auto)'}\n`)
+            if (agentBackend.error) {
+              process.stderr.write(`[Seed Worker] Agent backend error: ${agentBackend.error}\n`)
+            }
+            process.stderr.write('\n')
+
+            // Write URL to project .seed/ for easy discovery
+            this.writeUrlFile(projectContext.projectRoot, url)
+
+            this.registerSignalHandlers()
+            resolveStart({ port: actualPort })
+          },
+        )
+      })
+    } catch (err) {
+      removePidFile(this.canonicalPath)
+      throw err
+    }
   }
 
   async shutdown(): Promise<void> {
@@ -133,6 +156,8 @@ export class WorkerService {
     process.stderr.write('[Seed Worker] Shutting down...\n')
 
     try { this.watcher?.stop() } catch { /* ignore */ }
+    try { this.sessionStore?.dispose() } catch { /* ignore */ }
+    try { this.taskQueue?.dispose() } catch { /* ignore */ }
 
     if (this.server) {
       try { this.server.close() } catch { /* ignore */ }

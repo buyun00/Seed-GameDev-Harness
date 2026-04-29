@@ -17,7 +17,7 @@ export function authMiddleware(ctx: AppContext) {
     const cookie = c.req.header('Cookie')
     if (cookie) {
       const match = cookie.match(/seed_session=([^;]+)/)
-      if (match && ctx.sessionStore.has(match[1])) {
+      if (match && ctx.sessionStore.validate(match[1])) {
         return next()
       }
     }

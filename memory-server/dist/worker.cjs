@@ -6535,7 +6535,7 @@ function authMiddleware(ctx) {
     const cookie = c.req.header("Cookie");
     if (cookie) {
       const match2 = cookie.match(/seed_session=([^;]+)/);
-      if (match2 && ctx.sessionStore.has(match2[1])) {
+      if (match2 && ctx.sessionStore.validate(match2[1])) {
         return next();
       }
     }
@@ -25272,8 +25272,9 @@ function createApp(ctx) {
     });
   });
   app.get("/api/auth/bootstrap", (c) => {
-    const remoteAddr = c.req.header("x-forwarded-for") ?? c.env?.remoteAddr ?? "127.0.0.1";
-    if (!isLocalhost(remoteAddr)) {
+    const incoming = c.env?.incoming;
+    const remoteAddr = incoming?.socket?.remoteAddress;
+    if (!remoteAddr || !isLocalhost(remoteAddr)) {
       return c.json({ error: "Bootstrap only available from localhost" }, 403);
     }
     const sessionToken = (0, import_node_crypto5.randomUUID)();
@@ -25333,11 +25334,35 @@ var Scanner = class {
     this.ctx = ctx;
   }
   assets = /* @__PURE__ */ new Map();
+  /** Maps absolute file path → asset id for incremental lookups */
+  pathIndex = /* @__PURE__ */ new Map();
   async scan() {
     this.assets.clear();
+    this.pathIndex.clear();
     await this.scanConstitution();
     await this.scanRules();
     await this.scanKnowledgeDirs();
+  }
+  /**
+   * Incrementally update a single file instead of re-scanning everything.
+   * - change/add: re-read the file and update (or insert) its asset
+   * - unlink: remove the asset from the map
+   */
+  async scanFile(absolutePath, event) {
+    const relativePath = this.ctx.relative(absolutePath);
+    const id = stableId(relativePath);
+    if (event === "unlink") {
+      this.assets.delete(id);
+      this.pathIndex.delete(absolutePath);
+      return;
+    }
+    const { kind, tags } = this.inferKindAndTags(relativePath);
+    await this.addAsset(absolutePath, kind, tags);
+  }
+  inferKindAndTags(relativePath) {
+    if (relativePath.includes("CLAUDE")) return { kind: "constitution", tags: [] };
+    if (relativePath.startsWith(".claude/rules")) return { kind: "knowledge", tags: ["rules"] };
+    return { kind: "knowledge", tags: [] };
   }
   getAll() {
     return [...this.assets.values()];
@@ -25377,6 +25402,9 @@ var Scanner = class {
       const raw2 = await (0, import_promises11.readFile)(filePath, "utf-8");
       const relativePath = this.ctx.relative(filePath);
       const id = stableId(relativePath);
+      const newHash = hashString(raw2);
+      const existing = this.assets.get(id);
+      if (existing && existing.fileHash === newHash) return;
       const title = extractTitle(raw2, relativePath);
       const { excerpt } = parseMarkdown(raw2);
       const fileStat = await (0, import_promises11.stat)(filePath);
@@ -25389,9 +25417,10 @@ var Scanner = class {
         status: "active",
         updatedAt: fileStat.mtime.toISOString(),
         tags,
-        fileHash: hashString(raw2)
+        fileHash: newHash
       };
       this.assets.set(id, asset);
+      this.pathIndex.set(filePath, id);
     } catch {
     }
   }
@@ -26979,8 +27008,8 @@ var FSWatcher = class extends import_events3.EventEmitter {
     }
     return this._userIgnored(path, stats);
   }
-  _isntIgnored(path, stat8) {
-    return !this._isIgnored(path, stat8);
+  _isntIgnored(path, stat9) {
+    return !this._isIgnored(path, stat9);
   }
   /**
    * Provides a set of common helpers and properties relating to symlink handling.
@@ -27123,22 +27152,22 @@ var Watcher = class {
       awaitWriteFinish: { stabilityThreshold: 300 }
     });
     this.fsWatcher.on("change", (path) => {
-      this.handleChange(path);
+      this.handleChange(path, "change");
     });
     this.fsWatcher.on("add", (path) => {
-      this.handleChange(path);
+      this.handleChange(path, "add");
     });
     this.fsWatcher.on("unlink", (path) => {
-      this.handleChange(path);
+      this.handleChange(path, "unlink");
     });
   }
   stop() {
     this.fsWatcher?.close();
   }
-  async handleChange(filePath) {
+  async handleChange(filePath, event) {
     const relativePath = this.ctx.relative(filePath);
     const kind = this.inferKind(relativePath);
-    await this.scanner.scan();
+    await this.scanner.scanFile(filePath, event);
     this.sseEmitter.emit("file:changed", { path: relativePath, kind });
     this.sseEmitter.emit("scan:updated", {});
   }
@@ -27177,8 +27206,8 @@ var Cache = class {
   async delete(key) {
     const filePath = this.path(key);
     if ((0, import_node_fs9.existsSync)(filePath)) {
-      const { unlink } = await import("node:fs/promises");
-      await unlink(filePath);
+      const { unlink: unlink2 } = await import("node:fs/promises");
+      await unlink2(filePath);
     }
   }
 };
@@ -27186,26 +27215,95 @@ var Cache = class {
 // server/core/writer.ts
 var import_promises16 = require("node:fs/promises");
 var import_node_fs10 = require("node:fs");
+var import_node_path8 = require("node:path");
+var Mutex = class {
+  queues = /* @__PURE__ */ new Map();
+  held = /* @__PURE__ */ new Set();
+  async acquire(key) {
+    if (!this.held.has(key)) {
+      this.held.add(key);
+      return;
+    }
+    return new Promise((resolve7) => {
+      if (!this.queues.has(key)) this.queues.set(key, []);
+      this.queues.get(key).push(resolve7);
+    });
+  }
+  release(key) {
+    const queue = this.queues.get(key);
+    if (queue && queue.length > 0) {
+      const next = queue.shift();
+      if (queue.length === 0) this.queues.delete(key);
+      next();
+    } else {
+      this.held.delete(key);
+      this.queues.delete(key);
+    }
+  }
+};
 var Writer = class {
-  locks = /* @__PURE__ */ new Map();
-  async write(filePath, content) {
-    const existing = this.locks.get(filePath) ?? Promise.resolve();
-    const op = existing.then(() => this.doWrite(filePath, content));
-    this.locks.set(filePath, op.then(() => {
-    }, () => {
+  mutex = new Mutex();
+  static async cleanupStaleFiles(dir, maxAgeMs = 60 * 60 * 1e3) {
+    const now = Date.now();
+    await this.cleanupDirectory(dir, now, maxAgeMs);
+  }
+  static async cleanupDirectory(dir, now, maxAgeMs) {
+    let entries;
+    try {
+      entries = await (0, import_promises16.readdir)(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    await Promise.all(entries.map(async (entry) => {
+      const fullPath = (0, import_node_path8.join)(dir, entry.name);
+      if (entry.isDirectory()) {
+        await this.cleanupDirectory(fullPath, now, maxAgeMs);
+        return;
+      }
+      if (!entry.isFile() || !entry.name.endsWith(".tmp")) return;
+      try {
+        const fileStat = await (0, import_promises16.stat)(fullPath);
+        if (now - fileStat.mtimeMs > maxAgeMs) {
+          await (0, import_promises16.unlink)(fullPath);
+        }
+      } catch {
+      }
     }));
-    await op;
+  }
+  async write(filePath, content) {
+    await this.mutex.acquire(filePath);
+    try {
+      await this.doWrite(filePath, content);
+    } finally {
+      this.mutex.release(filePath);
+    }
   }
   async read(filePath) {
     return (0, import_promises16.readFile)(filePath, "utf-8");
   }
   async doWrite(filePath, content) {
-    if ((0, import_node_fs10.existsSync)(filePath)) {
-      await (0, import_promises16.copyFile)(filePath, `${filePath}.bak`);
-    }
     const tmpPath = `${filePath}.tmp`;
-    await (0, import_promises16.writeFile)(tmpPath, content, "utf-8");
-    await (0, import_promises16.rename)(tmpPath, filePath);
+    const bakPath = `${filePath}.bak`;
+    const hadOriginal = (0, import_node_fs10.existsSync)(filePath);
+    try {
+      if (hadOriginal) {
+        await (0, import_promises16.copyFile)(filePath, bakPath);
+      }
+      await (0, import_promises16.writeFile)(tmpPath, content, "utf-8");
+      await (0, import_promises16.rename)(tmpPath, filePath);
+    } catch (err) {
+      try {
+        if ((0, import_node_fs10.existsSync)(tmpPath)) await (0, import_promises16.unlink)(tmpPath);
+      } catch {
+      }
+      if (hadOriginal) {
+        try {
+          if ((0, import_node_fs10.existsSync)(bakPath)) await (0, import_promises16.copyFile)(bakPath, filePath);
+        } catch {
+        }
+      }
+      throw err;
+    }
   }
 };
 
@@ -27297,7 +27395,7 @@ var ClaudeAdapter = class {
 };
 
 // server/core/project-context.ts
-var import_node_path8 = require("node:path");
+var import_node_path9 = require("node:path");
 var import_promises17 = require("node:fs/promises");
 var import_node_fs11 = require("node:fs");
 var ProjectContext = class {
@@ -27306,17 +27404,17 @@ var ProjectContext = class {
   cacheDir;
   proposalsDir;
   constructor(projectPath) {
-    this.projectRoot = (0, import_node_path8.resolve)(projectPath);
-    this.seedDir = (0, import_node_path8.join)(this.projectRoot, ".seed-memory");
-    this.cacheDir = (0, import_node_path8.join)(this.seedDir, "cache");
-    this.proposalsDir = (0, import_node_path8.join)(this.seedDir, "proposals");
+    this.projectRoot = (0, import_node_path9.resolve)(projectPath);
+    this.seedDir = (0, import_node_path9.join)(this.projectRoot, ".seed-memory");
+    this.cacheDir = (0, import_node_path9.join)(this.seedDir, "cache");
+    this.proposalsDir = (0, import_node_path9.join)(this.seedDir, "proposals");
   }
   async initialize() {
     await (0, import_promises17.mkdir)(this.cacheDir, { recursive: true });
     await (0, import_promises17.mkdir)(this.proposalsDir, { recursive: true });
   }
   resolve(...segments) {
-    return (0, import_node_path8.join)(this.projectRoot, ...segments);
+    return (0, import_node_path9.join)(this.projectRoot, ...segments);
   }
   relative(absolutePath) {
     const rel = absolutePath.replace(this.projectRoot, "").replace(/^[/\\]/, "");
@@ -27340,29 +27438,29 @@ var ProjectContext = class {
 };
 
 // server/worker/worker-service.ts
-var import_node_path11 = require("node:path");
+var import_node_path12 = require("node:path");
 var import_node_fs14 = require("node:fs");
 
 // server/worker/process-manager.ts
-var import_node_path9 = require("node:path");
+var import_node_path10 = require("node:path");
 var import_node_os2 = require("node:os");
 var import_node_crypto6 = require("node:crypto");
 var import_node_fs12 = require("node:fs");
-var import_node_path10 = require("node:path");
+var import_node_path11 = require("node:path");
 var import_node_child_process5 = require("node:child_process");
-var WORKERS_DIR = (0, import_node_path10.join)((0, import_node_os2.homedir)(), ".seed", "workers");
+var WORKERS_DIR = (0, import_node_path11.join)((0, import_node_os2.homedir)(), ".seed", "workers");
 function ensureWorkersDir() {
   if (!(0, import_node_fs12.existsSync)(WORKERS_DIR)) {
     (0, import_node_fs12.mkdirSync)(WORKERS_DIR, { recursive: true });
   }
 }
 function canonicalizeProjectPath(rawPath) {
-  let p = (0, import_node_path9.resolve)(rawPath);
+  let p = (0, import_node_path10.resolve)(rawPath);
   try {
     p = (0, import_node_fs12.realpathSync)(p);
   } catch {
   }
-  if ((0, import_node_fs12.existsSync)((0, import_node_path10.join)(p, ".git")) || (0, import_node_fs12.existsSync)((0, import_node_path10.join)(p, "..", ".git"))) {
+  if ((0, import_node_fs12.existsSync)((0, import_node_path11.join)(p, ".git")) || (0, import_node_fs12.existsSync)((0, import_node_path11.join)(p, "..", ".git"))) {
     try {
       const toplevel = (0, import_node_child_process5.execSync)("git rev-parse --show-toplevel", {
         cwd: p,
@@ -27371,27 +27469,22 @@ function canonicalizeProjectPath(rawPath) {
         timeout: 5e3
       }).trim();
       if (toplevel) {
-        p = (0, import_node_path9.resolve)(toplevel);
+        p = (0, import_node_path10.resolve)(toplevel);
       }
     } catch {
     }
   }
   if (process.platform === "win32" && /^[a-zA-Z]:/.test(p)) {
-    p = p[0].toUpperCase() + p.slice(1).toLowerCase();
+    p = p[0].toUpperCase() + p.slice(1);
   }
-  return p.split(import_node_path9.sep).join("/");
+  return p.split(import_node_path10.sep).join("/");
 }
 function getProjectSlug(canonicalPath) {
   return (0, import_node_crypto6.createHash)("sha256").update(canonicalPath).digest("hex").slice(0, 12);
 }
 function getWorkerPidPath(canonicalPath) {
   ensureWorkersDir();
-  return (0, import_node_path10.join)(WORKERS_DIR, `worker-${getProjectSlug(canonicalPath)}.pid`);
-}
-function writePidFile(canonicalPath, info) {
-  ensureWorkersDir();
-  const pidPath = getWorkerPidPath(canonicalPath);
-  (0, import_node_fs12.writeFileSync)(pidPath, JSON.stringify(info, null, 2), "utf-8");
+  return (0, import_node_path11.join)(WORKERS_DIR, `worker-${getProjectSlug(canonicalPath)}.pid`);
 }
 function readPidFile(canonicalPath) {
   const pidPath = getWorkerPidPath(canonicalPath);
@@ -27412,6 +27505,36 @@ function removePidFile(canonicalPath) {
     (0, import_node_fs12.unlinkSync)(pidPath);
   } catch {
   }
+}
+function acquirePidFile(canonicalPath, info) {
+  ensureWorkersDir();
+  const pidPath = getWorkerPidPath(canonicalPath);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const fd = (0, import_node_fs12.openSync)(pidPath, "wx");
+      try {
+        (0, import_node_fs12.writeFileSync)(fd, JSON.stringify(info, null, 2), "utf-8");
+      } finally {
+        (0, import_node_fs12.closeSync)(fd);
+      }
+      return true;
+    } catch (err) {
+      if (err.code !== "EEXIST") throw err;
+      const existing = readPidFile(canonicalPath);
+      if (existing && isProcessAlive(existing.pid)) {
+        return false;
+      }
+      try {
+        (0, import_node_fs12.unlinkSync)(pidPath);
+      } catch {
+      }
+    }
+  }
+  return false;
+}
+function updatePidFile(canonicalPath, info) {
+  const pidPath = getWorkerPidPath(canonicalPath);
+  (0, import_node_fs12.writeFileSync)(pidPath, JSON.stringify(info, null, 2), "utf-8");
 }
 function isProcessAlive(pid) {
   if (process.platform === "win32") {
@@ -27447,7 +27570,7 @@ function listAllWorkers() {
   try {
     const files = (0, import_node_fs12.readdirSync)(WORKERS_DIR).filter((f2) => f2.endsWith(".pid"));
     for (const file of files) {
-      const fullPath = (0, import_node_path10.join)(WORKERS_DIR, file);
+      const fullPath = (0, import_node_path11.join)(WORKERS_DIR, file);
       try {
         const info = JSON.parse((0, import_node_fs12.readFileSync)(fullPath, "utf-8"));
         const alive = isProcessAlive(info.pid);
@@ -27473,14 +27596,52 @@ function listAllWorkers() {
 // server/worker/queue/task-queue.ts
 var import_node_crypto7 = require("node:crypto");
 var TaskQueue = class {
-  constructor(sseEmitter) {
+  constructor(sseEmitter, opts) {
     this.sseEmitter = sseEmitter;
+    this.maxRetained = opts?.maxRetained ?? 200;
+    this.retentionMs = opts?.retentionMs ?? 30 * 60 * 1e3;
+    this.cleanupTimer = setInterval(() => this.cleanup(), 6e4);
+    if (this.cleanupTimer.unref) this.cleanupTimer.unref();
   }
   tasks = /* @__PURE__ */ new Map();
   handlers = /* @__PURE__ */ new Map();
   queue = [];
   processing = false;
   abortControllers = /* @__PURE__ */ new Map();
+  /** Max number of finished tasks to retain */
+  maxRetained;
+  /** How long (ms) to keep finished tasks before they become eligible for eviction */
+  retentionMs;
+  cleanupTimer = null;
+  dispose() {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+  }
+  /**
+   * Remove finished tasks that exceed retention time or count limit.
+   */
+  cleanup() {
+    const now = Date.now();
+    const finished = [];
+    for (const task of this.tasks.values()) {
+      if (task.status === "completed" || task.status === "failed" || task.status === "cancelled") {
+        const completedAt = task.completedAt ? new Date(task.completedAt).getTime() : 0;
+        finished.push({ id: task.id, completedAt });
+      }
+    }
+    for (const { id, completedAt } of finished) {
+      if (now - completedAt > this.retentionMs) {
+        this.tasks.delete(id);
+      }
+    }
+    const remaining = finished.filter((f2) => this.tasks.has(f2.id)).sort((a2, b2) => a2.completedAt - b2.completedAt);
+    while (remaining.length > this.maxRetained) {
+      const oldest = remaining.shift();
+      this.tasks.delete(oldest.id);
+    }
+  }
   registerHandler(type, handler) {
     this.handlers.set(type, handler);
   }
@@ -27748,104 +27909,169 @@ Output the complete memory file content, no fencing.`;
   });
 }
 
+// server/types.ts
+var SessionStore = class {
+  sessions = /* @__PURE__ */ new Map();
+  cleanupTimer = null;
+  ttlMs;
+  constructor(ttlMs = 24 * 60 * 60 * 1e3) {
+    this.ttlMs = ttlMs;
+    this.cleanupTimer = setInterval(() => this.cleanup(), 6e4);
+    if (this.cleanupTimer.unref) this.cleanupTimer.unref();
+  }
+  add(token) {
+    const now = Date.now();
+    this.sessions.set(token, { createdAt: now, expiresAt: now + this.ttlMs });
+  }
+  validate(token) {
+    const entry = this.sessions.get(token);
+    if (!entry) return false;
+    if (Date.now() > entry.expiresAt) {
+      this.sessions.delete(token);
+      return false;
+    }
+    return true;
+  }
+  has(token) {
+    return this.validate(token);
+  }
+  delete(token) {
+    return this.sessions.delete(token);
+  }
+  dispose() {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+    this.sessions.clear();
+  }
+  cleanup() {
+    const now = Date.now();
+    for (const [token, entry] of this.sessions) {
+      if (now > entry.expiresAt) {
+        this.sessions.delete(token);
+      }
+    }
+  }
+};
+
 // server/worker/worker-service.ts
 var WorkerService = class {
   server = null;
   watcher = null;
+  sessionStore = null;
+  taskQueue = null;
   canonicalPath = "";
   shuttingDown = false;
   async start(rawProjectPath, port = 0) {
     this.canonicalPath = canonicalizeProjectPath(rawProjectPath);
-    const agentBackend = await detectAgentBackend();
-    const projectContext = new ProjectContext(rawProjectPath);
-    await projectContext.initialize();
-    const cache = new Cache(projectContext);
-    const writer = new Writer();
-    const sseEmitter = new SseEmitter();
-    const claudeAdapter = new ClaudeAdapter();
-    const scanner = new Scanner(projectContext);
-    const watcher = new Watcher(projectContext, scanner, sseEmitter);
-    this.watcher = watcher;
-    const sessionStore = /* @__PURE__ */ new Set();
-    const taskQueue = new TaskQueue(sseEmitter);
-    const ctx = {
-      projectContext,
-      scanner,
-      watcher,
-      cache,
-      writer,
-      sseEmitter,
-      claudeAdapter,
-      sessionStore,
-      startedAt: Date.now(),
-      shutdownFn: () => this.shutdown(),
-      taskQueue
-    };
-    taskQueue.registerHandler(
-      "constitution_analysis",
-      (params, signal) => runConstitutionAnalysis(ctx, params, signal)
-    );
-    taskQueue.registerHandler(
-      "proposal_generation",
-      (params, signal) => runProposalEdit(ctx, params, signal)
-    );
-    taskQueue.registerHandler(
-      "proposal_create",
-      (params, signal) => runProposalCreate(ctx, params, signal)
-    );
-    taskQueue.registerHandler(
-      "memory_analysis",
-      (params, signal) => runMemoryAnalysis(ctx, params, signal)
-    );
-    taskQueue.registerHandler(
-      "knowledge_distill",
-      (params, signal) => runKnowledgeDistill(ctx, params, signal)
-    );
-    await scanner.scan();
-    watcher.start();
-    const app = createApp(ctx);
-    return new Promise((resolveStart) => {
-      this.server = serve(
-        {
-          fetch: app.fetch,
-          hostname: "127.0.0.1",
-          port
-        },
-        (info) => {
-          const actualPort = info.port;
-          writePidFile(this.canonicalPath, {
-            pid: process.pid,
-            port: actualPort,
-            projectPath: this.canonicalPath,
-            startedAt: (/* @__PURE__ */ new Date()).toISOString()
-          });
-          const url = `http://127.0.0.1:${actualPort}/`;
-          process.stderr.write(`
+    const acquired = acquirePidFile(this.canonicalPath, {
+      pid: process.pid,
+      port: 0,
+      projectPath: this.canonicalPath,
+      startedAt: (/* @__PURE__ */ new Date()).toISOString()
+    });
+    if (!acquired) {
+      throw new Error(`Another worker is already running for ${this.canonicalPath}`);
+    }
+    try {
+      const agentBackend = await detectAgentBackend();
+      const projectContext = new ProjectContext(rawProjectPath);
+      await projectContext.initialize();
+      const cache = new Cache(projectContext);
+      const writer = new Writer();
+      const sseEmitter = new SseEmitter();
+      const claudeAdapter = new ClaudeAdapter();
+      const scanner = new Scanner(projectContext);
+      const watcher = new Watcher(projectContext, scanner, sseEmitter);
+      this.watcher = watcher;
+      const sessionStore = new SessionStore();
+      this.sessionStore = sessionStore;
+      const taskQueue = new TaskQueue(sseEmitter);
+      this.taskQueue = taskQueue;
+      const ctx = {
+        projectContext,
+        scanner,
+        watcher,
+        cache,
+        writer,
+        sseEmitter,
+        claudeAdapter,
+        sessionStore,
+        startedAt: Date.now(),
+        shutdownFn: () => this.shutdown(),
+        taskQueue
+      };
+      taskQueue.registerHandler(
+        "constitution_analysis",
+        (params, signal) => runConstitutionAnalysis(ctx, params, signal)
+      );
+      taskQueue.registerHandler(
+        "proposal_generation",
+        (params, signal) => runProposalEdit(ctx, params, signal)
+      );
+      taskQueue.registerHandler(
+        "proposal_create",
+        (params, signal) => runProposalCreate(ctx, params, signal)
+      );
+      taskQueue.registerHandler(
+        "memory_analysis",
+        (params, signal) => runMemoryAnalysis(ctx, params, signal)
+      );
+      taskQueue.registerHandler(
+        "knowledge_distill",
+        (params, signal) => runKnowledgeDistill(ctx, params, signal)
+      );
+      await Writer.cleanupStaleFiles(projectContext.projectRoot);
+      await scanner.scan();
+      watcher.start();
+      const app = createApp(ctx);
+      return await new Promise((resolveStart) => {
+        this.server = serve(
+          {
+            fetch: app.fetch,
+            hostname: "127.0.0.1",
+            port
+          },
+          (info) => {
+            const actualPort = info.port;
+            updatePidFile(this.canonicalPath, {
+              pid: process.pid,
+              port: actualPort,
+              projectPath: this.canonicalPath,
+              startedAt: (/* @__PURE__ */ new Date()).toISOString()
+            });
+            const url = `http://127.0.0.1:${actualPort}/`;
+            process.stderr.write(`
 [Seed Worker] Serving ${this.canonicalPath}
 `);
-          process.stderr.write(`[Seed Worker] URL: ${url}
+            process.stderr.write(`[Seed Worker] URL: ${url}
 `);
-          process.stderr.write(`[Seed Worker] PID: ${process.pid}  Port: ${actualPort}
+            process.stderr.write(`[Seed Worker] PID: ${process.pid}  Port: ${actualPort}
 `);
-          process.stderr.write(`[Seed Worker] Agent backend: ${agentBackend.label}
+            process.stderr.write(`[Seed Worker] Agent backend: ${agentBackend.label}
 `);
-          process.stderr.write(`[Seed Worker] Node: ${process.execPath}
+            process.stderr.write(`[Seed Worker] Node: ${process.execPath}
 `);
-          process.stderr.write(`[Seed Worker] CWD: ${process.cwd()}
+            process.stderr.write(`[Seed Worker] CWD: ${process.cwd()}
 `);
-          process.stderr.write(`[Seed Worker] CLAUDE_CODE_EXECUTABLE: ${process.env.CLAUDE_CODE_EXECUTABLE ?? "(auto)"}
+            process.stderr.write(`[Seed Worker] CLAUDE_CODE_EXECUTABLE: ${process.env.CLAUDE_CODE_EXECUTABLE ?? "(auto)"}
 `);
-          if (agentBackend.error) {
-            process.stderr.write(`[Seed Worker] Agent backend error: ${agentBackend.error}
+            if (agentBackend.error) {
+              process.stderr.write(`[Seed Worker] Agent backend error: ${agentBackend.error}
 `);
+            }
+            process.stderr.write("\n");
+            this.writeUrlFile(projectContext.projectRoot, url);
+            this.registerSignalHandlers();
+            resolveStart({ port: actualPort });
           }
-          process.stderr.write("\n");
-          this.writeUrlFile(projectContext.projectRoot, url);
-          this.registerSignalHandlers();
-          resolveStart({ port: actualPort });
-        }
-      );
-    });
+        );
+      });
+    } catch (err) {
+      removePidFile(this.canonicalPath);
+      throw err;
+    }
   }
   async shutdown() {
     if (this.shuttingDown) return;
@@ -27853,6 +28079,14 @@ var WorkerService = class {
     process.stderr.write("[Seed Worker] Shutting down...\n");
     try {
       this.watcher?.stop();
+    } catch {
+    }
+    try {
+      this.sessionStore?.dispose();
+    } catch {
+    }
+    try {
+      this.taskQueue?.dispose();
     } catch {
     }
     if (this.server) {
@@ -27866,11 +28100,11 @@ var WorkerService = class {
   }
   writeUrlFile(projectRoot, url) {
     try {
-      const seedDir = (0, import_node_path11.join)(projectRoot, ".seed");
+      const seedDir = (0, import_node_path12.join)(projectRoot, ".seed");
       if (!(0, import_node_fs14.existsSync)(seedDir)) {
         (0, import_node_fs14.mkdirSync)(seedDir, { recursive: true });
       }
-      (0, import_node_fs14.writeFileSync)((0, import_node_path11.join)(seedDir, "memory-editor.url"), url, "utf-8");
+      (0, import_node_fs14.writeFileSync)((0, import_node_path12.join)(seedDir, "memory-editor.url"), url, "utf-8");
     } catch {
     }
   }
@@ -27886,7 +28120,7 @@ var WorkerService = class {
 
 // server/worker/spawner.ts
 var import_node_child_process6 = require("node:child_process");
-var import_node_path12 = require("node:path");
+var import_node_path13 = require("node:path");
 var import_node_fs15 = require("node:fs");
 var import_node_os3 = require("node:os");
 async function ensureWorkerStarted(rawProjectPath, opts) {
@@ -27905,18 +28139,18 @@ async function ensureWorkerStarted(rawProjectPath, opts) {
   const daemonArgs = ["daemon", "--project-path", rawProjectPath, "--port", String(port)];
   let workerCmd;
   let workerArgs;
-  const bundlePath = (0, import_node_path12.join)(thisDir, "worker.cjs");
+  const bundlePath = (0, import_node_path13.join)(thisDir, "worker.cjs");
   if ((0, import_node_fs15.existsSync)(bundlePath)) {
     workerCmd = process.execPath;
     workerArgs = [bundlePath, ...daemonArgs];
   } else {
-    const entryScriptJs = (0, import_node_path12.resolve)(thisDir, "..", "index.js");
+    const entryScriptJs = (0, import_node_path13.resolve)(thisDir, "..", "index.js");
     if ((0, import_node_fs15.existsSync)(entryScriptJs)) {
       workerCmd = process.execPath;
       workerArgs = [entryScriptJs, ...daemonArgs];
     } else {
-      const entryScript = (0, import_node_path12.resolve)(thisDir, "..", "index.ts");
-      const tsxBin = (0, import_node_path12.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
+      const entryScript = (0, import_node_path13.resolve)(thisDir, "..", "index.ts");
+      const tsxBin = (0, import_node_path13.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
       if ((0, import_node_fs15.existsSync)(tsxBin) || (0, import_node_fs15.existsSync)(tsxBin + ".cmd")) {
         workerCmd = process.platform === "win32" ? tsxBin + ".cmd" : tsxBin;
         workerArgs = [entryScript, ...daemonArgs];
@@ -27946,7 +28180,7 @@ function spawnInConsole(cmd, args, projectPath) {
   const title = `Seed Memory Editor - ${projectName}`;
   if (process.platform === "win32") {
     const innerCmd = [cmd, ...args].map((a2) => a2.includes(" ") ? `"${a2}"` : a2).join(" ");
-    const batPath = (0, import_node_path12.join)((0, import_node_os3.tmpdir)(), `seed-worker-${Date.now()}.cmd`);
+    const batPath = (0, import_node_path13.join)((0, import_node_os3.tmpdir)(), `seed-worker-${Date.now()}.cmd`);
     (0, import_node_fs15.writeFileSync)(
       batPath,
       `@echo off\r
@@ -28110,14 +28344,6 @@ function cmdStatus() {
 async function cmdDaemon() {
   const raw2 = requireProjectPath();
   const port = parseInt(values.port, 10) || 0;
-  const canonical = canonicalizeProjectPath(raw2);
-  const state = validatePidFile(canonical);
-  if (state === "alive") {
-    const info = readPidFile(canonical);
-    process.stderr.write(`[Seed Worker] Already running (PID ${info?.pid}, port ${info?.port})
-`);
-    process.exit(0);
-  }
   const service = new WorkerService();
   await service.start(raw2, port);
 }

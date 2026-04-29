@@ -99,15 +99,6 @@ function cmdStatus() {
 async function cmdDaemon() {
   const raw = requireProjectPath()
   const port = parseInt(values.port as string, 10) || 0
-  const canonical = canonicalizeProjectPath(raw)
-
-  // Prevent duplicate worker for same project
-  const state = validatePidFile(canonical)
-  if (state === 'alive') {
-    const info = readPidFile(canonical)
-    process.stderr.write(`[Seed Worker] Already running (PID ${info?.pid}, port ${info?.port})\n`)
-    process.exit(0)
-  }
 
   const service = new WorkerService()
   await service.start(raw, port)
