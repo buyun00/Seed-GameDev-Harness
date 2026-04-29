@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from '@/i18n'
+import { useAppStore, languageOptions } from '@/stores/app'
 
 const route = useRoute()
 const router = useRouter()
 const i18n = useI18n()
+const appStore = useAppStore()
+
+const showLangMenu = ref(false)
 
 const navItems = computed(() => [
   { key: 'constitution', label: i18n.value.navConstitution, icon: '⚖' },
@@ -15,8 +19,25 @@ const navItems = computed(() => [
 
 const activeKey = computed(() => route.name as string)
 
+const currentLangOption = computed(() => {
+  return languageOptions.find(opt => opt.code === appStore.language) || languageOptions[0]
+})
+
 function navigate(key: string) {
   router.push({ name: key })
+}
+
+function selectLanguage(code: string) {
+  appStore.setLanguage(code as any)
+  showLangMenu.value = false
+}
+
+function toggleLangMenu() {
+  showLangMenu.value = !showLangMenu.value
+}
+
+function closeLangMenu() {
+  showLangMenu.value = false
 }
 </script>
 
@@ -38,6 +59,22 @@ function navigate(key: string) {
       </li>
     </ul>
     <div class="sider-nav__footer">
+      <div class="lang-selector" @click="toggleLangMenu">
+        <span class="lang-selector__flag">{{ currentLangOption.flag }}</span>
+        <span class="lang-selector__label">{{ currentLangOption.label }}</span>
+        <span class="lang-selector__arrow">{{ showLangMenu ? '▲' : '▼' }}</span>
+      </div>
+      <div v-if="showLangMenu" class="lang-menu" @click.stop>
+        <button
+          v-for="lang in languageOptions"
+          :key="lang.code"
+          :class="['lang-menu__item', { 'lang-menu__item--active': lang.code === appStore.language }]"
+          @click="selectLanguage(lang.code)"
+        >
+          <span class="lang-menu__flag">{{ lang.flag }}</span>
+          <span class="lang-menu__label">{{ lang.label }}</span>
+        </button>
+      </div>
       <span class="sider-nav__version">v0.1.0</span>
     </div>
   </nav>
@@ -52,6 +89,7 @@ function navigate(key: string) {
   display: flex;
   flex-direction: column;
   user-select: none;
+  position: relative;
 }
 .sider-nav__header {
   padding: 20px 16px;
@@ -112,5 +150,69 @@ function navigate(key: string) {
 .sider-nav__version {
   font-size: 12px;
   color: rgba(255,255,255,0.3);
+  display: block;
+  margin-top: 8px;
+}
+
+.lang-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+.lang-selector:hover {
+  background: rgba(255,255,255,0.06);
+}
+.lang-selector__flag {
+  font-size: 14px;
+}
+.lang-selector__label {
+  flex: 1;
+  text-align: left;
+}
+.lang-selector__arrow {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+}
+
+.lang-menu {
+  position: absolute;
+  bottom: 60px;
+  left: 16px;
+  right: 16px;
+  background: #252830;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.lang-menu__item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: #e8eaed;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+}
+.lang-menu__item:hover {
+  background: rgba(255,255,255,0.06);
+}
+.lang-menu__item--active {
+  background: rgba(0, 179, 101, 0.15);
+  color: #00b365;
+}
+.lang-menu__flag {
+  font-size: 14px;
 }
 </style>

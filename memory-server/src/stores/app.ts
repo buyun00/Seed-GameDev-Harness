@@ -4,16 +4,39 @@ import { fetchStatus } from '@/api/status'
 import { bootstrap } from '@/api/client'
 import type { ApiStatus } from '@/types/api'
 
+export type LanguageCode = 'en' | 'zh' | 'ja' | 'ko'
+
+export interface LanguageOption {
+  code: LanguageCode
+  label: string
+  flag: string
+}
+
+export const languageOptions: LanguageOption[] = [
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+  { code: 'zh', label: '中文', flag: '🇨🇳' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
+]
+
+function isValidLanguageCode(code: unknown): code is LanguageCode {
+  return typeof code === 'string' && languageOptions.some(opt => opt.code === code)
+}
+
 export const useAppStore = defineStore('app', () => {
   const authenticated = ref(false)
   const status = ref<ApiStatus | null>(null)
   const loading = ref(true)
+  const language = ref<LanguageCode>('en')
 
   async function initialize() {
-    // Try fetching status with existing cookie
+    const saved = localStorage.getItem('seed-language')
+    if (isValidLanguageCode(saved)) {
+      language.value = saved
+    }
+
     let ok = await tryFetchStatus()
     if (!ok) {
-      // No valid session — bootstrap a new one
       const bootstrapped = await bootstrap()
       if (bootstrapped) {
         ok = await tryFetchStatus()
@@ -38,5 +61,10 @@ export const useAppStore = defineStore('app', () => {
     } catch { /* ignore */ }
   }
 
-  return { authenticated, status, loading, initialize, refreshStatus }
+  function setLanguage(code: LanguageCode) {
+    language.value = code
+    localStorage.setItem('seed-language', code)
+  }
+
+  return { authenticated, status, loading, language, initialize, refreshStatus, setLanguage }
 })

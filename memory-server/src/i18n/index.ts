@@ -600,7 +600,7 @@ function resolveCode(raw: string): string {
 
 export function useI18n() {
   const appStore = useAppStore()
-  const lang = computed(() => resolveCode(appStore.status?.language ?? ''))
+  const lang = computed(() => resolveCode(appStore.language ?? ''))
   const strings = computed<I18nStrings>(() => {
     const code = lang.value
     const base = translations[code] ?? translations.en
