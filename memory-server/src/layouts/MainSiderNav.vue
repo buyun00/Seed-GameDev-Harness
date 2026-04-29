@@ -12,6 +12,7 @@ const appStore = useAppStore()
 const showLangMenu = ref(false)
 
 const navItems = computed(() => [
+  { key: 'ai-activity', label: i18n.value.navAiActivity, icon: '⚡' },
   { key: 'constitution', label: i18n.value.navConstitution, icon: '⚖' },
   { key: 'auto-memory', label: i18n.value.navAutoMemory, icon: '🧠' },
   { key: 'project-knowledge', label: i18n.value.navKnowledge, icon: '📚' },

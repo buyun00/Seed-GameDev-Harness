@@ -30,6 +30,11 @@ export function useSSE() {
       'proposal:created',
       'proposal:applied',
       'scan:updated',
+      'task:enqueued',
+      'task:progress',
+      'task:complete',
+      'task:failed',
+      'task:cancelled',
     ]
 
     for (const type of eventTypes) {

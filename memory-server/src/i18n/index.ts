@@ -5,6 +5,7 @@ import type { ConstitutionRuleCategory } from '@/types/constitution'
 type LangStrings = {
   connectingToServer: string
   memoryEditor: string
+  navAiActivity: string
   navConstitution: string
   navAutoMemory: string
   navKnowledge: string
@@ -105,6 +106,7 @@ const translations: Record<string, LangStrings> = {
   en: {
     connectingToServer: 'Connecting to Memory Server...',
     memoryEditor: 'Memory Editor',
+    navAiActivity: 'AI Activity',
     navConstitution: 'Constitution',
     navAutoMemory: 'Auto Memory',
     navKnowledge: 'Knowledge',
@@ -198,6 +200,7 @@ const translations: Record<string, LangStrings> = {
   zh: {
     connectingToServer: '正在连接到记忆服务器...',
     memoryEditor: '记忆编辑器',
+    navAiActivity: 'AI 活动',
     navConstitution: '规则集',
     navAutoMemory: '自动记忆',
     navKnowledge: '项目知识',
@@ -291,6 +294,7 @@ const translations: Record<string, LangStrings> = {
   ja: {
     connectingToServer: 'メモリサーバーに接続中...',
     memoryEditor: 'メモリエディタ',
+    navAiActivity: 'AI アクティビティ',
     navConstitution: 'ルールセット',
     navAutoMemory: '自動メモリ',
     navKnowledge: 'プロジェクト知識',
@@ -384,6 +388,7 @@ const translations: Record<string, LangStrings> = {
   ko: {
     connectingToServer: '메모리 서버에 연결 중...',
     memoryEditor: '메모리 편집기',
+    navAiActivity: 'AI 활동',
     navConstitution: '규칙 세트',
     navAutoMemory: '자동 메모리',
     navKnowledge: '프로젝트 지식',
