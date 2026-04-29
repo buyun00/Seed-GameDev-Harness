@@ -1,5 +1,7 @@
 import { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk'
 import { spawnSync } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 
 export interface AgentQueryOptions {
   prompt: string
@@ -140,8 +142,38 @@ function resolveClaudeExecutablePath(): string {
       .find(line => line.length > 0)
     : undefined
 
+  // On Windows, npm global installs create shims (.cmd, .ps1, or no-extension script)
+  // instead of symlinks. The SDK expects the actual native binary (.exe).
+  // Parse the .cmd shim to find the real binary path.
+  if (process.platform === 'win32' && resolved) {
+    const actual = resolveWindowsNpmBinary(resolved)
+    if (actual) {
+      cachedClaudeExecutablePath = actual
+      return actual
+    }
+  }
+
   cachedClaudeExecutablePath = resolved ?? 'claude'
   return cachedClaudeExecutablePath
+}
+
+/** On Windows, resolve an npm shim path to the actual binary inside node_modules. */
+function resolveWindowsNpmBinary(shimPath: string): string | null {
+  for (const ext of ['', '.cmd', '.ps1']) {
+    const shimFile = shimPath + ext
+    if (!existsSync(shimFile)) continue
+    try {
+      const content = readFileSync(shimFile, 'utf-8')
+      const match = content.match(/"(%dp0%\\[^"]+\.exe)"/)
+      if (match) {
+        const exePath = match[1].replace('%dp0%', path.dirname(shimPath) + path.sep)
+        if (existsSync(exePath)) {
+          return exePath
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  }
+  return null
 }
 
 function getMessageType(message: unknown): string | undefined {

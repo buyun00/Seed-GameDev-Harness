@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import type { AppContext } from '../../types.js'
 
@@ -31,6 +31,28 @@ export function statusRoutes(ctx: AppContext) {
       },
       sseClients: ctx.sseEmitter.clientCount,
     })
+  })
+
+  router.put('/settings/language', async (c) => {
+    const { language } = await c.req.json<{ language: string }>()
+    const configDir = join(ctx.projectContext.projectRoot, '.seed')
+    const configPath = join(configDir, 'config.json')
+
+    let config: Record<string, unknown> = {}
+    if (existsSync(configPath)) {
+      try {
+        config = JSON.parse(readFileSync(configPath, 'utf-8'))
+      } catch { /* ignore */ }
+    }
+
+    config.language = language
+
+    if (!existsSync(configDir)) {
+      mkdirSync(configDir, { recursive: true })
+    }
+    writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
+
+    return c.json({ ok: true, language })
   })
 
   router.get('/events', (c) => {

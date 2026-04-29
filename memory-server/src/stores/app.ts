@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { fetchStatus } from '@/api/status'
+import { fetchStatus, updateLanguage } from '@/api/status'
 import { bootstrap } from '@/api/client'
 import type { ApiStatus } from '@/types/api'
 
@@ -23,6 +23,17 @@ function isValidLanguageCode(code: unknown): code is LanguageCode {
   return typeof code === 'string' && languageOptions.some(opt => opt.code === code)
 }
 
+const languageNameMap: Record<string, LanguageCode> = {
+  english: 'en', chinese: 'zh', japanese: 'ja', korean: 'ko',
+  '中文': 'zh', '日本語': 'ja', '한국어': 'ko',
+}
+
+function normalizeLanguageCode(raw: string): LanguageCode | null {
+  const trimmed = raw.toLowerCase().trim()
+  if (isValidLanguageCode(trimmed)) return trimmed as LanguageCode
+  return languageNameMap[raw.trim()] ?? languageNameMap[trimmed] ?? null
+}
+
 export const useAppStore = defineStore('app', () => {
   const authenticated = ref(false)
   const status = ref<ApiStatus | null>(null)
@@ -42,6 +53,14 @@ export const useAppStore = defineStore('app', () => {
         ok = await tryFetchStatus()
       }
     }
+
+    if (!isValidLanguageCode(saved) && status.value?.language) {
+      const normalized = normalizeLanguageCode(status.value.language)
+      if (normalized) {
+        language.value = normalized
+      }
+    }
+
     authenticated.value = ok
     loading.value = false
   }
@@ -64,6 +83,7 @@ export const useAppStore = defineStore('app', () => {
   function setLanguage(code: LanguageCode) {
     language.value = code
     localStorage.setItem('seed-language', code)
+    updateLanguage(code).catch(() => { /* ignore backend sync errors */ })
   }
 
   return { authenticated, status, loading, language, initialize, refreshStatus, setLanguage }

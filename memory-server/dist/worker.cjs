@@ -4272,26 +4272,26 @@ var handleParsingNestedValues = (form, key, value) => {
 };
 
 // node_modules/hono/dist/utils/url.js
-var splitPath = (path) => {
-  const paths = path.split("/");
+var splitPath = (path2) => {
+  const paths = path2.split("/");
   if (paths[0] === "") {
     paths.shift();
   }
   return paths;
 };
 var splitRoutingPath = (routePath) => {
-  const { groups, path } = extractGroupsFromPath(routePath);
-  const paths = splitPath(path);
+  const { groups, path: path2 } = extractGroupsFromPath(routePath);
+  const paths = splitPath(path2);
   return replaceGroupMarks(paths, groups);
 };
-var extractGroupsFromPath = (path) => {
+var extractGroupsFromPath = (path2) => {
   const groups = [];
-  path = path.replace(/\{[^}]+\}/g, (match2, index) => {
+  path2 = path2.replace(/\{[^}]+\}/g, (match2, index) => {
     const mark = `@${index}`;
     groups.push([mark, match2]);
     return mark;
   });
-  return { groups, path };
+  return { groups, path: path2 };
 };
 var replaceGroupMarks = (paths, groups) => {
   for (let i2 = groups.length - 1; i2 >= 0; i2--) {
@@ -4348,8 +4348,8 @@ var getPath = (request) => {
       const queryIndex = url.indexOf("?", i2);
       const hashIndex = url.indexOf("#", i2);
       const end = queryIndex === -1 ? hashIndex === -1 ? void 0 : hashIndex : hashIndex === -1 ? queryIndex : Math.min(queryIndex, hashIndex);
-      const path = url.slice(start, end);
-      return tryDecodeURI(path.includes("%25") ? path.replace(/%25/g, "%2525") : path);
+      const path2 = url.slice(start, end);
+      return tryDecodeURI(path2.includes("%25") ? path2.replace(/%25/g, "%2525") : path2);
     } else if (charCode === 63 || charCode === 35) {
       break;
     }
@@ -4366,11 +4366,11 @@ var mergePath = (base, sub, ...rest) => {
   }
   return `${base?.[0] === "/" ? "" : "/"}${base}${sub === "/" ? "" : `${base?.at(-1) === "/" ? "" : "/"}${sub?.[0] === "/" ? sub.slice(1) : sub}`}`;
 };
-var checkOptionalParameter = (path) => {
-  if (path.charCodeAt(path.length - 1) !== 63 || !path.includes(":")) {
+var checkOptionalParameter = (path2) => {
+  if (path2.charCodeAt(path2.length - 1) !== 63 || !path2.includes(":")) {
     return null;
   }
-  const segments = path.split("/");
+  const segments = path2.split("/");
   const results = [];
   let basePath = "";
   segments.forEach((segment) => {
@@ -4511,9 +4511,9 @@ var HonoRequest = class {
    */
   path;
   bodyCache = {};
-  constructor(request, path = "/", matchResult = [[]]) {
+  constructor(request, path2 = "/", matchResult = [[]]) {
     this.raw = request;
-    this.path = path;
+    this.path = path2;
     this.#matchResult = matchResult;
     this.#validatedData = {};
   }
@@ -5250,8 +5250,8 @@ var Hono = class _Hono {
         return this;
       };
     });
-    this.on = (method, path, ...handlers) => {
-      for (const p of [path].flat()) {
+    this.on = (method, path2, ...handlers) => {
+      for (const p of [path2].flat()) {
         this.#path = p;
         for (const m3 of [method].flat()) {
           handlers.map((handler) => {
@@ -5308,8 +5308,8 @@ var Hono = class _Hono {
    * app.route("/api", app2) // GET /api/user
    * ```
    */
-  route(path, app) {
-    const subApp = this.basePath(path);
+  route(path2, app) {
+    const subApp = this.basePath(path2);
     app.routes.map((r2) => {
       let handler;
       if (app.errorHandler === errorHandler) {
@@ -5335,9 +5335,9 @@ var Hono = class _Hono {
    * const api = new Hono().basePath('/api')
    * ```
    */
-  basePath(path) {
+  basePath(path2) {
     const subApp = this.#clone();
-    subApp._basePath = mergePath(this._basePath, path);
+    subApp._basePath = mergePath(this._basePath, path2);
     return subApp;
   }
   /**
@@ -5411,7 +5411,7 @@ var Hono = class _Hono {
    * })
    * ```
    */
-  mount(path, applicationHandler, options2) {
+  mount(path2, applicationHandler, options2) {
     let replaceRequest;
     let optionHandler;
     if (options2) {
@@ -5438,7 +5438,7 @@ var Hono = class _Hono {
       return [c.env, executionContext];
     };
     replaceRequest ||= (() => {
-      const mergedPath = mergePath(this._basePath, path);
+      const mergedPath = mergePath(this._basePath, path2);
       const pathPrefixLength = mergedPath === "/" ? 0 : mergedPath.length;
       return (request) => {
         const url = new URL(request.url);
@@ -5453,14 +5453,14 @@ var Hono = class _Hono {
       }
       await next();
     };
-    this.#addRoute(METHOD_NAME_ALL, mergePath(path, "*"), handler);
+    this.#addRoute(METHOD_NAME_ALL, mergePath(path2, "*"), handler);
     return this;
   }
-  #addRoute(method, path, handler) {
+  #addRoute(method, path2, handler) {
     method = method.toUpperCase();
-    path = mergePath(this._basePath, path);
-    const r2 = { basePath: this._basePath, path, method, handler };
-    this.router.add(method, path, [handler, r2]);
+    path2 = mergePath(this._basePath, path2);
+    const r2 = { basePath: this._basePath, path: path2, method, handler };
+    this.router.add(method, path2, [handler, r2]);
     this.routes.push(r2);
   }
   #handleError(err, c) {
@@ -5473,10 +5473,10 @@ var Hono = class _Hono {
     if (method === "HEAD") {
       return (async () => new Response(null, await this.#dispatch(request, executionCtx, env, "GET")))();
     }
-    const path = this.getPath(request, { env });
-    const matchResult = this.router.match(method, path);
+    const path2 = this.getPath(request, { env });
+    const matchResult = this.router.match(method, path2);
     const c = new Context(request, {
-      path,
+      path: path2,
       matchResult,
       env,
       executionCtx,
@@ -5576,15 +5576,15 @@ var Hono = class _Hono {
 
 // node_modules/hono/dist/router/reg-exp-router/matcher.js
 var emptyParam = [];
-function match(method, path) {
+function match(method, path2) {
   const matchers = this.buildAllMatchers();
-  const match2 = (method2, path2) => {
+  const match2 = (method2, path22) => {
     const matcher = matchers[method2] || matchers[METHOD_NAME_ALL];
-    const staticMatch = matcher[2][path2];
+    const staticMatch = matcher[2][path22];
     if (staticMatch) {
       return staticMatch;
     }
-    const match3 = path2.match(matcher[0]);
+    const match3 = path22.match(matcher[0]);
     if (!match3) {
       return [[], emptyParam];
     }
@@ -5592,7 +5592,7 @@ function match(method, path) {
     return [matcher[1][index], match3];
   };
   this.match = match2;
-  return match2(method, path);
+  return match2(method, path2);
 }
 
 // node_modules/hono/dist/router/reg-exp-router/node.js
@@ -5707,12 +5707,12 @@ var Node = class _Node {
 var Trie = class {
   #context = { varIndex: 0 };
   #root = new Node();
-  insert(path, index, pathErrorCheckOnly) {
+  insert(path2, index, pathErrorCheckOnly) {
     const paramAssoc = [];
     const groups = [];
     for (let i2 = 0; ; ) {
       let replaced = false;
-      path = path.replace(/\{[^}]+\}/g, (m3) => {
+      path2 = path2.replace(/\{[^}]+\}/g, (m3) => {
         const mark = `@\\${i2}`;
         groups[i2] = [mark, m3];
         i2++;
@@ -5723,7 +5723,7 @@ var Trie = class {
         break;
       }
     }
-    const tokens = path.match(/(?::[^\/]+)|(?:\/\*$)|./g) || [];
+    const tokens = path2.match(/(?::[^\/]+)|(?:\/\*$)|./g) || [];
     for (let i2 = groups.length - 1; i2 >= 0; i2--) {
       const [mark] = groups[i2];
       for (let j = tokens.length - 1; j >= 0; j--) {
@@ -5762,9 +5762,9 @@ var Trie = class {
 // node_modules/hono/dist/router/reg-exp-router/router.js
 var nullMatcher = [/^$/, [], /* @__PURE__ */ Object.create(null)];
 var wildcardRegExpCache = /* @__PURE__ */ Object.create(null);
-function buildWildcardRegExp(path) {
-  return wildcardRegExpCache[path] ??= new RegExp(
-    path === "*" ? "" : `^${path.replace(
+function buildWildcardRegExp(path2) {
+  return wildcardRegExpCache[path2] ??= new RegExp(
+    path2 === "*" ? "" : `^${path2.replace(
       /\/\*$|([.\\+*[^\]$()])/g,
       (_2, metaChar) => metaChar ? `\\${metaChar}` : "(?:|/.*)"
     )}$`
@@ -5786,17 +5786,17 @@ function buildMatcherFromPreprocessedRoutes(routes) {
   );
   const staticMap = /* @__PURE__ */ Object.create(null);
   for (let i2 = 0, j = -1, len = routesWithStaticPathFlag.length; i2 < len; i2++) {
-    const [pathErrorCheckOnly, path, handlers] = routesWithStaticPathFlag[i2];
+    const [pathErrorCheckOnly, path2, handlers] = routesWithStaticPathFlag[i2];
     if (pathErrorCheckOnly) {
-      staticMap[path] = [handlers.map(([h]) => [h, /* @__PURE__ */ Object.create(null)]), emptyParam];
+      staticMap[path2] = [handlers.map(([h]) => [h, /* @__PURE__ */ Object.create(null)]), emptyParam];
     } else {
       j++;
     }
     let paramAssoc;
     try {
-      paramAssoc = trie.insert(path, j, pathErrorCheckOnly);
+      paramAssoc = trie.insert(path2, j, pathErrorCheckOnly);
     } catch (e2) {
-      throw e2 === PATH_ERROR ? new UnsupportedPathError(path) : e2;
+      throw e2 === PATH_ERROR ? new UnsupportedPathError(path2) : e2;
     }
     if (pathErrorCheckOnly) {
       continue;
@@ -5830,12 +5830,12 @@ function buildMatcherFromPreprocessedRoutes(routes) {
   }
   return [regexp, handlerMap, staticMap];
 }
-function findMiddleware(middleware, path) {
+function findMiddleware(middleware, path2) {
   if (!middleware) {
     return void 0;
   }
   for (const k6 of Object.keys(middleware).sort((a2, b2) => b2.length - a2.length)) {
-    if (buildWildcardRegExp(k6).test(path)) {
+    if (buildWildcardRegExp(k6).test(path2)) {
       return [...middleware[k6]];
     }
   }
@@ -5849,7 +5849,7 @@ var RegExpRouter = class {
     this.#middleware = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
     this.#routes = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
   }
-  add(method, path, handler) {
+  add(method, path2, handler) {
     const middleware = this.#middleware;
     const routes = this.#routes;
     if (!middleware || !routes) {
@@ -5864,18 +5864,18 @@ var RegExpRouter = class {
         });
       });
     }
-    if (path === "/*") {
-      path = "*";
+    if (path2 === "/*") {
+      path2 = "*";
     }
-    const paramCount = (path.match(/\/:/g) || []).length;
-    if (/\*$/.test(path)) {
-      const re = buildWildcardRegExp(path);
+    const paramCount = (path2.match(/\/:/g) || []).length;
+    if (/\*$/.test(path2)) {
+      const re = buildWildcardRegExp(path2);
       if (method === METHOD_NAME_ALL) {
         Object.keys(middleware).forEach((m3) => {
-          middleware[m3][path] ||= findMiddleware(middleware[m3], path) || findMiddleware(middleware[METHOD_NAME_ALL], path) || [];
+          middleware[m3][path2] ||= findMiddleware(middleware[m3], path2) || findMiddleware(middleware[METHOD_NAME_ALL], path2) || [];
         });
       } else {
-        middleware[method][path] ||= findMiddleware(middleware[method], path) || findMiddleware(middleware[METHOD_NAME_ALL], path) || [];
+        middleware[method][path2] ||= findMiddleware(middleware[method], path2) || findMiddleware(middleware[METHOD_NAME_ALL], path2) || [];
       }
       Object.keys(middleware).forEach((m3) => {
         if (method === METHOD_NAME_ALL || method === m3) {
@@ -5893,15 +5893,15 @@ var RegExpRouter = class {
       });
       return;
     }
-    const paths = checkOptionalParameter(path) || [path];
+    const paths = checkOptionalParameter(path2) || [path2];
     for (let i2 = 0, len = paths.length; i2 < len; i2++) {
-      const path2 = paths[i2];
+      const path22 = paths[i2];
       Object.keys(routes).forEach((m3) => {
         if (method === METHOD_NAME_ALL || method === m3) {
-          routes[m3][path2] ||= [
-            ...findMiddleware(middleware[m3], path2) || findMiddleware(middleware[METHOD_NAME_ALL], path2) || []
+          routes[m3][path22] ||= [
+            ...findMiddleware(middleware[m3], path22) || findMiddleware(middleware[METHOD_NAME_ALL], path22) || []
           ];
-          routes[m3][path2].push([handler, paramCount - len + i2 + 1]);
+          routes[m3][path22].push([handler, paramCount - len + i2 + 1]);
         }
       });
     }
@@ -5920,13 +5920,13 @@ var RegExpRouter = class {
     const routes = [];
     let hasOwnRoute = method === METHOD_NAME_ALL;
     [this.#middleware, this.#routes].forEach((r2) => {
-      const ownRoute = r2[method] ? Object.keys(r2[method]).map((path) => [path, r2[method][path]]) : [];
+      const ownRoute = r2[method] ? Object.keys(r2[method]).map((path2) => [path2, r2[method][path2]]) : [];
       if (ownRoute.length !== 0) {
         hasOwnRoute ||= true;
         routes.push(...ownRoute);
       } else if (method !== METHOD_NAME_ALL) {
         routes.push(
-          ...Object.keys(r2[METHOD_NAME_ALL]).map((path) => [path, r2[METHOD_NAME_ALL][path]])
+          ...Object.keys(r2[METHOD_NAME_ALL]).map((path2) => [path2, r2[METHOD_NAME_ALL][path2]])
         );
       }
     });
@@ -5946,13 +5946,13 @@ var SmartRouter = class {
   constructor(init) {
     this.#routers = init.routers;
   }
-  add(method, path, handler) {
+  add(method, path2, handler) {
     if (!this.#routes) {
       throw new Error(MESSAGE_MATCHER_IS_ALREADY_BUILT);
     }
-    this.#routes.push([method, path, handler]);
+    this.#routes.push([method, path2, handler]);
   }
-  match(method, path) {
+  match(method, path2) {
     if (!this.#routes) {
       throw new Error("Fatal error");
     }
@@ -5967,7 +5967,7 @@ var SmartRouter = class {
         for (let i22 = 0, len2 = routes.length; i22 < len2; i22++) {
           router.add(...routes[i22]);
         }
-        res = router.match(method, path);
+        res = router.match(method, path2);
       } catch (e2) {
         if (e2 instanceof UnsupportedPathError) {
           continue;
@@ -6017,10 +6017,10 @@ var Node2 = class _Node2 {
     }
     this.#patterns = [];
   }
-  insert(method, path, handler) {
+  insert(method, path2, handler) {
     this.#order = ++this.#order;
     let curNode = this;
-    const parts = splitRoutingPath(path);
+    const parts = splitRoutingPath(path2);
     const possibleKeys = [];
     for (let i2 = 0, len = parts.length; i2 < len; i2++) {
       const p = parts[i2];
@@ -6069,12 +6069,12 @@ var Node2 = class _Node2 {
       }
     }
   }
-  search(method, path) {
+  search(method, path2) {
     const handlerSets = [];
     this.#params = emptyParams;
     const curNode = this;
     let curNodes = [curNode];
-    const parts = splitPath(path);
+    const parts = splitPath(path2);
     const curNodesQueue = [];
     const len = parts.length;
     let partOffsets = null;
@@ -6116,13 +6116,13 @@ var Node2 = class _Node2 {
           if (matcher instanceof RegExp) {
             if (partOffsets === null) {
               partOffsets = new Array(len);
-              let offset = path[0] === "/" ? 1 : 0;
+              let offset = path2[0] === "/" ? 1 : 0;
               for (let p = 0; p < len; p++) {
                 partOffsets[p] = offset;
                 offset += parts[p].length + 1;
               }
             }
-            const restPathString = path.substring(partOffsets[i2]);
+            const restPathString = path2.substring(partOffsets[i2]);
             const m3 = matcher.exec(restPathString);
             if (m3) {
               params[name] = m3[0];
@@ -6175,18 +6175,18 @@ var TrieRouter = class {
   constructor() {
     this.#node = new Node2();
   }
-  add(method, path, handler) {
-    const results = checkOptionalParameter(path);
+  add(method, path2, handler) {
+    const results = checkOptionalParameter(path2);
     if (results) {
       for (let i2 = 0, len = results.length; i2 < len; i2++) {
         this.#node.insert(method, results[i2], handler);
       }
       return;
     }
-    this.#node.insert(method, path, handler);
+    this.#node.insert(method, path2, handler);
   }
-  match(method, path) {
-    return this.#node.search(method, path);
+  match(method, path2) {
+    return this.#node.search(method, path2);
   }
 };
 
@@ -6405,10 +6405,10 @@ var createStreamBody = (stream) => {
   });
   return body;
 };
-var getStats = (path) => {
+var getStats = (path2) => {
   let stats;
   try {
-    stats = (0, import_fs.statSync)(path);
+    stats = (0, import_fs.statSync)(path2);
   } catch {
   }
   return stats;
@@ -6451,21 +6451,21 @@ var serveStatic = (options2 = { root: "" }) => {
         return next();
       }
     }
-    let path = (0, import_path.join)(
+    let path2 = (0, import_path.join)(
       root,
       !optionPath && options2.rewriteRequestPath ? options2.rewriteRequestPath(filename, c) : filename
     );
-    let stats = getStats(path);
+    let stats = getStats(path2);
     if (stats && stats.isDirectory()) {
       const indexFile = options2.index ?? "index.html";
-      path = (0, import_path.join)(path, indexFile);
-      stats = getStats(path);
+      path2 = (0, import_path.join)(path2, indexFile);
+      stats = getStats(path2);
     }
     if (!stats) {
-      await options2.onNotFound?.(path, c);
+      await options2.onNotFound?.(path2, c);
       return next();
     }
-    const mimeType = getMimeType(path);
+    const mimeType = getMimeType(path2);
     c.header("Content-Type", mimeType || "application/octet-stream");
     if (options2.precompressed && (!mimeType || COMPRESSIBLE_CONTENT_TYPE_REGEX.test(mimeType))) {
       const acceptEncodingSet = new Set(
@@ -6475,12 +6475,12 @@ var serveStatic = (options2 = { root: "" }) => {
         if (!acceptEncodingSet.has(encoding)) {
           continue;
         }
-        const precompressedStats = getStats(path + ENCODINGS[encoding]);
+        const precompressedStats = getStats(path2 + ENCODINGS[encoding]);
         if (precompressedStats) {
           c.header("Content-Encoding", encoding);
           c.header("Vary", "Accept-Encoding", { append: true });
           stats = precompressedStats;
-          path = path + ENCODINGS[encoding];
+          path2 = path2 + ENCODINGS[encoding];
           break;
         }
       }
@@ -6494,7 +6494,7 @@ var serveStatic = (options2 = { root: "" }) => {
       result = c.body(null);
     } else if (!range) {
       c.header("Content-Length", size.toString());
-      result = c.body(createStreamBody((0, import_fs.createReadStream)(path)), 200);
+      result = c.body(createStreamBody((0, import_fs.createReadStream)(path2)), 200);
     } else {
       c.header("Accept-Ranges", "bytes");
       c.header("Date", stats.birthtime.toUTCString());
@@ -6505,12 +6505,12 @@ var serveStatic = (options2 = { root: "" }) => {
         end = size - 1;
       }
       const chunksize = end - start + 1;
-      const stream = (0, import_fs.createReadStream)(path, { start, end });
+      const stream = (0, import_fs.createReadStream)(path2, { start, end });
       c.header("Content-Length", chunksize.toString());
       c.header("Content-Range", `bytes ${start}-${end}/${stats.size}`);
       result = c.body(createStreamBody(stream), 206);
     }
-    await options2.onFound?.(path, c);
+    await options2.onFound?.(path2, c);
     return result;
   };
 };
@@ -6528,8 +6528,8 @@ var AUTH_EXEMPT = /* @__PURE__ */ new Set([
 ]);
 function authMiddleware(ctx) {
   return createMiddleware(async (c, next) => {
-    const path = c.req.path;
-    if (!path.startsWith("/api/") || AUTH_EXEMPT.has(path)) {
+    const path2 = c.req.path;
+    if (!path2.startsWith("/api/") || AUTH_EXEMPT.has(path2)) {
       return next();
     }
     const cookie = c.req.header("Cookie");
@@ -6587,6 +6587,24 @@ function statusRoutes(ctx) {
       sseClients: ctx.sseEmitter.clientCount
     });
   });
+  router.put("/settings/language", async (c) => {
+    const { language } = await c.req.json();
+    const configDir = (0, import_node_path.join)(ctx.projectContext.projectRoot, ".seed");
+    const configPath = (0, import_node_path.join)(configDir, "config.json");
+    let config = {};
+    if ((0, import_node_fs.existsSync)(configPath)) {
+      try {
+        config = JSON.parse((0, import_node_fs.readFileSync)(configPath, "utf-8"));
+      } catch {
+      }
+    }
+    config.language = language;
+    if (!(0, import_node_fs.existsSync)(configDir)) {
+      (0, import_node_fs.mkdirSync)(configDir, { recursive: true });
+    }
+    (0, import_node_fs.writeFileSync)(configPath, JSON.stringify(config, null, 2), "utf-8");
+    return c.json({ ok: true, language });
+  });
   router.get("/events", (c) => {
     const stream = new ReadableStream({
       start(controller) {
@@ -6626,7 +6644,7 @@ data: ${JSON.stringify(event.data)}
 
 // server/http/routes/constitution.ts
 var import_promises7 = require("node:fs/promises");
-var import_node_fs4 = require("node:fs");
+var import_node_fs5 = require("node:fs");
 var import_node_child_process2 = require("node:child_process");
 
 // server/utils/hash.ts
@@ -6640,7 +6658,7 @@ function stableId(input) {
 
 // server/analyzers/constitution-analyzer.ts
 var import_promises6 = require("node:fs/promises");
-var import_node_fs3 = require("node:fs");
+var import_node_fs4 = require("node:fs");
 var import_node_crypto2 = require("node:crypto");
 
 // node_modules/diff/lib/index.mjs
@@ -6745,11 +6763,11 @@ Diff.prototype = {
       }
     }
   },
-  addToPath: function addToPath(path, added, removed, oldPosInc, options2) {
-    var last = path.lastComponent;
+  addToPath: function addToPath(path2, added, removed, oldPosInc, options2) {
+    var last = path2.lastComponent;
     if (last && !options2.oneChangePerToken && last.added === added && last.removed === removed) {
       return {
-        oldPos: path.oldPos + oldPosInc,
+        oldPos: path2.oldPos + oldPosInc,
         lastComponent: {
           count: last.count + 1,
           added,
@@ -6759,7 +6777,7 @@ Diff.prototype = {
       };
     } else {
       return {
-        oldPos: path.oldPos + oldPosInc,
+        oldPos: path2.oldPos + oldPosInc,
         lastComponent: {
           count: 1,
           added,
@@ -7479,7 +7497,7 @@ function extractImports(content) {
 }
 
 // server/core/constitution-analysis-runner.ts
-var import_node_fs2 = require("node:fs");
+var import_node_fs3 = require("node:fs");
 var import_promises5 = require("node:fs/promises");
 
 // server/utils/constitution-analysis.ts
@@ -23729,6 +23747,8 @@ function Dy($, X) {
 
 // server/worker/agents/base-agent.ts
 var import_node_child_process = require("node:child_process");
+var import_node_fs2 = require("node:fs");
+var import_node_path2 = __toESM(require("node:path"), 1);
 var cachedClaudeExecutablePath;
 async function detectAgentBackend() {
   return {
@@ -23816,8 +23836,33 @@ function resolveClaudeExecutablePath() {
     windowsHide: true
   });
   const resolved = lookup.status === 0 ? lookup.stdout.split(/\r?\n/).map((line) => line.trim()).find((line) => line.length > 0) : void 0;
+  if (process.platform === "win32" && resolved) {
+    const actual = resolveWindowsNpmBinary(resolved);
+    if (actual) {
+      cachedClaudeExecutablePath = actual;
+      return actual;
+    }
+  }
   cachedClaudeExecutablePath = resolved ?? "claude";
   return cachedClaudeExecutablePath;
+}
+function resolveWindowsNpmBinary(shimPath) {
+  for (const ext of ["", ".cmd", ".ps1"]) {
+    const shimFile = shimPath + ext;
+    if (!(0, import_node_fs2.existsSync)(shimFile)) continue;
+    try {
+      const content = (0, import_node_fs2.readFileSync)(shimFile, "utf-8");
+      const match2 = content.match(/"(%dp0%\\[^"]+\.exe)"/);
+      if (match2) {
+        const exePath = match2[1].replace("%dp0%", import_node_path2.default.dirname(shimPath) + import_node_path2.default.sep);
+        if ((0, import_node_fs2.existsSync)(exePath)) {
+          return exePath;
+        }
+      }
+    } catch {
+    }
+  }
+  return null;
 }
 function getMessageType(message) {
   if (!message || typeof message !== "object") {
@@ -24128,19 +24173,19 @@ function getCategoryDisplayName(category) {
 }
 function buildImports(ctx, fileContents) {
   const imports = [];
-  for (const { content, path } of fileContents) {
+  for (const { content, path: path2 } of fileContents) {
     const extracted = extractImports(content);
     for (const imp of extracted) {
       const directive = `@${imp.directive}`;
-      if (imports.some((existing) => existing.directive === directive && existing.sourceFile === path && existing.sourceLine === imp.line)) {
+      if (imports.some((existing) => existing.directive === directive && existing.sourceFile === path2 && existing.sourceLine === imp.line)) {
         continue;
       }
       imports.push({
         directive,
-        sourceFile: path,
+        sourceFile: path2,
         sourceLine: imp.line,
         resolvedPath: imp.directive,
-        exists: (0, import_node_fs2.existsSync)(ctx.projectContext.resolve(imp.directive))
+        exists: (0, import_node_fs3.existsSync)(ctx.projectContext.resolve(imp.directive))
       });
     }
   }
@@ -24151,7 +24196,7 @@ async function collectImportedSources(ctx, imports) {
   const seen = /* @__PURE__ */ new Set();
   for (const imp of imports) {
     const absPath = ctx.projectContext.resolve(imp.resolvedPath);
-    if (!(0, import_node_fs2.existsSync)(absPath) || seen.has(imp.resolvedPath)) {
+    if (!(0, import_node_fs3.existsSync)(absPath) || seen.has(imp.resolvedPath)) {
       continue;
     }
     try {
@@ -24202,7 +24247,7 @@ var ConstitutionAnalyzer = class {
     const changed = [];
     for (const src of cached.sources) {
       const absPath = this.ctx.projectContext.resolve(src.path);
-      if (!(0, import_node_fs3.existsSync)(absPath)) {
+      if (!(0, import_node_fs4.existsSync)(absPath)) {
         changed.push(src.path);
         continue;
       }
@@ -24213,7 +24258,7 @@ var ConstitutionAnalyzer = class {
     }
     for (const src of cached.importedSources) {
       const absPath = this.ctx.projectContext.resolve(src.path);
-      if (!(0, import_node_fs3.existsSync)(absPath)) {
+      if (!(0, import_node_fs4.existsSync)(absPath)) {
         changed.push(src.path);
         continue;
       }
@@ -24243,9 +24288,9 @@ var ConstitutionAnalyzer = class {
   async proposeEdit(rule, changes, cached) {
     const editableFiles = await Promise.all(
       this.ctx.projectContext.constitutionFiles.map(async (absPath) => {
-        const path = this.ctx.projectContext.relative(absPath);
+        const path2 = this.ctx.projectContext.relative(absPath);
         return {
-          path,
+          path: path2,
           content: await (0, import_promises6.readFile)(absPath, "utf-8")
         };
       })
@@ -24343,7 +24388,7 @@ Rules:
   async proposeCreate(params) {
     const absPath = this.ctx.projectContext.resolve(params.targetFile);
     let currentContent = "";
-    if ((0, import_node_fs3.existsSync)(absPath)) {
+    if ((0, import_node_fs4.existsSync)(absPath)) {
       currentContent = await (0, import_promises6.readFile)(absPath, "utf-8");
     }
     const prompt = `You are editing a Claude Code configuration file. Current content:
@@ -24435,14 +24480,14 @@ Output the COMPLETE modified file content. Output raw file content only, no mark
   normalizeProposalEditFile(rawFile, allowedPaths) {
     if (!rawFile || typeof rawFile !== "object") return null;
     const record = rawFile;
-    const path = typeof record.path === "string" ? record.path.trim() : "";
+    const path2 = typeof record.path === "string" ? record.path.trim() : "";
     const content = typeof record.content === "string" ? record.content : "";
     const extractedRules = Array.isArray(record.extractedRules) ? record.extractedRules.filter((line) => typeof line === "string" && line.trim().length > 0) : [];
-    if (!path || !allowedPaths.has(path) || !content.trim() || extractedRules.length === 0) {
+    if (!path2 || !allowedPaths.has(path2) || !content.trim() || extractedRules.length === 0) {
       return null;
     }
     return {
-      path,
+      path: path2,
       content: content.trimEnd(),
       extractedRules
     };
@@ -24507,7 +24552,7 @@ Output the COMPLETE modified file content. Output raw file content only, no mark
     const next = [];
     for (const source of previousSources) {
       const absPath = this.ctx.projectContext.resolve(source.path);
-      if (!(0, import_node_fs3.existsSync)(absPath)) continue;
+      if (!(0, import_node_fs4.existsSync)(absPath)) continue;
       const content = await (0, import_promises6.readFile)(absPath, "utf-8");
       const fileStat = await (0, import_promises6.stat)(absPath);
       next.push({
@@ -24601,7 +24646,7 @@ function constitutionRoutes(ctx) {
     const candidates = ["CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md"];
     for (const rel of candidates) {
       const abs = ctx.projectContext.resolve(rel);
-      if ((0, import_node_fs4.existsSync)(abs)) {
+      if ((0, import_node_fs5.existsSync)(abs)) {
         const content = await (0, import_promises7.readFile)(abs, "utf-8");
         sources.push({ path: rel, content, hash: hashString(content), exists: true });
       } else {
@@ -24639,7 +24684,7 @@ function constitutionRoutes(ctx) {
       return c.json({ error: `Rule ${body.ruleId} not found` }, 404);
     }
     const sourceFile = ctx.projectContext.resolve(rule.sourceFile);
-    if (!(0, import_node_fs4.existsSync)(sourceFile)) {
+    if (!(0, import_node_fs5.existsSync)(sourceFile)) {
       return c.json({ error: `Source file ${rule.sourceFile} not found` }, 404);
     }
     const currentContent = await (0, import_promises7.readFile)(sourceFile, "utf-8");
@@ -24677,7 +24722,7 @@ function constitutionRoutes(ctx) {
       return c.json({ error: `Rule ${body.ruleId} not found` }, 404);
     }
     const absPath = ctx.projectContext.resolve(rule.sourceFile);
-    if (!(0, import_node_fs4.existsSync)(absPath)) {
+    if (!(0, import_node_fs5.existsSync)(absPath)) {
       return c.json({ error: `Source file ${rule.sourceFile} not found` }, 404);
     }
     try {
@@ -24715,20 +24760,20 @@ async function openPathInDefaultApp(absPath) {
 
 // server/http/routes/proposal.ts
 var import_promises8 = require("node:fs/promises");
-var import_node_path2 = require("node:path");
-var import_node_fs5 = require("node:fs");
+var import_node_path3 = require("node:path");
+var import_node_fs6 = require("node:fs");
 function proposalRoutes(ctx) {
   const router = new Hono2();
   const constitutionAnalyzer = new ConstitutionAnalyzer(ctx);
   router.get("/", async (c) => {
     const dir = ctx.projectContext.proposalsDir;
-    if (!(0, import_node_fs5.existsSync)(dir)) return c.json({ proposals: [] });
+    if (!(0, import_node_fs6.existsSync)(dir)) return c.json({ proposals: [] });
     const files = await (0, import_promises8.readdir)(dir);
     const proposals = [];
     for (const f2 of files) {
       if (!f2.endsWith(".json")) continue;
       try {
-        const raw2 = await (0, import_promises8.readFile)((0, import_node_path2.join)(dir, f2), "utf-8");
+        const raw2 = await (0, import_promises8.readFile)((0, import_node_path3.join)(dir, f2), "utf-8");
         proposals.push(JSON.parse(raw2));
       } catch {
       }
@@ -24738,8 +24783,8 @@ function proposalRoutes(ctx) {
   });
   router.get("/:id", async (c) => {
     const id = c.req.param("id");
-    const filePath = (0, import_node_path2.join)(ctx.projectContext.proposalsDir, `${id}.json`);
-    if (!(0, import_node_fs5.existsSync)(filePath)) {
+    const filePath = (0, import_node_path3.join)(ctx.projectContext.proposalsDir, `${id}.json`);
+    if (!(0, import_node_fs6.existsSync)(filePath)) {
       return c.json({ error: "Proposal not found" }, 404);
     }
     const raw2 = await (0, import_promises8.readFile)(filePath, "utf-8");
@@ -24747,8 +24792,8 @@ function proposalRoutes(ctx) {
   });
   router.post("/:id/apply", async (c) => {
     const id = c.req.param("id");
-    const filePath = (0, import_node_path2.join)(ctx.projectContext.proposalsDir, `${id}.json`);
-    if (!(0, import_node_fs5.existsSync)(filePath)) {
+    const filePath = (0, import_node_path3.join)(ctx.projectContext.proposalsDir, `${id}.json`);
+    if (!(0, import_node_fs6.existsSync)(filePath)) {
       return c.json({ error: "Proposal not found" }, 404);
     }
     const raw2 = await (0, import_promises8.readFile)(filePath, "utf-8");
@@ -24783,8 +24828,8 @@ function proposalRoutes(ctx) {
   });
   router.post("/:id/reject", async (c) => {
     const id = c.req.param("id");
-    const filePath = (0, import_node_path2.join)(ctx.projectContext.proposalsDir, `${id}.json`);
-    if (!(0, import_node_fs5.existsSync)(filePath)) {
+    const filePath = (0, import_node_path3.join)(ctx.projectContext.proposalsDir, `${id}.json`);
+    if (!(0, import_node_fs6.existsSync)(filePath)) {
       return c.json({ error: "Proposal not found" }, 404);
     }
     const raw2 = await (0, import_promises8.readFile)(filePath, "utf-8");
@@ -24798,8 +24843,8 @@ function proposalRoutes(ctx) {
 
 // server/core/memory-path-resolver.ts
 var import_node_child_process3 = require("node:child_process");
-var import_node_fs6 = require("node:fs");
-var import_node_path3 = require("node:path");
+var import_node_fs7 = require("node:fs");
+var import_node_path4 = require("node:path");
 var import_node_os = require("node:os");
 var MemoryPathResolver = class {
   constructor(ctx) {
@@ -24808,11 +24853,11 @@ var MemoryPathResolver = class {
   resolve() {
     const settingsOverride = this.checkSettingsOverride();
     if (settingsOverride) {
-      const resolved = settingsOverride.startsWith("~") ? (0, import_node_path3.join)((0, import_node_os.homedir)(), settingsOverride.slice(1)) : (0, import_node_path3.resolve)(settingsOverride);
+      const resolved = settingsOverride.startsWith("~") ? (0, import_node_path4.join)((0, import_node_os.homedir)(), settingsOverride.slice(1)) : (0, import_node_path4.resolve)(settingsOverride);
       return {
         path: resolved,
         method: "settings_override",
-        hasMemoryMd: (0, import_node_fs6.existsSync)((0, import_node_path3.join)(resolved, "MEMORY.md")),
+        hasMemoryMd: (0, import_node_fs7.existsSync)((0, import_node_path4.join)(resolved, "MEMORY.md")),
         diagnostics: `Using autoMemoryDirectory setting: ${settingsOverride}`
       };
     }
@@ -24825,23 +24870,23 @@ var MemoryPathResolver = class {
         diagnostics: projectSlug.diagnostics
       };
     }
-    const memoryDir = (0, import_node_path3.join)((0, import_node_os.homedir)(), ".claude", "projects", projectSlug.slug, "memory");
+    const memoryDir = (0, import_node_path4.join)((0, import_node_os.homedir)(), ".claude", "projects", projectSlug.slug, "memory");
     return {
       path: memoryDir,
       method: projectSlug.method,
-      hasMemoryMd: (0, import_node_fs6.existsSync)((0, import_node_path3.join)(memoryDir, "MEMORY.md")),
+      hasMemoryMd: (0, import_node_fs7.existsSync)((0, import_node_path4.join)(memoryDir, "MEMORY.md")),
       diagnostics: `Resolved via ${projectSlug.method}: ${memoryDir}`
     };
   }
   checkSettingsOverride() {
     const paths = [
-      (0, import_node_path3.join)((0, import_node_os.homedir)(), ".claude", "settings.json"),
-      (0, import_node_path3.join)(this.ctx.projectRoot, ".claude", "settings.local.json")
+      (0, import_node_path4.join)((0, import_node_os.homedir)(), ".claude", "settings.json"),
+      (0, import_node_path4.join)(this.ctx.projectRoot, ".claude", "settings.local.json")
     ];
     for (const p of paths) {
-      if (!(0, import_node_fs6.existsSync)(p)) continue;
+      if (!(0, import_node_fs7.existsSync)(p)) continue;
       try {
-        const data = JSON.parse((0, import_node_fs6.readFileSync)(p, "utf-8"));
+        const data = JSON.parse((0, import_node_fs7.readFileSync)(p, "utf-8"));
         if (data.autoMemoryDirectory) return data.autoMemoryDirectory;
       } catch {
       }
@@ -24850,14 +24895,14 @@ var MemoryPathResolver = class {
   }
   resolveProjectSlug() {
     const root = this.ctx.projectRoot;
-    const dotGitPath = (0, import_node_path3.join)(root, ".git");
-    if ((0, import_node_fs6.existsSync)(dotGitPath)) {
-      const isFile = (0, import_node_fs6.statSync)(dotGitPath).isFile();
+    const dotGitPath = (0, import_node_path4.join)(root, ".git");
+    if ((0, import_node_fs7.existsSync)(dotGitPath)) {
+      const isFile = (0, import_node_fs7.statSync)(dotGitPath).isFile();
       if (isFile) {
         try {
           const commonDir = (0, import_node_child_process3.execSync)("git rev-parse --git-common-dir", { cwd: root, encoding: "utf-8" }).trim();
-          const resolved = (0, import_node_path3.resolve)(root, commonDir);
-          const mainRoot = (0, import_node_path3.resolve)(resolved, "..");
+          const resolved = (0, import_node_path4.resolve)(root, commonDir);
+          const mainRoot = (0, import_node_path4.resolve)(resolved, "..");
           return {
             slug: this.slugify(mainRoot),
             method: "git_common_dir",
@@ -24892,8 +24937,8 @@ var MemoryPathResolver = class {
 
 // server/analyzers/memory-analyzer.ts
 var import_promises9 = require("node:fs/promises");
-var import_node_path4 = require("node:path");
-var import_node_fs7 = require("node:fs");
+var import_node_path5 = require("node:path");
+var import_node_fs8 = require("node:fs");
 var import_node_crypto3 = require("node:crypto");
 var MemoryAnalyzer = class {
   constructor(ctx, pathResolver) {
@@ -24902,7 +24947,7 @@ var MemoryAnalyzer = class {
   }
   async scan() {
     const resolved = this.pathResolver.resolve();
-    if (!resolved.path || !(0, import_node_fs7.existsSync)(resolved.path)) {
+    if (!resolved.path || !(0, import_node_fs8.existsSync)(resolved.path)) {
       return {
         resolvedPath: resolved.path,
         resolutionMethod: resolved.method,
@@ -24914,8 +24959,8 @@ var MemoryAnalyzer = class {
     }
     const objects = [];
     const indexEntries = /* @__PURE__ */ new Set();
-    const memoryMdPath = (0, import_node_path4.join)(resolved.path, "MEMORY.md");
-    if ((0, import_node_fs7.existsSync)(memoryMdPath)) {
+    const memoryMdPath = (0, import_node_path5.join)(resolved.path, "MEMORY.md");
+    if ((0, import_node_fs8.existsSync)(memoryMdPath)) {
       const content = await (0, import_promises9.readFile)(memoryMdPath, "utf-8");
       const lines = content.split("\n");
       for (const line of lines) {
@@ -24929,7 +24974,7 @@ var MemoryAnalyzer = class {
     const STALE_DAYS = 30;
     for (const file of files) {
       if (!file.endsWith(".md")) continue;
-      const filePath = (0, import_node_path4.join)(resolved.path, file);
+      const filePath = (0, import_node_path5.join)(resolved.path, file);
       const raw2 = await (0, import_promises9.readFile)(filePath, "utf-8");
       const fileStat = await (0, import_promises9.stat)(filePath);
       const { frontmatter, content, excerpt } = parseMarkdown(raw2);
@@ -24975,7 +25020,7 @@ var MemoryAnalyzer = class {
     const obj = result.objects.find((o2) => o2.id === memoryId);
     if (!obj) throw new Error(`Memory object ${memoryId} not found`);
     if (!result.resolvedPath) throw new Error("Memory path not resolved");
-    const absPath = (0, import_node_path4.join)(result.resolvedPath, obj.sourcePath);
+    const absPath = (0, import_node_path5.join)(result.resolvedPath, obj.sourcePath);
     const currentContent = await (0, import_promises9.readFile)(absPath, "utf-8");
     const prompt = `Edit this memory file. Current content:
 
@@ -24997,7 +25042,7 @@ Output the COMPLETE modified file content. Output raw content only, no markdown 
       type: "memory_edit",
       source: `Edit memory: ${obj.title}`,
       affectedFiles: [{
-        path: (0, import_node_path4.join)(result.resolvedPath, obj.sourcePath),
+        path: (0, import_node_path5.join)(result.resolvedPath, obj.sourcePath),
         action: "modify",
         diff: diff2,
         originalContent: currentContent,
@@ -25327,8 +25372,8 @@ var SseEmitter = class {
 
 // server/core/scanner.ts
 var import_promises11 = require("node:fs/promises");
-var import_node_path5 = require("node:path");
-var import_node_fs8 = require("node:fs");
+var import_node_path6 = require("node:path");
+var import_node_fs9 = require("node:fs");
 var Scanner = class {
   constructor(ctx) {
     this.ctx = ctx;
@@ -25383,7 +25428,7 @@ var Scanner = class {
   }
   async scanRules() {
     const rulesDir = this.ctx.rulesDir;
-    if (!(0, import_node_fs8.existsSync)(rulesDir)) return;
+    if (!(0, import_node_fs9.existsSync)(rulesDir)) return;
     const files = await this.walkMd(rulesDir);
     for (const f2 of files) {
       await this.addAsset(f2, "knowledge", ["rules"]);
@@ -25429,7 +25474,7 @@ var Scanner = class {
     try {
       const entries = await (0, import_promises11.readdir)(dir, { withFileTypes: true });
       for (const entry of entries) {
-        const full = (0, import_node_path5.join)(dir, entry.name);
+        const full = (0, import_node_path6.join)(dir, entry.name);
         if (entry.isDirectory()) {
           results.push(...await this.walkMd(full));
         } else if (entry.isFile() && entry.name.endsWith(".md")) {
@@ -25451,7 +25496,7 @@ var sysPath2 = __toESM(require("path"), 1);
 // node_modules/readdirp/esm/index.js
 var import_promises12 = require("node:fs/promises");
 var import_node_stream = require("node:stream");
-var import_node_path6 = require("node:path");
+var import_node_path7 = require("node:path");
 var EntryTypes = {
   FILE_TYPE: "files",
   DIR_TYPE: "directories",
@@ -25518,7 +25563,7 @@ var ReaddirpStream = class extends import_node_stream.Readable {
     this._directoryFilter = normalizeFilter(opts.directoryFilter);
     const statMethod = opts.lstat ? import_promises12.lstat : import_promises12.stat;
     if (wantBigintFsStats) {
-      this._stat = (path) => statMethod(path, { bigint: true });
+      this._stat = (path2) => statMethod(path2, { bigint: true });
     } else {
       this._stat = statMethod;
     }
@@ -25526,7 +25571,7 @@ var ReaddirpStream = class extends import_node_stream.Readable {
     this._wantsDir = type ? DIR_TYPES.has(type) : false;
     this._wantsFile = type ? FILE_TYPES.has(type) : false;
     this._wantsEverything = type === EntryTypes.EVERYTHING_TYPE;
-    this._root = (0, import_node_path6.resolve)(root);
+    this._root = (0, import_node_path7.resolve)(root);
     this._isDirent = !opts.alwaysStat;
     this._statsProp = this._isDirent ? "dirent" : "stats";
     this._rdOptions = { encoding: "utf8", withFileTypes: this._isDirent };
@@ -25543,8 +25588,8 @@ var ReaddirpStream = class extends import_node_stream.Readable {
         const par = this.parent;
         const fil = par && par.files;
         if (fil && fil.length > 0) {
-          const { path, depth } = par;
-          const slice = fil.splice(0, batch).map((dirent) => this._formatEntry(dirent, path));
+          const { path: path2, depth } = par;
+          const slice = fil.splice(0, batch).map((dirent) => this._formatEntry(dirent, path2));
           const awaited = await Promise.all(slice);
           for (const entry of awaited) {
             if (!entry)
@@ -25584,21 +25629,21 @@ var ReaddirpStream = class extends import_node_stream.Readable {
       this.reading = false;
     }
   }
-  async _exploreDir(path, depth) {
+  async _exploreDir(path2, depth) {
     let files;
     try {
-      files = await (0, import_promises12.readdir)(path, this._rdOptions);
+      files = await (0, import_promises12.readdir)(path2, this._rdOptions);
     } catch (error) {
       this._onError(error);
     }
-    return { files, depth, path };
+    return { files, depth, path: path2 };
   }
-  async _formatEntry(dirent, path) {
+  async _formatEntry(dirent, path2) {
     let entry;
     const basename3 = this._isDirent ? dirent.name : dirent;
     try {
-      const fullPath = (0, import_node_path6.resolve)((0, import_node_path6.join)(path, basename3));
-      entry = { path: (0, import_node_path6.relative)(this._root, fullPath), fullPath, basename: basename3 };
+      const fullPath = (0, import_node_path7.resolve)((0, import_node_path7.join)(path2, basename3));
+      entry = { path: (0, import_node_path7.relative)(this._root, fullPath), fullPath, basename: basename3 };
       entry[this._statsProp] = this._isDirent ? dirent : await this._stat(fullPath);
     } catch (err) {
       this._onError(err);
@@ -25632,7 +25677,7 @@ var ReaddirpStream = class extends import_node_stream.Readable {
         }
         if (entryRealPathStats.isDirectory()) {
           const len = entryRealPath.length;
-          if (full.startsWith(entryRealPath) && full.substr(len, 1) === import_node_path6.sep) {
+          if (full.startsWith(entryRealPath) && full.substr(len, 1) === import_node_path7.sep) {
             const recursiveError = new Error(`Circular symlink detected: "${full}" points to "${entryRealPath}"`);
             recursiveError.code = RECURSIVE_ERROR_CODE;
             return this._onError(recursiveError);
@@ -25997,16 +26042,16 @@ var delFromSet = (main2, prop, item) => {
 };
 var isEmptySet = (val) => val instanceof Set ? val.size === 0 : !val;
 var FsWatchInstances = /* @__PURE__ */ new Map();
-function createFsWatchInstance(path, options2, listener, errHandler, emitRaw) {
+function createFsWatchInstance(path2, options2, listener, errHandler, emitRaw) {
   const handleEvent = (rawEvent, evPath) => {
-    listener(path);
-    emitRaw(rawEvent, evPath, { watchedPath: path });
-    if (evPath && path !== evPath) {
-      fsWatchBroadcast(sysPath.resolve(path, evPath), KEY_LISTENERS, sysPath.join(path, evPath));
+    listener(path2);
+    emitRaw(rawEvent, evPath, { watchedPath: path2 });
+    if (evPath && path2 !== evPath) {
+      fsWatchBroadcast(sysPath.resolve(path2, evPath), KEY_LISTENERS, sysPath.join(path2, evPath));
     }
   };
   try {
-    return (0, import_fs4.watch)(path, {
+    return (0, import_fs4.watch)(path2, {
       persistent: options2.persistent
     }, handleEvent);
   } catch (error) {
@@ -26022,12 +26067,12 @@ var fsWatchBroadcast = (fullPath, listenerType, val1, val2, val3) => {
     listener(val1, val2, val3);
   });
 };
-var setFsWatchListener = (path, fullPath, options2, handlers) => {
+var setFsWatchListener = (path2, fullPath, options2, handlers) => {
   const { listener, errHandler, rawEmitter } = handlers;
   let cont = FsWatchInstances.get(fullPath);
   let watcher;
   if (!options2.persistent) {
-    watcher = createFsWatchInstance(path, options2, listener, errHandler, rawEmitter);
+    watcher = createFsWatchInstance(path2, options2, listener, errHandler, rawEmitter);
     if (!watcher)
       return;
     return watcher.close.bind(watcher);
@@ -26038,7 +26083,7 @@ var setFsWatchListener = (path, fullPath, options2, handlers) => {
     addAndConvert(cont, KEY_RAW, rawEmitter);
   } else {
     watcher = createFsWatchInstance(
-      path,
+      path2,
       options2,
       fsWatchBroadcast.bind(null, fullPath, KEY_LISTENERS),
       errHandler,
@@ -26053,7 +26098,7 @@ var setFsWatchListener = (path, fullPath, options2, handlers) => {
         cont.watcherUnusable = true;
       if (isWindows && error.code === "EPERM") {
         try {
-          const fd = await (0, import_promises13.open)(path, "r");
+          const fd = await (0, import_promises13.open)(path2, "r");
           await fd.close();
           broadcastErr(error);
         } catch (err) {
@@ -26084,7 +26129,7 @@ var setFsWatchListener = (path, fullPath, options2, handlers) => {
   };
 };
 var FsWatchFileInstances = /* @__PURE__ */ new Map();
-var setFsWatchFileListener = (path, fullPath, options2, handlers) => {
+var setFsWatchFileListener = (path2, fullPath, options2, handlers) => {
   const { listener, rawEmitter } = handlers;
   let cont = FsWatchFileInstances.get(fullPath);
   const copts = cont && cont.options;
@@ -26106,7 +26151,7 @@ var setFsWatchFileListener = (path, fullPath, options2, handlers) => {
         });
         const currmtime = curr.mtimeMs;
         if (curr.size !== prev.size || currmtime > prev.mtimeMs || currmtime === 0) {
-          foreach(cont.listeners, (listener2) => listener2(path, curr));
+          foreach(cont.listeners, (listener2) => listener2(path2, curr));
         }
       })
     };
@@ -26134,13 +26179,13 @@ var NodeFsHandler = class {
    * @param listener on fs change
    * @returns closer for the watcher instance
    */
-  _watchWithNodeFs(path, listener) {
+  _watchWithNodeFs(path2, listener) {
     const opts = this.fsw.options;
-    const directory = sysPath.dirname(path);
-    const basename3 = sysPath.basename(path);
+    const directory = sysPath.dirname(path2);
+    const basename3 = sysPath.basename(path2);
     const parent = this.fsw._getWatchedDir(directory);
     parent.add(basename3);
-    const absolutePath = sysPath.resolve(path);
+    const absolutePath = sysPath.resolve(path2);
     const options2 = {
       persistent: opts.persistent
     };
@@ -26150,12 +26195,12 @@ var NodeFsHandler = class {
     if (opts.usePolling) {
       const enableBin = opts.interval !== opts.binaryInterval;
       options2.interval = enableBin && isBinaryPath(basename3) ? opts.binaryInterval : opts.interval;
-      closer = setFsWatchFileListener(path, absolutePath, options2, {
+      closer = setFsWatchFileListener(path2, absolutePath, options2, {
         listener,
         rawEmitter: this.fsw._emitRaw
       });
     } else {
-      closer = setFsWatchListener(path, absolutePath, options2, {
+      closer = setFsWatchListener(path2, absolutePath, options2, {
         listener,
         errHandler: this._boundHandleError,
         rawEmitter: this.fsw._emitRaw
@@ -26177,7 +26222,7 @@ var NodeFsHandler = class {
     let prevStats = stats;
     if (parent.has(basename3))
       return;
-    const listener = async (path, newStats) => {
+    const listener = async (path2, newStats) => {
       if (!this.fsw._throttle(THROTTLE_MODE_WATCH, file, 5))
         return;
       if (!newStats || newStats.mtimeMs === 0) {
@@ -26191,11 +26236,11 @@ var NodeFsHandler = class {
             this.fsw._emit(EV2.CHANGE, file, newStats2);
           }
           if ((isMacos || isLinux || isFreeBSD) && prevStats.ino !== newStats2.ino) {
-            this.fsw._closeFile(path);
+            this.fsw._closeFile(path2);
             prevStats = newStats2;
             const closer2 = this._watchWithNodeFs(file, listener);
             if (closer2)
-              this.fsw._addPathCloser(path, closer2);
+              this.fsw._addPathCloser(path2, closer2);
           } else {
             prevStats = newStats2;
           }
@@ -26227,7 +26272,7 @@ var NodeFsHandler = class {
    * @param item basename of this item
    * @returns true if no more processing is needed for this entry.
    */
-  async _handleSymlink(entry, directory, path, item) {
+  async _handleSymlink(entry, directory, path2, item) {
     if (this.fsw.closed) {
       return;
     }
@@ -26237,7 +26282,7 @@ var NodeFsHandler = class {
       this.fsw._incrReadyCount();
       let linkPath;
       try {
-        linkPath = await (0, import_promises13.realpath)(path);
+        linkPath = await (0, import_promises13.realpath)(path2);
       } catch (e2) {
         this.fsw._emitReady();
         return true;
@@ -26247,12 +26292,12 @@ var NodeFsHandler = class {
       if (dir.has(item)) {
         if (this.fsw._symlinkPaths.get(full) !== linkPath) {
           this.fsw._symlinkPaths.set(full, linkPath);
-          this.fsw._emit(EV2.CHANGE, path, entry.stats);
+          this.fsw._emit(EV2.CHANGE, path2, entry.stats);
         }
       } else {
         dir.add(item);
         this.fsw._symlinkPaths.set(full, linkPath);
-        this.fsw._emit(EV2.ADD, path, entry.stats);
+        this.fsw._emit(EV2.ADD, path2, entry.stats);
       }
       this.fsw._emitReady();
       return true;
@@ -26281,9 +26326,9 @@ var NodeFsHandler = class {
         return;
       }
       const item = entry.path;
-      let path = sysPath.join(directory, item);
+      let path2 = sysPath.join(directory, item);
       current.add(item);
-      if (entry.stats.isSymbolicLink() && await this._handleSymlink(entry, directory, path, item)) {
+      if (entry.stats.isSymbolicLink() && await this._handleSymlink(entry, directory, path2, item)) {
         return;
       }
       if (this.fsw.closed) {
@@ -26292,8 +26337,8 @@ var NodeFsHandler = class {
       }
       if (item === target || !target && !previous.has(item)) {
         this.fsw._incrReadyCount();
-        path = sysPath.join(dir, sysPath.relative(dir, path));
-        this._addToNodeFs(path, initialAdd, wh, depth + 1);
+        path2 = sysPath.join(dir, sysPath.relative(dir, path2));
+        this._addToNodeFs(path2, initialAdd, wh, depth + 1);
       }
     }).on(EV2.ERROR, this._boundHandleError);
     return new Promise((resolve7, reject) => {
@@ -26362,13 +26407,13 @@ var NodeFsHandler = class {
    * @param depth Child path actually targeted for watch
    * @param target Child path actually targeted for watch
    */
-  async _addToNodeFs(path, initialAdd, priorWh, depth, target) {
+  async _addToNodeFs(path2, initialAdd, priorWh, depth, target) {
     const ready = this.fsw._emitReady;
-    if (this.fsw._isIgnored(path) || this.fsw.closed) {
+    if (this.fsw._isIgnored(path2) || this.fsw.closed) {
       ready();
       return false;
     }
-    const wh = this.fsw._getWatchHelpers(path);
+    const wh = this.fsw._getWatchHelpers(path2);
     if (priorWh) {
       wh.filterPath = (entry) => priorWh.filterPath(entry);
       wh.filterDir = (entry) => priorWh.filterDir(entry);
@@ -26384,8 +26429,8 @@ var NodeFsHandler = class {
       const follow = this.fsw.options.followSymlinks;
       let closer;
       if (stats.isDirectory()) {
-        const absPath = sysPath.resolve(path);
-        const targetPath = follow ? await (0, import_promises13.realpath)(path) : path;
+        const absPath = sysPath.resolve(path2);
+        const targetPath = follow ? await (0, import_promises13.realpath)(path2) : path2;
         if (this.fsw.closed)
           return;
         closer = await this._handleDir(wh.watchPath, stats, initialAdd, depth, target, wh, targetPath);
@@ -26395,29 +26440,29 @@ var NodeFsHandler = class {
           this.fsw._symlinkPaths.set(absPath, targetPath);
         }
       } else if (stats.isSymbolicLink()) {
-        const targetPath = follow ? await (0, import_promises13.realpath)(path) : path;
+        const targetPath = follow ? await (0, import_promises13.realpath)(path2) : path2;
         if (this.fsw.closed)
           return;
         const parent = sysPath.dirname(wh.watchPath);
         this.fsw._getWatchedDir(parent).add(wh.watchPath);
         this.fsw._emit(EV2.ADD, wh.watchPath, stats);
-        closer = await this._handleDir(parent, stats, initialAdd, depth, path, wh, targetPath);
+        closer = await this._handleDir(parent, stats, initialAdd, depth, path2, wh, targetPath);
         if (this.fsw.closed)
           return;
         if (targetPath !== void 0) {
-          this.fsw._symlinkPaths.set(sysPath.resolve(path), targetPath);
+          this.fsw._symlinkPaths.set(sysPath.resolve(path2), targetPath);
         }
       } else {
         closer = this._handleFile(wh.watchPath, stats, initialAdd);
       }
       ready();
       if (closer)
-        this.fsw._addPathCloser(path, closer);
+        this.fsw._addPathCloser(path2, closer);
       return false;
     } catch (error) {
       if (this.fsw._handleError(error)) {
         ready();
-        return path;
+        return path2;
       }
     }
   }
@@ -26460,26 +26505,26 @@ function createPattern(matcher) {
   }
   return () => false;
 }
-function normalizePath(path) {
-  if (typeof path !== "string")
+function normalizePath(path2) {
+  if (typeof path2 !== "string")
     throw new Error("string expected");
-  path = sysPath2.normalize(path);
-  path = path.replace(/\\/g, "/");
+  path2 = sysPath2.normalize(path2);
+  path2 = path2.replace(/\\/g, "/");
   let prepend = false;
-  if (path.startsWith("//"))
+  if (path2.startsWith("//"))
     prepend = true;
   const DOUBLE_SLASH_RE2 = /\/\//;
-  while (path.match(DOUBLE_SLASH_RE2))
-    path = path.replace(DOUBLE_SLASH_RE2, "/");
+  while (path2.match(DOUBLE_SLASH_RE2))
+    path2 = path2.replace(DOUBLE_SLASH_RE2, "/");
   if (prepend)
-    path = "/" + path;
-  return path;
+    path2 = "/" + path2;
+  return path2;
 }
 function matchPatterns(patterns, testString, stats) {
-  const path = normalizePath(testString);
+  const path2 = normalizePath(testString);
   for (let index = 0; index < patterns.length; index++) {
     const pattern = patterns[index];
-    if (pattern(path, stats)) {
+    if (pattern(path2, stats)) {
       return true;
     }
   }
@@ -26519,19 +26564,19 @@ var toUnix = (string) => {
   }
   return str2;
 };
-var normalizePathToUnix = (path) => toUnix(sysPath2.normalize(toUnix(path)));
-var normalizeIgnored = (cwd = "") => (path) => {
-  if (typeof path === "string") {
-    return normalizePathToUnix(sysPath2.isAbsolute(path) ? path : sysPath2.join(cwd, path));
+var normalizePathToUnix = (path2) => toUnix(sysPath2.normalize(toUnix(path2)));
+var normalizeIgnored = (cwd = "") => (path2) => {
+  if (typeof path2 === "string") {
+    return normalizePathToUnix(sysPath2.isAbsolute(path2) ? path2 : sysPath2.join(cwd, path2));
   } else {
-    return path;
+    return path2;
   }
 };
-var getAbsolutePath = (path, cwd) => {
-  if (sysPath2.isAbsolute(path)) {
-    return path;
+var getAbsolutePath = (path2, cwd) => {
+  if (sysPath2.isAbsolute(path2)) {
+    return path2;
   }
-  return sysPath2.join(cwd, path);
+  return sysPath2.join(cwd, path2);
 };
 var EMPTY_SET = Object.freeze(/* @__PURE__ */ new Set());
 var DirEntry = class {
@@ -26586,10 +26631,10 @@ var DirEntry = class {
 var STAT_METHOD_F = "stat";
 var STAT_METHOD_L = "lstat";
 var WatchHelper = class {
-  constructor(path, follow, fsw) {
+  constructor(path2, follow, fsw) {
     this.fsw = fsw;
-    const watchPath = path;
-    this.path = path = path.replace(REPLACER_RE, "");
+    const watchPath = path2;
+    this.path = path2 = path2.replace(REPLACER_RE, "");
     this.watchPath = watchPath;
     this.fullWatchPath = sysPath2.resolve(watchPath);
     this.dirParts = [];
@@ -26711,20 +26756,20 @@ var FSWatcher = class extends import_events3.EventEmitter {
     this._closePromise = void 0;
     let paths = unifyPaths(paths_);
     if (cwd) {
-      paths = paths.map((path) => {
-        const absPath = getAbsolutePath(path, cwd);
+      paths = paths.map((path2) => {
+        const absPath = getAbsolutePath(path2, cwd);
         return absPath;
       });
     }
-    paths.forEach((path) => {
-      this._removeIgnoredPath(path);
+    paths.forEach((path2) => {
+      this._removeIgnoredPath(path2);
     });
     this._userIgnored = void 0;
     if (!this._readyCount)
       this._readyCount = 0;
     this._readyCount += paths.length;
-    Promise.all(paths.map(async (path) => {
-      const res = await this._nodeFsHandler._addToNodeFs(path, !_internal, void 0, 0, _origAdd);
+    Promise.all(paths.map(async (path2) => {
+      const res = await this._nodeFsHandler._addToNodeFs(path2, !_internal, void 0, 0, _origAdd);
       if (res)
         this._emitReady();
       return res;
@@ -26746,17 +26791,17 @@ var FSWatcher = class extends import_events3.EventEmitter {
       return this;
     const paths = unifyPaths(paths_);
     const { cwd } = this.options;
-    paths.forEach((path) => {
-      if (!sysPath2.isAbsolute(path) && !this._closers.has(path)) {
+    paths.forEach((path2) => {
+      if (!sysPath2.isAbsolute(path2) && !this._closers.has(path2)) {
         if (cwd)
-          path = sysPath2.join(cwd, path);
-        path = sysPath2.resolve(path);
+          path2 = sysPath2.join(cwd, path2);
+        path2 = sysPath2.resolve(path2);
       }
-      this._closePath(path);
-      this._addIgnoredPath(path);
-      if (this._watched.has(path)) {
+      this._closePath(path2);
+      this._addIgnoredPath(path2);
+      if (this._watched.has(path2)) {
         this._addIgnoredPath({
-          path,
+          path: path2,
           recursive: true
         });
       }
@@ -26820,38 +26865,38 @@ var FSWatcher = class extends import_events3.EventEmitter {
    * @param stats arguments to be passed with event
    * @returns the error if defined, otherwise the value of the FSWatcher instance's `closed` flag
    */
-  async _emit(event, path, stats) {
+  async _emit(event, path2, stats) {
     if (this.closed)
       return;
     const opts = this.options;
     if (isWindows)
-      path = sysPath2.normalize(path);
+      path2 = sysPath2.normalize(path2);
     if (opts.cwd)
-      path = sysPath2.relative(opts.cwd, path);
-    const args = [path];
+      path2 = sysPath2.relative(opts.cwd, path2);
+    const args = [path2];
     if (stats != null)
       args.push(stats);
     const awf = opts.awaitWriteFinish;
     let pw;
-    if (awf && (pw = this._pendingWrites.get(path))) {
+    if (awf && (pw = this._pendingWrites.get(path2))) {
       pw.lastChange = /* @__PURE__ */ new Date();
       return this;
     }
     if (opts.atomic) {
       if (event === EVENTS.UNLINK) {
-        this._pendingUnlinks.set(path, [event, ...args]);
+        this._pendingUnlinks.set(path2, [event, ...args]);
         setTimeout(() => {
-          this._pendingUnlinks.forEach((entry, path2) => {
+          this._pendingUnlinks.forEach((entry, path3) => {
             this.emit(...entry);
             this.emit(EVENTS.ALL, ...entry);
-            this._pendingUnlinks.delete(path2);
+            this._pendingUnlinks.delete(path3);
           });
         }, typeof opts.atomic === "number" ? opts.atomic : 100);
         return this;
       }
-      if (event === EVENTS.ADD && this._pendingUnlinks.has(path)) {
+      if (event === EVENTS.ADD && this._pendingUnlinks.has(path2)) {
         event = EVENTS.CHANGE;
-        this._pendingUnlinks.delete(path);
+        this._pendingUnlinks.delete(path2);
       }
     }
     if (awf && (event === EVENTS.ADD || event === EVENTS.CHANGE) && this._readyEmitted) {
@@ -26869,16 +26914,16 @@ var FSWatcher = class extends import_events3.EventEmitter {
           this.emitWithAll(event, args);
         }
       };
-      this._awaitWriteFinish(path, awf.stabilityThreshold, event, awfEmit);
+      this._awaitWriteFinish(path2, awf.stabilityThreshold, event, awfEmit);
       return this;
     }
     if (event === EVENTS.CHANGE) {
-      const isThrottled = !this._throttle(EVENTS.CHANGE, path, 50);
+      const isThrottled = !this._throttle(EVENTS.CHANGE, path2, 50);
       if (isThrottled)
         return this;
     }
     if (opts.alwaysStat && stats === void 0 && (event === EVENTS.ADD || event === EVENTS.ADD_DIR || event === EVENTS.CHANGE)) {
-      const fullPath = opts.cwd ? sysPath2.join(opts.cwd, path) : path;
+      const fullPath = opts.cwd ? sysPath2.join(opts.cwd, path2) : path2;
       let stats2;
       try {
         stats2 = await (0, import_promises14.stat)(fullPath);
@@ -26909,23 +26954,23 @@ var FSWatcher = class extends import_events3.EventEmitter {
    * @param timeout duration of time to suppress duplicate actions
    * @returns tracking object or false if action should be suppressed
    */
-  _throttle(actionType, path, timeout) {
+  _throttle(actionType, path2, timeout) {
     if (!this._throttled.has(actionType)) {
       this._throttled.set(actionType, /* @__PURE__ */ new Map());
     }
     const action = this._throttled.get(actionType);
     if (!action)
       throw new Error("invalid throttle");
-    const actionPath = action.get(path);
+    const actionPath = action.get(path2);
     if (actionPath) {
       actionPath.count++;
       return false;
     }
     let timeoutObject;
     const clear = () => {
-      const item = action.get(path);
+      const item = action.get(path2);
       const count = item ? item.count : 0;
-      action.delete(path);
+      action.delete(path2);
       clearTimeout(timeoutObject);
       if (item)
         clearTimeout(item.timeoutObject);
@@ -26933,7 +26978,7 @@ var FSWatcher = class extends import_events3.EventEmitter {
     };
     timeoutObject = setTimeout(clear, timeout);
     const thr = { timeoutObject, clear, count: 0 };
-    action.set(path, thr);
+    action.set(path2, thr);
     return thr;
   }
   _incrReadyCount() {
@@ -26947,44 +26992,44 @@ var FSWatcher = class extends import_events3.EventEmitter {
    * @param event
    * @param awfEmit Callback to be called when ready for event to be emitted.
    */
-  _awaitWriteFinish(path, threshold, event, awfEmit) {
+  _awaitWriteFinish(path2, threshold, event, awfEmit) {
     const awf = this.options.awaitWriteFinish;
     if (typeof awf !== "object")
       return;
     const pollInterval = awf.pollInterval;
     let timeoutHandler;
-    let fullPath = path;
-    if (this.options.cwd && !sysPath2.isAbsolute(path)) {
-      fullPath = sysPath2.join(this.options.cwd, path);
+    let fullPath = path2;
+    if (this.options.cwd && !sysPath2.isAbsolute(path2)) {
+      fullPath = sysPath2.join(this.options.cwd, path2);
     }
     const now = /* @__PURE__ */ new Date();
     const writes = this._pendingWrites;
     function awaitWriteFinishFn(prevStat) {
       (0, import_fs5.stat)(fullPath, (err, curStat) => {
-        if (err || !writes.has(path)) {
+        if (err || !writes.has(path2)) {
           if (err && err.code !== "ENOENT")
             awfEmit(err);
           return;
         }
         const now2 = Number(/* @__PURE__ */ new Date());
         if (prevStat && curStat.size !== prevStat.size) {
-          writes.get(path).lastChange = now2;
+          writes.get(path2).lastChange = now2;
         }
-        const pw = writes.get(path);
+        const pw = writes.get(path2);
         const df = now2 - pw.lastChange;
         if (df >= threshold) {
-          writes.delete(path);
+          writes.delete(path2);
           awfEmit(void 0, curStat);
         } else {
           timeoutHandler = setTimeout(awaitWriteFinishFn, pollInterval, curStat);
         }
       });
     }
-    if (!writes.has(path)) {
-      writes.set(path, {
+    if (!writes.has(path2)) {
+      writes.set(path2, {
         lastChange: now,
         cancelWait: () => {
-          writes.delete(path);
+          writes.delete(path2);
           clearTimeout(timeoutHandler);
           return event;
         }
@@ -26995,8 +27040,8 @@ var FSWatcher = class extends import_events3.EventEmitter {
   /**
    * Determines whether user has asked to ignore this path.
    */
-  _isIgnored(path, stats) {
-    if (this.options.atomic && DOT_RE.test(path))
+  _isIgnored(path2, stats) {
+    if (this.options.atomic && DOT_RE.test(path2))
       return true;
     if (!this._userIgnored) {
       const { cwd } = this.options;
@@ -27006,17 +27051,17 @@ var FSWatcher = class extends import_events3.EventEmitter {
       const list = [...ignoredPaths.map(normalizeIgnored(cwd)), ...ignored];
       this._userIgnored = anymatch(list, void 0);
     }
-    return this._userIgnored(path, stats);
+    return this._userIgnored(path2, stats);
   }
-  _isntIgnored(path, stat9) {
-    return !this._isIgnored(path, stat9);
+  _isntIgnored(path2, stat9) {
+    return !this._isIgnored(path2, stat9);
   }
   /**
    * Provides a set of common helpers and properties relating to symlink handling.
    * @param path file or directory pattern being watched
    */
-  _getWatchHelpers(path) {
-    return new WatchHelper(path, this.options.followSymlinks, this);
+  _getWatchHelpers(path2) {
+    return new WatchHelper(path2, this.options.followSymlinks, this);
   }
   // Directory helpers
   // -----------------
@@ -27048,63 +27093,63 @@ var FSWatcher = class extends import_events3.EventEmitter {
    * @param item      base path of item/directory
    */
   _remove(directory, item, isDirectory) {
-    const path = sysPath2.join(directory, item);
-    const fullPath = sysPath2.resolve(path);
-    isDirectory = isDirectory != null ? isDirectory : this._watched.has(path) || this._watched.has(fullPath);
-    if (!this._throttle("remove", path, 100))
+    const path2 = sysPath2.join(directory, item);
+    const fullPath = sysPath2.resolve(path2);
+    isDirectory = isDirectory != null ? isDirectory : this._watched.has(path2) || this._watched.has(fullPath);
+    if (!this._throttle("remove", path2, 100))
       return;
     if (!isDirectory && this._watched.size === 1) {
       this.add(directory, item, true);
     }
-    const wp = this._getWatchedDir(path);
+    const wp = this._getWatchedDir(path2);
     const nestedDirectoryChildren = wp.getChildren();
-    nestedDirectoryChildren.forEach((nested) => this._remove(path, nested));
+    nestedDirectoryChildren.forEach((nested) => this._remove(path2, nested));
     const parent = this._getWatchedDir(directory);
     const wasTracked = parent.has(item);
     parent.remove(item);
     if (this._symlinkPaths.has(fullPath)) {
       this._symlinkPaths.delete(fullPath);
     }
-    let relPath = path;
+    let relPath = path2;
     if (this.options.cwd)
-      relPath = sysPath2.relative(this.options.cwd, path);
+      relPath = sysPath2.relative(this.options.cwd, path2);
     if (this.options.awaitWriteFinish && this._pendingWrites.has(relPath)) {
       const event = this._pendingWrites.get(relPath).cancelWait();
       if (event === EVENTS.ADD)
         return;
     }
-    this._watched.delete(path);
+    this._watched.delete(path2);
     this._watched.delete(fullPath);
     const eventName = isDirectory ? EVENTS.UNLINK_DIR : EVENTS.UNLINK;
-    if (wasTracked && !this._isIgnored(path))
-      this._emit(eventName, path);
-    this._closePath(path);
+    if (wasTracked && !this._isIgnored(path2))
+      this._emit(eventName, path2);
+    this._closePath(path2);
   }
   /**
    * Closes all watchers for a path
    */
-  _closePath(path) {
-    this._closeFile(path);
-    const dir = sysPath2.dirname(path);
-    this._getWatchedDir(dir).remove(sysPath2.basename(path));
+  _closePath(path2) {
+    this._closeFile(path2);
+    const dir = sysPath2.dirname(path2);
+    this._getWatchedDir(dir).remove(sysPath2.basename(path2));
   }
   /**
    * Closes only file-specific watchers
    */
-  _closeFile(path) {
-    const closers = this._closers.get(path);
+  _closeFile(path2) {
+    const closers = this._closers.get(path2);
     if (!closers)
       return;
     closers.forEach((closer) => closer());
-    this._closers.delete(path);
+    this._closers.delete(path2);
   }
-  _addPathCloser(path, closer) {
+  _addPathCloser(path2, closer) {
     if (!closer)
       return;
-    let list = this._closers.get(path);
+    let list = this._closers.get(path2);
     if (!list) {
       list = [];
-      this._closers.set(path, list);
+      this._closers.set(path2, list);
     }
     list.push(closer);
   }
@@ -27151,14 +27196,14 @@ var Watcher = class {
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 300 }
     });
-    this.fsWatcher.on("change", (path) => {
-      this.handleChange(path, "change");
+    this.fsWatcher.on("change", (path2) => {
+      this.handleChange(path2, "change");
     });
-    this.fsWatcher.on("add", (path) => {
-      this.handleChange(path, "add");
+    this.fsWatcher.on("add", (path2) => {
+      this.handleChange(path2, "add");
     });
-    this.fsWatcher.on("unlink", (path) => {
-      this.handleChange(path, "unlink");
+    this.fsWatcher.on("unlink", (path2) => {
+      this.handleChange(path2, "unlink");
     });
   }
   stop() {
@@ -27180,18 +27225,18 @@ var Watcher = class {
 
 // server/core/cache.ts
 var import_promises15 = require("node:fs/promises");
-var import_node_path7 = require("node:path");
-var import_node_fs9 = require("node:fs");
+var import_node_path8 = require("node:path");
+var import_node_fs10 = require("node:fs");
 var Cache = class {
   constructor(ctx) {
     this.ctx = ctx;
   }
   path(key) {
-    return (0, import_node_path7.join)(this.ctx.cacheDir, `${key}.json`);
+    return (0, import_node_path8.join)(this.ctx.cacheDir, `${key}.json`);
   }
   async get(key) {
     const filePath = this.path(key);
-    if (!(0, import_node_fs9.existsSync)(filePath)) return null;
+    if (!(0, import_node_fs10.existsSync)(filePath)) return null;
     try {
       const raw2 = await (0, import_promises15.readFile)(filePath, "utf-8");
       return JSON.parse(raw2);
@@ -27205,7 +27250,7 @@ var Cache = class {
   }
   async delete(key) {
     const filePath = this.path(key);
-    if ((0, import_node_fs9.existsSync)(filePath)) {
+    if ((0, import_node_fs10.existsSync)(filePath)) {
       const { unlink: unlink2 } = await import("node:fs/promises");
       await unlink2(filePath);
     }
@@ -27214,8 +27259,8 @@ var Cache = class {
 
 // server/core/writer.ts
 var import_promises16 = require("node:fs/promises");
-var import_node_fs10 = require("node:fs");
-var import_node_path8 = require("node:path");
+var import_node_fs11 = require("node:fs");
+var import_node_path9 = require("node:path");
 var Mutex = class {
   queues = /* @__PURE__ */ new Map();
   held = /* @__PURE__ */ new Set();
@@ -27255,7 +27300,7 @@ var Writer = class {
       return;
     }
     await Promise.all(entries.map(async (entry) => {
-      const fullPath = (0, import_node_path8.join)(dir, entry.name);
+      const fullPath = (0, import_node_path9.join)(dir, entry.name);
       if (entry.isDirectory()) {
         await this.cleanupDirectory(fullPath, now, maxAgeMs);
         return;
@@ -27284,7 +27329,7 @@ var Writer = class {
   async doWrite(filePath, content) {
     const tmpPath = `${filePath}.tmp`;
     const bakPath = `${filePath}.bak`;
-    const hadOriginal = (0, import_node_fs10.existsSync)(filePath);
+    const hadOriginal = (0, import_node_fs11.existsSync)(filePath);
     try {
       if (hadOriginal) {
         await (0, import_promises16.copyFile)(filePath, bakPath);
@@ -27293,12 +27338,12 @@ var Writer = class {
       await (0, import_promises16.rename)(tmpPath, filePath);
     } catch (err) {
       try {
-        if ((0, import_node_fs10.existsSync)(tmpPath)) await (0, import_promises16.unlink)(tmpPath);
+        if ((0, import_node_fs11.existsSync)(tmpPath)) await (0, import_promises16.unlink)(tmpPath);
       } catch {
       }
       if (hadOriginal) {
         try {
-          if ((0, import_node_fs10.existsSync)(bakPath)) await (0, import_promises16.copyFile)(bakPath, filePath);
+          if ((0, import_node_fs11.existsSync)(bakPath)) await (0, import_promises16.copyFile)(bakPath, filePath);
         } catch {
         }
       }
@@ -27395,26 +27440,26 @@ var ClaudeAdapter = class {
 };
 
 // server/core/project-context.ts
-var import_node_path9 = require("node:path");
+var import_node_path10 = require("node:path");
 var import_promises17 = require("node:fs/promises");
-var import_node_fs11 = require("node:fs");
+var import_node_fs12 = require("node:fs");
 var ProjectContext = class {
   projectRoot;
   seedDir;
   cacheDir;
   proposalsDir;
   constructor(projectPath) {
-    this.projectRoot = (0, import_node_path9.resolve)(projectPath);
-    this.seedDir = (0, import_node_path9.join)(this.projectRoot, ".seed-memory");
-    this.cacheDir = (0, import_node_path9.join)(this.seedDir, "cache");
-    this.proposalsDir = (0, import_node_path9.join)(this.seedDir, "proposals");
+    this.projectRoot = (0, import_node_path10.resolve)(projectPath);
+    this.seedDir = (0, import_node_path10.join)(this.projectRoot, ".seed-memory");
+    this.cacheDir = (0, import_node_path10.join)(this.seedDir, "cache");
+    this.proposalsDir = (0, import_node_path10.join)(this.seedDir, "proposals");
   }
   async initialize() {
     await (0, import_promises17.mkdir)(this.cacheDir, { recursive: true });
     await (0, import_promises17.mkdir)(this.proposalsDir, { recursive: true });
   }
   resolve(...segments) {
-    return (0, import_node_path9.join)(this.projectRoot, ...segments);
+    return (0, import_node_path10.join)(this.projectRoot, ...segments);
   }
   relative(absolutePath) {
     const rel = absolutePath.replace(this.projectRoot, "").replace(/^[/\\]/, "");
@@ -27426,41 +27471,41 @@ var ProjectContext = class {
       ".claude/CLAUDE.md",
       "CLAUDE.local.md"
     ];
-    return candidates.map((f2) => this.resolve(f2)).filter((f2) => (0, import_node_fs11.existsSync)(f2));
+    return candidates.map((f2) => this.resolve(f2)).filter((f2) => (0, import_node_fs12.existsSync)(f2));
   }
   get rulesDir() {
     return this.resolve(".claude", "rules");
   }
   get knowledgeDirs() {
     const dirs = ["docs", "research", "architecture", "runbooks", "ops"];
-    return dirs.map((d2) => this.resolve(d2)).filter((d2) => (0, import_node_fs11.existsSync)(d2));
+    return dirs.map((d2) => this.resolve(d2)).filter((d2) => (0, import_node_fs12.existsSync)(d2));
   }
 };
 
 // server/worker/worker-service.ts
-var import_node_path12 = require("node:path");
-var import_node_fs14 = require("node:fs");
+var import_node_path13 = require("node:path");
+var import_node_fs15 = require("node:fs");
 
 // server/worker/process-manager.ts
-var import_node_path10 = require("node:path");
+var import_node_path11 = require("node:path");
 var import_node_os2 = require("node:os");
 var import_node_crypto6 = require("node:crypto");
-var import_node_fs12 = require("node:fs");
-var import_node_path11 = require("node:path");
+var import_node_fs13 = require("node:fs");
+var import_node_path12 = require("node:path");
 var import_node_child_process5 = require("node:child_process");
-var WORKERS_DIR = (0, import_node_path11.join)((0, import_node_os2.homedir)(), ".seed", "workers");
+var WORKERS_DIR = (0, import_node_path12.join)((0, import_node_os2.homedir)(), ".seed", "workers");
 function ensureWorkersDir() {
-  if (!(0, import_node_fs12.existsSync)(WORKERS_DIR)) {
-    (0, import_node_fs12.mkdirSync)(WORKERS_DIR, { recursive: true });
+  if (!(0, import_node_fs13.existsSync)(WORKERS_DIR)) {
+    (0, import_node_fs13.mkdirSync)(WORKERS_DIR, { recursive: true });
   }
 }
 function canonicalizeProjectPath(rawPath) {
-  let p = (0, import_node_path10.resolve)(rawPath);
+  let p = (0, import_node_path11.resolve)(rawPath);
   try {
-    p = (0, import_node_fs12.realpathSync)(p);
+    p = (0, import_node_fs13.realpathSync)(p);
   } catch {
   }
-  if ((0, import_node_fs12.existsSync)((0, import_node_path11.join)(p, ".git")) || (0, import_node_fs12.existsSync)((0, import_node_path11.join)(p, "..", ".git"))) {
+  if ((0, import_node_fs13.existsSync)((0, import_node_path12.join)(p, ".git")) || (0, import_node_fs13.existsSync)((0, import_node_path12.join)(p, "..", ".git"))) {
     try {
       const toplevel = (0, import_node_child_process5.execSync)("git rev-parse --show-toplevel", {
         cwd: p,
@@ -27469,7 +27514,7 @@ function canonicalizeProjectPath(rawPath) {
         timeout: 5e3
       }).trim();
       if (toplevel) {
-        p = (0, import_node_path10.resolve)(toplevel);
+        p = (0, import_node_path11.resolve)(toplevel);
       }
     } catch {
     }
@@ -27477,23 +27522,23 @@ function canonicalizeProjectPath(rawPath) {
   if (process.platform === "win32" && /^[a-zA-Z]:/.test(p)) {
     p = p[0].toUpperCase() + p.slice(1);
   }
-  return p.split(import_node_path10.sep).join("/");
+  return p.split(import_node_path11.sep).join("/");
 }
 function getProjectSlug(canonicalPath) {
   return (0, import_node_crypto6.createHash)("sha256").update(canonicalPath).digest("hex").slice(0, 12);
 }
 function getWorkerPidPath(canonicalPath) {
   ensureWorkersDir();
-  return (0, import_node_path11.join)(WORKERS_DIR, `worker-${getProjectSlug(canonicalPath)}.pid`);
+  return (0, import_node_path12.join)(WORKERS_DIR, `worker-${getProjectSlug(canonicalPath)}.pid`);
 }
 function readPidFile(canonicalPath) {
   const pidPath = getWorkerPidPath(canonicalPath);
-  if (!(0, import_node_fs12.existsSync)(pidPath)) return null;
+  if (!(0, import_node_fs13.existsSync)(pidPath)) return null;
   try {
-    return JSON.parse((0, import_node_fs12.readFileSync)(pidPath, "utf-8"));
+    return JSON.parse((0, import_node_fs13.readFileSync)(pidPath, "utf-8"));
   } catch {
     try {
-      (0, import_node_fs12.unlinkSync)(pidPath);
+      (0, import_node_fs13.unlinkSync)(pidPath);
     } catch {
     }
     return null;
@@ -27502,7 +27547,7 @@ function readPidFile(canonicalPath) {
 function removePidFile(canonicalPath) {
   const pidPath = getWorkerPidPath(canonicalPath);
   try {
-    (0, import_node_fs12.unlinkSync)(pidPath);
+    (0, import_node_fs13.unlinkSync)(pidPath);
   } catch {
   }
 }
@@ -27511,11 +27556,11 @@ function acquirePidFile(canonicalPath, info) {
   const pidPath = getWorkerPidPath(canonicalPath);
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const fd = (0, import_node_fs12.openSync)(pidPath, "wx");
+      const fd = (0, import_node_fs13.openSync)(pidPath, "wx");
       try {
-        (0, import_node_fs12.writeFileSync)(fd, JSON.stringify(info, null, 2), "utf-8");
+        (0, import_node_fs13.writeFileSync)(fd, JSON.stringify(info, null, 2), "utf-8");
       } finally {
-        (0, import_node_fs12.closeSync)(fd);
+        (0, import_node_fs13.closeSync)(fd);
       }
       return true;
     } catch (err) {
@@ -27525,7 +27570,7 @@ function acquirePidFile(canonicalPath, info) {
         return false;
       }
       try {
-        (0, import_node_fs12.unlinkSync)(pidPath);
+        (0, import_node_fs13.unlinkSync)(pidPath);
       } catch {
       }
     }
@@ -27534,7 +27579,7 @@ function acquirePidFile(canonicalPath, info) {
 }
 function updatePidFile(canonicalPath, info) {
   const pidPath = getWorkerPidPath(canonicalPath);
-  (0, import_node_fs12.writeFileSync)(pidPath, JSON.stringify(info, null, 2), "utf-8");
+  (0, import_node_fs13.writeFileSync)(pidPath, JSON.stringify(info, null, 2), "utf-8");
 }
 function isProcessAlive(pid) {
   if (process.platform === "win32") {
@@ -27568,22 +27613,22 @@ function listAllWorkers() {
   ensureWorkersDir();
   const results = [];
   try {
-    const files = (0, import_node_fs12.readdirSync)(WORKERS_DIR).filter((f2) => f2.endsWith(".pid"));
+    const files = (0, import_node_fs13.readdirSync)(WORKERS_DIR).filter((f2) => f2.endsWith(".pid"));
     for (const file of files) {
-      const fullPath = (0, import_node_path11.join)(WORKERS_DIR, file);
+      const fullPath = (0, import_node_path12.join)(WORKERS_DIR, file);
       try {
-        const info = JSON.parse((0, import_node_fs12.readFileSync)(fullPath, "utf-8"));
+        const info = JSON.parse((0, import_node_fs13.readFileSync)(fullPath, "utf-8"));
         const alive = isProcessAlive(info.pid);
         if (!alive) {
           try {
-            (0, import_node_fs12.unlinkSync)(fullPath);
+            (0, import_node_fs13.unlinkSync)(fullPath);
           } catch {
           }
         }
         results.push({ ...info, status: alive ? "alive" : "stale" });
       } catch {
         try {
-          (0, import_node_fs12.unlinkSync)(fullPath);
+          (0, import_node_fs13.unlinkSync)(fullPath);
         } catch {
         }
       }
@@ -27778,7 +27823,7 @@ async function runConstitutionAnalysis(ctx, _params, signal) {
 // server/worker/agents/proposal-agent.ts
 var import_node_crypto8 = require("node:crypto");
 var import_promises18 = require("node:fs/promises");
-var import_node_fs13 = require("node:fs");
+var import_node_fs14 = require("node:fs");
 async function runProposalEdit(ctx, params, signal) {
   const { rule, changes, editIntent, currentContent } = params;
   const prompt = `You are editing a Claude Code configuration file. The file content is:
@@ -27826,7 +27871,7 @@ Output raw file content only, no markdown fencing.`;
 async function runProposalCreate(ctx, params, signal) {
   const absPath = ctx.projectContext.resolve(params.targetFile);
   let currentContent = "";
-  if ((0, import_node_fs13.existsSync)(absPath)) {
+  if ((0, import_node_fs14.existsSync)(absPath)) {
     currentContent = await (0, import_promises18.readFile)(absPath, "utf-8");
   }
   const prompt = `You are editing a Claude Code configuration file. Current content:
@@ -28100,11 +28145,11 @@ var WorkerService = class {
   }
   writeUrlFile(projectRoot, url) {
     try {
-      const seedDir = (0, import_node_path12.join)(projectRoot, ".seed");
-      if (!(0, import_node_fs14.existsSync)(seedDir)) {
-        (0, import_node_fs14.mkdirSync)(seedDir, { recursive: true });
+      const seedDir = (0, import_node_path13.join)(projectRoot, ".seed");
+      if (!(0, import_node_fs15.existsSync)(seedDir)) {
+        (0, import_node_fs15.mkdirSync)(seedDir, { recursive: true });
       }
-      (0, import_node_fs14.writeFileSync)((0, import_node_path12.join)(seedDir, "memory-editor.url"), url, "utf-8");
+      (0, import_node_fs15.writeFileSync)((0, import_node_path13.join)(seedDir, "memory-editor.url"), url, "utf-8");
     } catch {
     }
   }
@@ -28120,8 +28165,8 @@ var WorkerService = class {
 
 // server/worker/spawner.ts
 var import_node_child_process6 = require("node:child_process");
-var import_node_path13 = require("node:path");
-var import_node_fs15 = require("node:fs");
+var import_node_path14 = require("node:path");
+var import_node_fs16 = require("node:fs");
 var import_node_os3 = require("node:os");
 async function ensureWorkerStarted(rawProjectPath, opts) {
   const canonical = canonicalizeProjectPath(rawProjectPath);
@@ -28139,19 +28184,19 @@ async function ensureWorkerStarted(rawProjectPath, opts) {
   const daemonArgs = ["daemon", "--project-path", rawProjectPath, "--port", String(port)];
   let workerCmd;
   let workerArgs;
-  const bundlePath = (0, import_node_path13.join)(thisDir, "worker.cjs");
-  if ((0, import_node_fs15.existsSync)(bundlePath)) {
+  const bundlePath = (0, import_node_path14.join)(thisDir, "worker.cjs");
+  if ((0, import_node_fs16.existsSync)(bundlePath)) {
     workerCmd = process.execPath;
     workerArgs = [bundlePath, ...daemonArgs];
   } else {
-    const entryScriptJs = (0, import_node_path13.resolve)(thisDir, "..", "index.js");
-    if ((0, import_node_fs15.existsSync)(entryScriptJs)) {
+    const entryScriptJs = (0, import_node_path14.resolve)(thisDir, "..", "index.js");
+    if ((0, import_node_fs16.existsSync)(entryScriptJs)) {
       workerCmd = process.execPath;
       workerArgs = [entryScriptJs, ...daemonArgs];
     } else {
-      const entryScript = (0, import_node_path13.resolve)(thisDir, "..", "index.ts");
-      const tsxBin = (0, import_node_path13.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
-      if ((0, import_node_fs15.existsSync)(tsxBin) || (0, import_node_fs15.existsSync)(tsxBin + ".cmd")) {
+      const entryScript = (0, import_node_path14.resolve)(thisDir, "..", "index.ts");
+      const tsxBin = (0, import_node_path14.resolve)(thisDir, "..", "..", "node_modules", ".bin", "tsx");
+      if ((0, import_node_fs16.existsSync)(tsxBin) || (0, import_node_fs16.existsSync)(tsxBin + ".cmd")) {
         workerCmd = process.platform === "win32" ? tsxBin + ".cmd" : tsxBin;
         workerArgs = [entryScript, ...daemonArgs];
       } else {
@@ -28180,8 +28225,8 @@ function spawnInConsole(cmd, args, projectPath) {
   const title = `Seed Memory Editor - ${projectName}`;
   if (process.platform === "win32") {
     const innerCmd = [cmd, ...args].map((a2) => a2.includes(" ") ? `"${a2}"` : a2).join(" ");
-    const batPath = (0, import_node_path13.join)((0, import_node_os3.tmpdir)(), `seed-worker-${Date.now()}.cmd`);
-    (0, import_node_fs15.writeFileSync)(
+    const batPath = (0, import_node_path14.join)((0, import_node_os3.tmpdir)(), `seed-worker-${Date.now()}.cmd`);
+    (0, import_node_fs16.writeFileSync)(
       batPath,
       `@echo off\r
 title ${title}\r
