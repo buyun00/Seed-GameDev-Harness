@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { fetchStatus, updateLanguage } from '@/api/status'
+import { fetchSettings, updateSettingLanguage, updateSettingTheme } from '@/api/settings'
 import { bootstrap } from '@/api/client'
 import type { ApiStatus } from '@/types/api'
 
@@ -34,18 +35,20 @@ function normalizeLanguageCode(raw: string): LanguageCode | null {
   return languageNameMap[raw.trim()] ?? languageNameMap[trimmed] ?? null
 }
 
+export type ThemeMode = 'dark' | 'light'
+
 export const useAppStore = defineStore('app', () => {
   const authenticated = ref(false)
   const status = ref<ApiStatus | null>(null)
   const loading = ref(true)
-  const language = ref<LanguageCode>('en')
+  const language = ref<LanguageCode>('zh')
+  const theme = ref<ThemeMode>('dark')
+
+  function applyTheme(mode: ThemeMode) {
+    document.documentElement.setAttribute('data-theme', mode)
+  }
 
   async function initialize() {
-    const saved = localStorage.getItem('seed-language')
-    if (isValidLanguageCode(saved)) {
-      language.value = saved
-    }
-
     let ok = await tryFetchStatus()
     if (!ok) {
       const bootstrapped = await bootstrap()
@@ -54,13 +57,19 @@ export const useAppStore = defineStore('app', () => {
       }
     }
 
-    if (!isValidLanguageCode(saved) && status.value?.language) {
-      const normalized = normalizeLanguageCode(status.value.language)
-      if (normalized) {
-        language.value = normalized
+    if (ok) {
+      const settings = await fetchSettings().catch(() => null)
+      if (settings) {
+        if (isValidLanguageCode(settings.language)) {
+          language.value = settings.language as LanguageCode
+        }
+        if (settings.theme === 'dark' || settings.theme === 'light') {
+          theme.value = settings.theme as ThemeMode
+        }
       }
     }
 
+    applyTheme(theme.value)
     authenticated.value = ok
     loading.value = false
   }
@@ -82,9 +91,20 @@ export const useAppStore = defineStore('app', () => {
 
   function setLanguage(code: LanguageCode) {
     language.value = code
-    localStorage.setItem('seed-language', code)
-    updateLanguage(code).catch(() => { /* ignore backend sync errors */ })
+    updateLanguage(code).catch(() => {})
+    updateSettingLanguage(code).catch(() => {})
   }
 
-  return { authenticated, status, loading, language, initialize, refreshStatus, setLanguage }
+  function setTheme(mode: ThemeMode) {
+    theme.value = mode
+    applyTheme(mode)
+    updateSettingTheme(mode).catch(() => {})
+  }
+
+  function toggleTheme() {
+    const next = theme.value === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+  }
+
+  return { authenticated, status, loading, language, theme, initialize, refreshStatus, setLanguage, setTheme, toggleTheme }
 })

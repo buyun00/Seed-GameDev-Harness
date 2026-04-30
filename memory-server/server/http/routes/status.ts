@@ -1,18 +1,5 @@
 import { Hono } from 'hono'
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
-import { join } from 'node:path'
 import type { AppContext } from '../../types.js'
-
-function readLanguage(projectRoot: string): string {
-  try {
-    const configPath = join(projectRoot, '.seed', 'config.json')
-    if (!existsSync(configPath)) return ''
-    const config = JSON.parse(readFileSync(configPath, 'utf-8'))
-    return config.language || ''
-  } catch {
-    return ''
-  }
-}
 
 export function statusRoutes(ctx: AppContext) {
   const router = new Hono()
@@ -22,7 +9,8 @@ export function statusRoutes(ctx: AppContext) {
     return c.json({
       status: 'running',
       projectPath: ctx.projectContext.projectRoot,
-      language: readLanguage(ctx.projectContext.projectRoot),
+      language: ctx.settingsStore.get('language'),
+      theme: ctx.settingsStore.get('theme'),
       assets: {
         total: assets.length,
         constitution: assets.filter(a => a.kind === 'constitution').length,
@@ -31,28 +19,6 @@ export function statusRoutes(ctx: AppContext) {
       },
       sseClients: ctx.sseEmitter.clientCount,
     })
-  })
-
-  router.put('/settings/language', async (c) => {
-    const { language } = await c.req.json<{ language: string }>()
-    const configDir = join(ctx.projectContext.projectRoot, '.seed')
-    const configPath = join(configDir, 'config.json')
-
-    let config: Record<string, unknown> = {}
-    if (existsSync(configPath)) {
-      try {
-        config = JSON.parse(readFileSync(configPath, 'utf-8'))
-      } catch { /* ignore */ }
-    }
-
-    config.language = language
-
-    if (!existsSync(configDir)) {
-      mkdirSync(configDir, { recursive: true })
-    }
-    writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
-
-    return c.json({ ok: true, language })
   })
 
   router.get('/events', (c) => {

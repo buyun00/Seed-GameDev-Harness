@@ -5,12 +5,12 @@ export const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/ai-activity',
+      redirect: '/studio',
     },
     {
-      path: '/ai-activity',
-      name: 'ai-activity',
-      component: () => import('@/pages/ai-activity/AiActivityPage.vue'),
+      path: '/studio',
+      name: 'studio',
+      component: () => import('@/pages/studio/StudioPage.vue'),
     },
     {
       path: '/constitution',

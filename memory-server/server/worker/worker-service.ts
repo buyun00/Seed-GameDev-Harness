@@ -5,10 +5,11 @@ import { Scanner } from '../core/scanner.js'
 import { Watcher } from '../core/watcher.js'
 import { Cache } from '../core/cache.js'
 import { Writer } from '../core/writer.js'
-import { ClaudeAdapter } from '../core/claude-adapter.js'
 import { ProjectContext } from '../core/project-context.js'
+import { LlmProvider } from '../core/llm-provider.js'
+import { AgentStatusManager } from './agent-status-manager.js'
 import { join } from 'node:path'
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs'
 import {
   canonicalizeProjectPath,
   acquirePidFile,
@@ -20,9 +21,9 @@ import { runConstitutionAnalysis, type ConstitutionAnalysisParams } from './agen
 import { runProposalEdit, runProposalCreate, type ProposalEditParams, type ProposalCreateParams } from './agents/proposal-agent.js'
 import { runMemoryAnalysis, type MemoryAnalysisParams } from './agents/memory-agent.js'
 import { runKnowledgeDistill, type KnowledgeDistillParams } from './agents/knowledge-agent.js'
-import { detectAgentBackend } from './agents/base-agent.js'
 import type { AppContext } from '../types.js'
 import { SessionStore } from '../types.js'
+import { SettingsStore } from '../core/settings-store.js'
 
 export class WorkerService {
   private server: ServerType | null = null
@@ -46,15 +47,12 @@ export class WorkerService {
     }
 
     try {
-      const agentBackend = await detectAgentBackend()
-
       const projectContext = new ProjectContext(rawProjectPath)
       await projectContext.initialize()
 
       const cache = new Cache(projectContext)
       const writer = new Writer()
       const sseEmitter = new SseEmitter()
-      const claudeAdapter = new ClaudeAdapter()
       const scanner = new Scanner(projectContext)
       const watcher = new Watcher(projectContext, scanner, sseEmitter)
       this.watcher = watcher
@@ -63,6 +61,18 @@ export class WorkerService {
       this.sessionStore = sessionStore
       const taskQueue = new TaskQueue(sseEmitter)
       this.taskQueue = taskQueue
+      const settingsStore = new SettingsStore(projectContext.projectRoot)
+      const llmProvider = new LlmProvider()
+      const agentStatusManager = new AgentStatusManager(sseEmitter)
+
+      const savedConfigs = settingsStore.get('apiConfigs')
+      for (const { key, config } of savedConfigs) {
+        llmProvider.setConfig(key, config)
+      }
+      const activeKey = settingsStore.get('activeApiKey')
+      if (activeKey) {
+        llmProvider.setActiveConfig(activeKey)
+      }
 
       const ctx: AppContext = {
         projectContext,
@@ -71,11 +81,13 @@ export class WorkerService {
         cache,
         writer,
         sseEmitter,
-        claudeAdapter,
         sessionStore,
         startedAt: Date.now(),
         shutdownFn: () => this.shutdown(),
         taskQueue,
+        llmProvider,
+        agentStatusManager,
+        settingsStore,
       }
 
       // Register task handlers
@@ -126,13 +138,8 @@ export class WorkerService {
             process.stderr.write(`\n[Seed Worker] Serving ${this.canonicalPath}\n`)
             process.stderr.write(`[Seed Worker] URL: ${url}\n`)
             process.stderr.write(`[Seed Worker] PID: ${process.pid}  Port: ${actualPort}\n`)
-            process.stderr.write(`[Seed Worker] Agent backend: ${agentBackend.label}\n`)
             process.stderr.write(`[Seed Worker] Node: ${process.execPath}\n`)
             process.stderr.write(`[Seed Worker] CWD: ${process.cwd()}\n`)
-            process.stderr.write(`[Seed Worker] CLAUDE_CODE_EXECUTABLE: ${process.env.CLAUDE_CODE_EXECUTABLE ?? '(auto)'}\n`)
-            if (agentBackend.error) {
-              process.stderr.write(`[Seed Worker] Agent backend error: ${agentBackend.error}\n`)
-            }
             process.stderr.write('\n')
 
             // Write URL to project .seed/ for easy discovery

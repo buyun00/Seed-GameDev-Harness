@@ -1,13 +1,18 @@
 {
   "name": "seed",
-  "version": "0.6.0",
+  "version": "1.0.0",
+  "description": "Seed - 通用 LLM 知识管理与多 Agent 协作平台",
   "scripts": {
-    "check": "node --check scripts/embed-project-profile.mjs && node --check scripts/lib/memory-formatter.mjs && node --check scripts/researcher-copy-template.mjs && node --check scripts/researcher-list-options.mjs && node --check scripts/researcher-fill-options.mjs && node --check scripts/researcher-inject-section.mjs",
-    "test": "node --test scripts/__tests__/*.test.mjs",
-    "build:worker": "cd memory-server && npm install && npm run build",
-    "worker:start": "node scripts/worker-service.cjs start",
-    "worker:stop": "node scripts/worker-service.cjs stop",
-    "worker:status": "node scripts/worker-service.cjs status",
-    "worker:restart": "node scripts/worker-service.cjs restart"
+    "postinstall": "node scripts/postinstall.mjs",
+    "build": "cd memory-server && npm install && npm run build",
+    "build:skip-install": "cd memory-server && npm run build",
+    "start": "node start.mjs",
+    "dev": "cd memory-server && npm run dev"
+  },
+  "dependencies": {
+    "open": "^10.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

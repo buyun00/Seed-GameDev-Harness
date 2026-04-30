@@ -2,19 +2,32 @@ $sidebar-width: 220px;
 $header-height: 56px;
 $content-padding: 24px;
 
-$bg-primary: #f7f8fa;
-$bg-sidebar: #1c1f26;
-$bg-content: #ffffff;
-$bg-card: #ffffff;
+// Dark cyberpunk theme
+$bg-primary: #0a0a0f;
+$bg-sidebar: #0d0d14;
+$bg-content: #0f0f18;
+$bg-card: rgba(26, 26, 46, 0.6);
+$bg-surface: rgba(18, 18, 26, 0.8);
 
-$text-primary: #1c1f26;
-$text-secondary: #65686f;
-$text-inverse: #e8eaed;
+$text-primary: #e8eaed;
+$text-secondary: #94a3b8;
+$text-inverse: #0a0a0f;
 
-$border-color: #e8eaed;
-$border-radius: 8px;
+$border-color: rgba(255, 255, 255, 0.06);
+$border-radius: 12px;
 
-$color-effective: #00b365;
+$color-effective: #00f5d4;
 $color-shadowed: #f59e0b;
 $color-conflicting: #ef4444;
-$color-unresolved: #9ca3af;
+$color-unresolved: #6b7280;
+
+// Neon accents
+$accent-cyan: #00f5d4;
+$accent-purple: #7c3aed;
+$accent-pink: #ec4899;
+$accent-blue: #3b82f6;
+$accent-green: #22c55e;
+
+// Glow effects
+$glow-cyan: 0 0 20px rgba(0, 245, 212, 0.15), 0 0 40px rgba(0, 245, 212, 0.05);
+$glow-purple: 0 0 20px rgba(124, 58, 237, 0.15), 0 0 40px rgba(124, 58, 237, 0.05);

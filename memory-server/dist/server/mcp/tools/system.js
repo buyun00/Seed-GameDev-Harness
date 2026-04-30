@@ -1,0 +1,50 @@
+import { z } from 'zod';
+import { readFile } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+export function registerSystemTools(server, ctx) {
+    server.tool('list_knowledge_assets', 'List all knowledge assets across all layers', {
+        layer: z.enum(['constitution', 'memory', 'knowledge']).optional().describe('Filter by layer'),
+        status: z.string().optional().describe('Filter by status'),
+    }, async ({ layer, status }) => {
+        let assets = ctx.scanner.getAll();
+        if (layer)
+            assets = assets.filter(a => a.kind === layer);
+        if (status)
+            assets = assets.filter(a => a.status === status);
+        return { content: [{ type: 'text', text: JSON.stringify({ assets }, null, 2) }] };
+    });
+    server.tool('read_knowledge_asset', 'Read the content of a knowledge asset', { assetId: z.string().describe('ID of the asset') }, async ({ assetId }) => {
+        const asset = ctx.scanner.getById(assetId);
+        if (!asset) {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: 'Asset not found' }) }] };
+        }
+        const absPath = ctx.projectContext.resolve(asset.sourcePath);
+        if (!existsSync(absPath)) {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: 'File not found' }) }] };
+        }
+        const content = await readFile(absPath, 'utf-8');
+        return { content: [{ type: 'text', text: JSON.stringify({ asset, content }, null, 2) }] };
+    });
+    server.tool('audit_knowledge_system', 'Audit the knowledge system for issues like stale rules, duplicates, or conflicts', {}, async () => {
+        const issues = [];
+        const assets = ctx.scanner.getAll();
+        const constitutionAssets = assets.filter(a => a.kind === 'constitution');
+        if (constitutionAssets.length === 0) {
+            issues.push({ type: 'missing', severity: 'warning', message: 'No CLAUDE.md files found' });
+        }
+        return { content: [{ type: 'text', text: JSON.stringify({ issues }, null, 2) }] };
+    });
+    server.tool('open_memory_manager_ui', 'Get the URL to open the Memory Editor web UI in a browser', {}, async () => {
+        // Try reading URL from project-local file first
+        const urlFile = join(ctx.projectContext.projectRoot, '.seed', 'memory-editor.url');
+        if (existsSync(urlFile)) {
+            try {
+                const url = readFileSync(urlFile, 'utf-8').trim();
+                return { content: [{ type: 'text', text: JSON.stringify({ url, message: `Memory Editor is running. Open in browser: ${url}` }) }] };
+            }
+            catch { /* fall through */ }
+        }
+        return { content: [{ type: 'text', text: JSON.stringify({ error: 'Memory Editor is not running. It should start automatically on the next session.' }) }] };
+    });
+}

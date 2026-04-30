@@ -81,7 +81,12 @@ export function registerConstitutionTools(server: McpServer, ctx: AppContext) {
       if (!match.found) {
         return { content: [{ type: 'text' as const, text: JSON.stringify({ error: 'anchor_mismatch', message: match.reason }) }] }
       }
-      const proposal = await analyzer.proposeEdit(rule, changes, editIntent, currentContent)
+      const proposal = await analyzer.proposeEdit(rule, {
+        category: rule.category,
+        normalizedText: changes.normalizedText ?? rule.normalizedText,
+        scopeMode: 'current_rule',
+        scopeDescription: editIntent,
+      }, cached)
       return { content: [{ type: 'text' as const, text: JSON.stringify({ proposalId: proposal.id, summary: proposal.summary }) }] }
     },
   )

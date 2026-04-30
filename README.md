@@ -2,390 +2,198 @@
 
 # Seed
 
-**AI Workflow System for Game Development**
+**通用 LLM 知识管理与多 Agent 协作平台**
 
-基于 Claude Code Plugin 的游戏研发 AI 工作流系统  
-动态 Agent 组装 · CC Native Team 编排 · 项目记忆持久化 · Fragment-based Skill 注入
-
----
-
-## 什么是 Seed
-
-Seed 是一个专为游戏研发场景设计的 Claude Code 插件。它的核心能力是根据任务特征（类型、领域、复杂度）自动选择合适的 Agent 组合，通过 Claude Code 原生 Agent Team 机制协调执行，并跨 session 保持项目上下文。
-
-Seed **不是**通用 AI 编排框架——它专注于游戏开发领域，内置了面向 Unity / Godot / Unreal / Cocos 的引擎主线知识，以及 Lua、配置表、网络、CI/CD、工具链等跨引擎能力知识。
-
-### 核心特性
-
-- **动态 Agent 组装** — 根据任务的 `task_kind` / `domain` / `complexity` 三个维度自动路由到最优 Agent 组合
-- **CC Native Team 编排** — 直接使用 Claude Code 原生 Agent Team（`TeamCreate` / `TaskCreate` / `SendMessage`），不维护任何自己的进程
-- **项目记忆持久化** — `.seed/project-memory.json` 存储长期项目知识，每次 session 自动注入，抗 compact
-- **Fragment-based Skill 注入** — 按 prompt 关键词匹配，自动注入相关技能片段到上下文
-- **Context Guard** — 监控上下文使用率，超阈值自动提醒 `/compact`
-- **Memory Editor** — 本地 Web UI 可视化管理三大知识层（Constitution / Auto Memory / Project Knowledge），内置后台 Worker 服务和 Agent SDK 任务队列
+一站式管理项目知识资产（规则集 / 自动记忆 / 项目知识），内置多模型 LLM 接入和多 Agent 实时协作看板。
 
 ---
 
-## 安装
+## 快速启动
 
-Seed 仅支持通过 Claude Code Plugin 机制安装：
+### 前置要求
+
+- **Node.js** >= 18.0.0
+- 一个 LLM API Key（OpenAI / Anthropic / DeepSeek / 通义千问 / Gemini 任选其一）
+
+### 方式一：克隆后直接运行
 
 ```bash
-# 1. 添加 marketplace 仓库
-/plugin marketplace add https://github.com/buyun00/Seed-GameDev-Harness.git
+# 克隆项目
+git clone https://github.com/your-username/Seed-GameDev-Harness.git
+cd Seed-GameDev-Harness
 
-# 2. 安装插件
-/plugin install seed
+# 安装依赖并自动构建
+npm install
 
-# 3. 运行初始化向导
-/seed:setup
+# 启动服务
+npm start
 ```
 
-### 安装流程详解
+`npm start` 会自动：
+1. 检查后端构建产物是否存在，缺失则自动构建
+2. 启动 Worker 服务
+3. 自动在浏览器中打开 `http://127.0.0.1:18080/`
 
-安装分三个阶段自动执行：
+首次使用请在页面右上角点击 **⚙️ API 设置**，配置你的 API Key。
 
+### 方式二：含预构建产物的快速启动
 
-| 阶段                 | 触发时机                    | 做什么                                                                                           |
-| ------------------ | ----------------------- | --------------------------------------------------------------------------------------------- |
-| `plugin-setup.mjs` | `/plugin install` 后自动执行 | 保存 Node 路径到 `~/.claude/.seed-config.json`，将 `hooks.json` 的 `node` 替换为绝对路径（兼容 nvm/fnm/Windows） |
-| `setup-init.mjs`   | 首次打开 CC session         | 创建 `.seed/state`、`.seed/logs`、`.seed/plans` 目录结构                                              |
-| `/seed:setup`      | 用户手动运行                  | 语言选择、安装 CLAUDE.md、写入默认配置、启用 Agent Teams、创建 `/seed` 快捷命令、引导运行 `/seed:embed`                |
-
-
-### `/seed:setup` 五阶段向导
-
-1. **语言选择** — 选择交互语言（English / 中文 / 日本語 / 한국어），后续所有提问、文档输出、注释均使用选定语言
-2. **CLAUDE.md 安装** — 选择 local（`.claude/CLAUDE.md`）或 global（`~/.claude/CLAUDE.md`），安装 Seed 核心指令
-3. **默认配置写入（静默）** — 自动写入 `.seed/config.json`、启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`、创建 `/seed` 快捷命令
-4. **引导运行 /seed:embed** — 提示用户重启 Claude Code 后运行 `/seed:embed` 分析项目技术栈
-5. **完成确认** — 写入 `setupCompleted` 标记
-
----
-
-## 使用
-
-### 命令体系
-
-| 命令 | 性质 | 说明 |
-|------|------|------|
-| `/seed` | 日常入口 | 项目快捷命令，转发到 `/seed:bud`。由 `/seed:setup` 自动创建到 `.claude/commands/seed.md` |
-| `/seed:setup` | 一次性初始化 | 语言选择、CLAUDE.md 安装、默认配置写入、引导运行 embed |
-| `/seed:embed` | 项目画像扫描 | 扫描引擎、语言分布、语言职责和目录结构，写入项目记忆 |
-| `/seed:bud` | 底层引擎 | 实际的 bud 命令实现（通常通过 `/seed` 调用，无需直接使用） |
-
-> **提示**：如果输入包含"配置/config/设置/改一下"等关键词，`/seed` 会提示你运行 `/seed:setup`，不会继续执行任务组装。
-
-#### `/seed` — 动态组装 Agent Team
+如果仓库中已包含 `memory-server/dist/` 的预构建产物，可直接：
 
 ```bash
-/seed 实现跳跃手感优化
-/seed --auto 调查帧率下降问题
-/seed --confirm Review the new combat system
-/seed --guided 重构战斗系统架构
+npm install              # 仅安装根依赖（约 10 秒）
+npm start                # 跳过构建，直接启动
 ```
 
-模式：
-
-| 模式 | 行为 | 适用场景 |
-|---|---|---|
-| `auto` | 分析后直接启动 | 日常使用 |
-| `confirm` | 展示方案，一次确认后启动 | 需要确认方案 |
-| `guided` | 逐步引导，可调整参数 | 首次使用或复杂任务 |
-
-### `/seed:embed`
+### 方式三：手动构建
 
 ```bash
-/seed:embed          # 扫描并覆盖当前项目画像
-/seed:embed --check  # 只扫描并展示摘要，不写入文件
+# 完整构建（含安装依赖）
+npm run build
+
+# 或跳过依赖安装（如果已装过）
+npm run build:skip-install
+
+# 启动
+npm start
 ```
-
-扫描内容：
-
-- 主引擎与版本，例如 Unity 2022.3.15f1。
-- 脚本/代码语言分布，例如 C#、Lua、GDScript、TypeScript。
-- 语言职责判断，例如 Lua = gameplay primary，C# = Unity host/bridge/tooling。
-- 关键目录地图：路径、用途、证据、置信度。
-
-写入文件：
-
-- `.seed/project-memory.json`
-- `.seed/project-profile.md`
 
 ---
 
-## Agent 角色
+## 功能概览
 
-| Agent | 定位 | 职责 | 限制 |
-|---|---|---|---|
-| `leader` | 常驻协调者 | 方向仲裁、计划维护、closeout 签字 | 不直接实现代码 |
-| `builder` | 实现主力 | 编写代码、修复 bug、交付功能 | 方向选择必须升级给 leader |
-| `researcher` | 按需调查员 | 信息收集、根因分析、调查报告 | 不写/编辑文件 |
-| `reviewer` | 按需审查员 | 代码审查、方案审查 | 不写/编辑文件 |
-| `unity-pilot` | Unity 操作员 | Unity Editor 操作、Play Mode 验证 | 不写 C# 逻辑代码 |
+### 🤖 虚拟工作室
+
+实时 Agent 状态看板 + LLM 对话界面：
+
+- **Agent 团队看板** — 6 个虚拟 Agent（Leader / Builder / Researcher / Reviewer / Unity Pilot / Chat）的实时工作状态（空闲/工作中/等待/已完成/异常），通过 SSE 实时推送
+- **LLM 对话** — 支持流式输出的 AI 对话，带历史记录持久化
+- **多模型支持** — 可同时配置多个模型供应商，快速切换
+
+### 📋 规则集管理（Constitution）
+
+管理 `CLAUDE.md` 中的规则块：
+
+- 自动提取和分类规则
+- 检测规则冲突 / 遮蔽 / 冗余关系
+- AI 辅助提案修改
+
+### 🧠 自动记忆（Auto Memory）
+
+管理项目级记忆对象：
+
+- 自动发现记忆路径
+- 索引健康检查
+- 主题内容编辑
+
+### 📚 项目知识（Project Knowledge）
+
+管理项目文档和知识资产：
+
+- 自动分类
+- 层级关联标注
+- 一键蒸馏为规则或记忆
 
 ---
 
-## 记忆系统
+## 支持的大模型
 
-| 层 | 文件 | 用途 | 写入时机 | 读取时机 |
-|---|---|---|---|---|
-| Project Memory | `.seed/project-memory.json` | 长期项目知识：tech stack、project profile、hot paths、directives | `/seed:embed` 和 PostToolUse | SessionStart / PreCompact |
-| Project Profile | `.seed/project-profile.md` | 人类可读项目画像 | `/seed:embed` | 用户审阅 |
-| Notepad | `.seed/notepad.md` | 会话笔记：Priority Context / Working Memory / Manual Notes | Agent 主动维护 | SessionStart |
+| 供应商 | 默认模型 | 获取 API Key |
+|--------|----------|-------------|
+| **OpenAI** | gpt-4o | https://platform.openai.com/api-keys |
+| **Anthropic (Claude)** | claude-sonnet-4-20250514 | https://console.anthropic.com/settings/keys |
+| **Google Gemini** | gemini-2.5-flash | https://aistudio.google.com/app/apikey |
+| **DeepSeek** | deepseek-chat | https://platform.deepseek.com/api_keys |
+| **通义千问 (Qwen)** | qwen-plus | https://bailian.console.aliyun.com/ |
 
-项目记忆注入保持短摘要，包含 `[Project Environment]`、`[Project Profile]`、`[Hot Paths]`、`[Directives]` 和 `[Recent Learnings]`。
+支持任意兼容 OpenAI API 格式的自定义服务地址。
 
 ---
 
-## Memory Editor（记忆编辑器）
+## 配置持久化
 
-Memory Editor 是 Seed 内置的本地 Web UI，用于可视化管理 Claude Code 项目中的三大知识层级。它在 Claude Code session 启动时自动拉起一个按项目隔离的后台 Worker 进程，提供 HTTP API + SSE 实时推送 + 静态页面托管。
+所有配置自动持久化到项目根目录的 `.seed/settings.json` 文件：
 
-### 解决什么问题
+| 配置项 | 说明 |
+|--------|------|
+| API 配置 | 模型供应商、API Key、模型名、API 地址 |
+| 主题偏好 | 深色 / 浅色模式 |
+| 语言设置 | 中文 / English / 日本語 / 한국어 |
+| 聊天记录 | 对话历史（最多 200 条） |
 
-Claude Code 的知识体系分散在 `CLAUDE.md`、`.claude/rules/`、`~/.claude/projects/<slug>/memory/`、`docs/` 等多处文件中，缺乏统一的结构化视图。Memory Editor 将这些知识抽象为可浏览、可编辑、可审计的对象，所有 AI 修改必须经过 **Proposal → Diff 审查 → 用户确认** 才会写入文件。
+启动时自动从文件恢复，关闭浏览器不丢失。
 
-### 三大管理页面
+---
 
-| 页面 | 管理对象 | 核心能力 |
-|------|----------|----------|
-| **Constitution** | `CLAUDE.md`、`.claude/CLAUDE.md`、`CLAUDE.local.md` | AI 提取规则块，检测冲突/遮蔽/冗余关系，锚定式安全回写 |
-| **Auto Memory** | `~/.claude/projects/<slug>/memory/` | 路径自动发现（兼容 worktree/settings），索引健康检查，topic 编辑 |
-| **Project Knowledge** | `.claude/rules/`、`docs/`、`architecture/` 等 | 自动分类，层级关联标注，一键蒸馏为 rule 或 memory |
+## 主题与界面
 
-### 架构概览
+- **深色/浅色主题** — 导航栏底部一键切换
+- **多语言** — 支持中/英/日/韩四种界面语言
+- **赛博朋克风格** — 动态渐变背景，浮动粒子效果
 
-```
-Claude Code SessionStart → Hook 自动启动 Worker
-                                    │
-                        ┌───────────▼───────────────┐
-                        │   Worker (per project)     │
-                        │   Hono HTTP + SSE          │
-                        │   Scanner + Watcher        │
-                        │   Task Queue + Agent SDK   │
-                        │   PID: ~/.seed/workers/    │
-                        └───────────┬───────────────┘
-                                    │
-               ┌────────────────────┼─────────────────────┐
-               │                    │                      │
-          Web UI (Vue 3)    MCP Server (tools)    API (REST + SSE)
-         HttpOnly cookie      共享服务层           供前端/MCP 使用
-```
+---
 
-**关键设计**：
-
-- **按项目隔离**：每个 Git 工作树各自独立 Worker（PID/端口/扫描/缓存完全隔离），子目录自动合并到工作树根
-- **Bootstrap Cookie 鉴权**：无 token 暴露（不在 URL/HTML/PID 文件中），通过 `GET /api/auth/bootstrap` 建立 HttpOnly session cookie，dev/prod 完全一致
-- **后台任务队列**：LLM 密集型任务（Constitution 分析、Proposal 生成等）异步处理，SSE 实时推送进度，同步 API 兼容包装（超时降级到轮询）
-- **Agent SDK + CLI Fallback**：优先使用 `@anthropic-ai/claude-agent-sdk`，不可用时自动 fallback 到 `claude --print`
-- **esbuild 自包含 Bundle**：后端打包为单个 `dist/worker.cjs`（含全部运行时依赖），构建产物随 git 提交，用户 clone 即用，无需 `npm install`
-
-### 使用方式
-
-Memory Editor 在正常使用 Seed 插件时**自动启动**，无需手动操作：
-
-1. 打开 Claude Code session → SessionStart hook 自动拉起 Worker
-2. 终端输出 `[Seed Worker] URL: http://127.0.0.1:<port>/`
-3. 浏览器打开该 URL → 自动建立 session → 进入管理界面
-
-手动管理：
-
-```bash
-# 查看状态
-npm run worker:status -- --project-path /path/to/project
-
-# 手动启停
-npm run worker:start -- --project-path /path/to/project
-npm run worker:stop -- --project-path /path/to/project
-
-# 开发模式（热更新）
-cd memory-server && npm run dev
-```
-
-### 技术栈
+## 技术栈
 
 | 层 | 技术 |
 |---|---|
-| 前端 | Vue 3 + Vite + TypeScript + Semi Design Vue + Vditor |
-| 后端 | Hono + Node.js + esbuild bundle |
+| 前端 | Vue 3 + Vite + TypeScript + Pinia |
+| 后端 | Hono + Node.js |
 | 实时 | SSE (Server-Sent Events) |
-| AI | Claude Agent SDK / `claude --print` CLI |
-| MCP | `@modelcontextprotocol/sdk` |
-
-详细文档参见 [`memory-server/README.md`](memory-server/README.md)。
-
----
-
-## Skill 注入
-
-`skill-injector` 会在用户 prompt 提交时扫描 `.seed/skills/` 和插件内置 `skills/`，按 YAML frontmatter 的 `triggers` 匹配并注入相关片段。
-
-| Skill | 目录 | 内容 |
-|---|---|---|
-| `unity-patterns` | `skills/` | Unity 开发模式和最佳实践 |
-| `lua-scripting` | `skills/` | Lua / xLua 热更新脚本开发指南 |
-| `ai-pipeline` | `skills/` | AI 工作流和 MCP 集成模式 |
-| `mcp-tools` | `skills/` | MCP 工具开发和调试指南 |
-| `detect-tech-stack` | `skills/` | 简化项目画像扫描规范 |
-| method skills | `skills/method/` | implement / debug / review / verify / config-change 方法论 |
-| researcher skills | `skills/` | researcher-spec-builder / current-task-contract-creator / delivery-contract-creator / domain-context-creator |
-
-在 `.seed/skills/` 下创建 `.md` 文件可以添加项目级 learned skills。
+| Markdown | marked |
+| 打包 | esbuild（后端）+ Vite（前端） |
 
 ---
 
 ## 项目结构
 
-```text
-seed/
-├── .claude-plugin/
-├── assets/
-├── hooks/
+```
+Seed-GameDev-Harness/
+├── start.mjs                 # 启动入口
+├── package.json              # 根 package
 ├── scripts/
-│   ├── worker-service.cjs               # Memory Editor Worker 管理入口
-│   ├── worker-start.mjs                 # SessionStart Worker 启动 Hook
-│   ├── embed-project-profile.mjs        # /seed:embed 项目画像扫描脚本
-│   ├── project-memory-session.mjs       # SessionStart 注入项目记忆
-│   ├── project-memory-posttool.mjs      # PostToolUse 更新 hot paths
-│   ├── project-memory-precompact.mjs    # PreCompact 注入记忆摘要
-│   ├── skill-injector.mjs               # UserPromptSubmit skill 注入
-│   ├── researcher-copy-template.mjs    # researcher 模板复制
-│   ├── researcher-list-options.mjs     # researcher MF/Tool 列举
-│   ├── researcher-fill-options.mjs     # researcher MF/Tool 填充
-│   ├── researcher-inject-section.mjs   # researcher 占位符注入
-│   └── lib/
-│       ├── atomic-write.mjs
-│       ├── memory-formatter.mjs
-│       └── i18n.mjs
-├── commands/
-│   ├── setup.md                         # /seed:setup
-│   ├── embed.md                         # /seed:embed 项目画像扫描
-│   └── bud.md                           # /seed:bud
-├── agents/
-├── skills/
-│   ├── detect-tech-stack.md             # 简化扫描规范
-│   ├── method/
-│   ├── researcher-spec-builder/        # researcher spec 构建主流水线
-│   ├── current-task-contract-creator/  # CTC 生成器
-│   ├── delivery-contract-creator/      # DC 生成器
-│   ├── domain-context-creator/         # Domain Context 收集器
-│   └── seed-reference/
-├── memory-server/                       # Memory Editor 完整子项目
-│   ├── server/                          # 后端（Worker + HTTP + MCP + Agent SDK）
-│   ├── src/                             # 前端（Vue 3）
-│   ├── dist/                            # 构建产物（worker.cjs + client/）
+│   └── postinstall.mjs       # 安装后自动构建脚本
+├── memory-server/
+│   ├── server/               # 后端 TypeScript 源码
+│   │   ├── core/             # 核心模块（Scanner/Watcher/Cache/Writer）
+│   │   ├── http/             # HTTP API 路由
+│   │   │   └── routes/       # 各业务路由
+│   │   ├── sse/              # SSE 推送
+│   │   ├── worker/           # Worker 管理与任务队列
+│   │   │   ├── agents/       # Agent 实现
+│   │   │   └── queue/        # 任务队列
+│   │   └── analyzers/        # 分析器（Constitution/Memory/Knowledge）
+│   ├── src/                  # 前端 Vue 3 源码
+│   │   ├── pages/            # 页面
+│   │   ├── stores/           # Pinia 状态管理
+│   │   ├── api/              # API 客户端
+│   │   ├── i18n/             # 国际化
+│   │   ├── layouts/          # 布局
+│   │   └── components/       # 公共组件
+│   ├── dist/                 # 预构建产物（提交到仓库）
+│   │   ├── server/           # 后端构建输出
+│   │   └── client/           # 前端构建输出
 │   └── package.json
-├── templates/
-│   ├── config.json
-│   ├── task.md
-│   ├── team-router.md
-│   └── researcher/                     # researcher spec 模板与片段库
-│       ├── researcher.md
-│       ├── mf/
-│       └── tools/
-├── .mcp.json
-└── package.json
-```
-
-### 运行时生成
-
-```text
-<your-project>/
-├── .seed/
-│   ├── config.json
-│   ├── project-memory.json
-│   ├── project-profile.md
-│   ├── notepad.md
-│   ├── team-router.md
-│   ├── state/
-│   ├── logs/
-│   ├── plans/
-│   ├── output/                    # researcher spec 工作文件输出
-│   └── skills/
-└── .claude/
-    ├── CLAUDE.md
-    └── commands/
-        └── seed.md
+├── .seed/                    # 运行时数据（不提交到仓库）
+│   └── settings.json         # 持久化配置
+└── .gitignore
 ```
 
 ---
 
-## 配置
-
-`.seed/config.json` 默认模板：
-
-```json
-{
-  "language": "",
-  "bud": {
-    "mode": "auto"
-  },
-  "embed": {
-    "maxDirectoryEntries": 80,
-    "writeMarkdownProfile": true
-  },
-  "memory": {
-    "autoLearn": true,
-    "rescanIntervalHours": 24
-  },
-  "contextGuard": {
-    "threshold": 75,
-    "maxBlocks": 2
-  },
-  "skillInjector": {
-    "maxPerSession": 5
-  }
-}
-```
-
-| 配置项 | 说明 | 默认值 |
-|---|---|---|
-| `language` | 交互语言 | setup 时选择 |
-| `bud.mode` | `/seed` 默认执行模式 | `auto` |
-| `embed.maxDirectoryEntries` | `/seed:embed` 最多写入的目录画像条数 | `80` |
-| `embed.writeMarkdownProfile` | 是否写入 `.seed/project-profile.md` | `true` |
-| `memory.autoLearn` | 自动学习项目知识 | `true` |
-| `memory.rescanIntervalHours` | 记忆重扫间隔 | `24` |
-| `contextGuard.threshold` | Context 使用率告警阈值 | `75` |
-| `contextGuard.maxBlocks` | 最大 block 次数 | `2` |
-| `skillInjector.maxPerSession` | 每个 session 最多注入 skill 数 | `5` |
-
----
-
-## 测试
+## 开发
 
 ```bash
-npm run check
-npm test
+# 前端 + 后端热更新开发
+cd memory-server && npm run dev
 ```
 
----
-
-## 当前范围
-
-Seed 目前专注于：
-
-- Claude Code Plugin 安装和运行。
-- Claude Code 原生 Agent Team 协作。
-- 游戏研发项目的任务路由、项目画像、记忆注入和 skill 注入。
-- Memory Editor：知识层可视化管理、Constitution 分析、Proposal 审查。
-
-暂未纳入：
-
-- npm 全局安装方式。
-- tmux / CLI 终端编排模式。
-- Codex / Gemini 等其他 AI backend 接入。
-- HUD / analytics / session learner 等监控功能。
+前端 Vite 开发服务器默认端口 5173，后端 Hono 端口 18080。
 
 ---
 
 ## License
 
-MIT
+MIT License
 
-## 彩蛋：关于名字
-
-Seed 的名字来自《刀剑神域》（Sword Art Online）中的 **The Seed**：一个可以复制完整虚拟世界的程序包，创造无数游戏世界的起点。
-
-把 Seed 种进你的游戏项目，它会在代码库里生根发芽：记住你的技术栈，沉淀项目的专属记忆，并在每次需要时召唤合适的 Agent 组合与你并肩工作。
+Copyright (c) 2025 Seed

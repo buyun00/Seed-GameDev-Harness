@@ -8,7 +8,7 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "vite",
     "dev:server": "tsx watch server/index.ts -- daemon --project-path .",
-    "build": "npm run build:client && npm run build:worker",
+    "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
     "build:worker": "esbuild server/index.ts --bundle --platform=node --target=node18 --outfile=dist/worker.cjs --format=cjs",
     "build:server": "tsc -p tsconfig.server.json",
@@ -20,7 +20,6 @@
     "worker:restart": "node dist/worker.cjs restart"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.110",
     "@hono/node-server": "^1.13.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "chokidar": "^4.0.0",
@@ -42,6 +41,7 @@
     "axios": "^1.7.0",
     "concurrently": "^9.0.0",
     "esbuild": "^0.24.0",
+    "marked": "^18.0.2",
     "pinia": "^2.2.0",
     "sass": "^1.80.0",
     "tsx": "^4.19.0",

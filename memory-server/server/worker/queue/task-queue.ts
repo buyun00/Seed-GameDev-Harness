@@ -156,13 +156,13 @@ export class TaskQueue {
 
       try {
         const result = await handler(task.params, ac.signal)
-        if (task.status === 'cancelled') continue
+        if ((task.status as TaskStatus) === 'cancelled') continue
         task.status = 'completed'
         task.result = result
         task.completedAt = new Date().toISOString()
         this.broadcast(task, 'task:complete')
       } catch (err) {
-        if (task.status === 'cancelled') continue
+        if ((task.status as TaskStatus) === 'cancelled') continue
         task.status = 'failed'
         task.error = err instanceof Error ? err.message : String(err)
         task.completedAt = new Date().toISOString()

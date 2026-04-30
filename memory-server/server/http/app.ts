@@ -11,6 +11,9 @@ import { proposalRoutes } from './routes/proposal.js'
 import { autoMemoryRoutes } from './routes/autoMemory.js'
 import { projectKnowledgeRoutes } from './routes/projectKnowledge.js'
 import { taskRoutes } from './routes/tasks.js'
+import { agentStatusRoutes } from './routes/agentStatus.js'
+import { llmRoutes } from './routes/llm.js'
+import { settingsRoutes } from './routes/settings.js'
 
 function isLocalhost(remoteAddr: string | undefined): boolean {
   if (!remoteAddr) return false
@@ -80,6 +83,9 @@ export function createApp(ctx: AppContext) {
   app.route('/api/auto-memory', autoMemoryRoutes(ctx))
   app.route('/api/project-knowledge', projectKnowledgeRoutes(ctx))
   app.route('/api/tasks', taskRoutes(ctx))
+  app.route('/api/agents', agentStatusRoutes(ctx))
+  app.route('/api/llm', llmRoutes(ctx))
+  app.route('/api/settings', settingsRoutes(ctx))
 
   // --- Static file serving (Vue frontend) ---
 

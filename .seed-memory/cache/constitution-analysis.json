@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "analyzedAt": "2026-04-30T08:16:01.420Z",
+  "sources": [],
+  "importedSources": [],
+  "imports": [],
+  "rules": [],
+  "relations": [],
+  "statusSummary": {
+    "effective": 0,
+    "shadowed": 0,
+    "conflicting": 0,
+    "unresolved": 0,
+    "total": 0
+  },
+  "rawAnalysis": ""
+}

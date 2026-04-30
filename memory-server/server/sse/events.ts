@@ -4,6 +4,7 @@ export type SseEventType =
   | 'analysis:complete'
   | 'analysis:error'
   | 'agent:log'
+  | 'agent:status_changed'
   | 'proposal:created'
   | 'proposal:applied'
   | 'scan:updated'

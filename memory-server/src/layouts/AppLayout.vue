@@ -31,6 +31,17 @@ const proposalStore = useProposalStore()
 .app-layout__main {
   flex: 1;
   overflow-y: auto;
-  background: #f7f8fa;
+  background: var(--bg-content);
+  position: relative;
+}
+.app-layout__main::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(0, 245, 212, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(124, 58, 237, 0.02) 0%, transparent 50%);
 }
 </style>

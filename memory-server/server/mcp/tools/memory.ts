@@ -29,7 +29,7 @@ export function registerMemoryTools(server: McpServer, ctx: AppContext) {
     'Propose edits to a memory object',
     {
       memoryId: z.string().describe('ID of the memory object'),
-      changes: z.record(z.unknown()).describe('Changes to apply'),
+      changes: z.record(z.string(), z.unknown()).describe('Changes to apply'),
     },
     async ({ memoryId, changes }) => {
       const proposal = await analyzer.proposeEdit(memoryId, changes)

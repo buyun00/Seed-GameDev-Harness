@@ -1,4 +1,64 @@
+@use 'sass:math';
 @use './variables' as *;
+
+// Theme CSS variables
+:root,
+[data-theme='dark'] {
+  --bg-primary: #0a0a0f;
+  --bg-sidebar: #0d0d14;
+  --bg-content: #0f0f18;
+  --bg-card: rgba(26, 26, 46, 0.6);
+  --bg-surface: rgba(18, 18, 26, 0.8);
+  --bg-elevated: #12121a;
+  --text-primary: #e8eaed;
+  --text-secondary: #94a3b8;
+  --text-muted: #4b5563;
+  --text-inverse: #0a0a0f;
+  --border-color: rgba(255, 255, 255, 0.06);
+  --border-visible: rgba(255, 255, 255, 0.08);
+  --accent-cyan: #00f5d4;
+  --accent-purple: #7c3aed;
+  --glow-cyan: 0 0 20px rgba(0, 245, 212, 0.15), 0 0 40px rgba(0, 245, 212, 0.05);
+  --sider-bg: #0d0d14;
+  --sider-text: #e8eaed;
+  --sider-border: rgba(255, 255, 255, 0.04);
+  --input-bg: rgba(0, 0, 0, 0.2);
+  --chat-ai-bg: rgba(255, 255, 255, 0.04);
+  --chat-user-bg: rgba(0, 245, 212, 0.08);
+  --card-task-bg: rgba(0, 0, 0, 0.2);
+  --overlay-bg: rgba(0, 0, 0, 0.6);
+  --ambient-gradient: radial-gradient(ellipse at 20% 50%, rgba(0, 245, 212, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(124, 58, 237, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(236, 72, 153, 0.02) 0%, transparent 50%);
+}
+
+[data-theme='light'] {
+  --bg-primary: #f5f5f7;
+  --bg-sidebar: #f0faf0;
+  --bg-content: #f5f5f7;
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --bg-surface: rgba(255, 255, 255, 0.9);
+  --bg-elevated: #ffffff;
+  --text-primary: #2d3a2d;
+  --text-secondary: #4a6a4a;
+  --text-muted: #6b8e6b;
+  --text-inverse: #ffffff;
+  --border-color: rgba(0, 0, 0, 0.06);
+  --border-visible: rgba(0, 0, 0, 0.1);
+  --accent-cyan: #0891b2;
+  --accent-purple: #7c3aed;
+  --glow-cyan: 0 0 20px rgba(8, 145, 178, 0.1);
+  --sider-bg: #f0faf0;
+  --sider-text: #2d3a2d;
+  --sider-border: rgba(0, 100, 0, 0.08);
+  --input-bg: rgba(255, 255, 255, 0.8);
+  --chat-ai-bg: rgba(0, 0, 0, 0.03);
+  --chat-user-bg: rgba(8, 145, 178, 0.06);
+  --card-task-bg: rgba(0, 0, 0, 0.03);
+  --overlay-bg: rgba(0, 0, 0, 0.3);
+  --ambient-gradient: radial-gradient(ellipse at 20% 50%, rgba(8, 145, 178, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(124, 58, 237, 0.03) 0%, transparent 50%);
+}
 
 *,
 *::before,
@@ -11,33 +71,157 @@
 html, body, #app {
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color: $text-primary;
-  background: $bg-primary;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
+// Animated background
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: var(--bg-primary);
+  transition: background 0.3s ease;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--ambient-gradient);
+  animation: ambientShift 20s ease-in-out infinite alternate;
+  transition: background 0.3s ease;
+}
+
+@keyframes ambientShift {
+  0% {
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(0, 245, 212, 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(124, 58, 237, 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(236, 72, 153, 0.02) 0%, transparent 50%);
+  }
+  33% {
+    background:
+      radial-gradient(ellipse at 30% 30%, rgba(124, 58, 237, 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 70%, rgba(0, 245, 212, 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, rgba(59, 130, 246, 0.02) 0%, transparent 50%);
+  }
+  66% {
+    background:
+      radial-gradient(ellipse at 70% 30%, rgba(236, 72, 153, 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 30% 70%, rgba(0, 245, 212, 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 50%, rgba(124, 58, 237, 0.02) 0%, transparent 50%);
+  }
+  100% {
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(0, 245, 212, 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(124, 58, 237, 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(236, 72, 153, 0.02) 0%, transparent 50%);
+  }
+}
+
+[data-theme='light'] body::after {
+  animation: none;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(8, 145, 178, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(124, 58, 237, 0.02) 0%, transparent 50%);
+}
+
+// Animated floating particles
+body {
+  overflow: hidden;
+  position: relative;
+
+  &::before, &::after {
+    pointer-events: none;
+  }
+}
+
+.particle {
+  position: fixed;
+  width: 2px;
+  height: 2px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  animation: float linear infinite;
+  opacity: 0.3;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.5;
+  }
+  90% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(30px);
+    opacity: 0;
+  }
+}
+
+// Custom scrollbar
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c5cc;
+  background: var(--border-color);
   border-radius: 3px;
+  transition: background 0.3s;
+
+  &:hover {
+    background: var(--text-muted);
+  }
 }
 
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-// Vditor overrides (inline to avoid @use ordering issues)
+// Selection
+::selection {
+  background: rgba(0, 245, 212, 0.2);
+  color: #fff;
+}
+
+[data-theme='light'] ::selection {
+  background: rgba(8, 145, 178, 0.2);
+}
+
+// Focus
+:focus-visible {
+  outline: 1px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+// Glass morphism mixin
+@mixin glass {
+  background: var(--bg-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+}
+
+// Vditor overrides
 .vditor {
-  border: 1px solid $border-color !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: $border-radius !important;
   font-family: inherit !important;
 
   .vditor-toolbar {
-    border-bottom: 1px solid $border-color !important;
-    background: $bg-primary !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    background: var(--bg-primary) !important;
   }
 
   .vditor-content {
@@ -51,5 +235,20 @@ html, body, #app {
 
   .vditor-preview {
     padding: 16px 20px !important;
+  }
+}
+
+// Smooth transitions
+a, button, input, select, textarea {
+  transition: all 0.2s ease;
+}
+
+// Glow keyframes
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(0, 245, 212, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 245, 212, 0.2);
   }
 }

@@ -4,11 +4,26 @@ import type { ConstitutionRuleCategory } from '@/types/constitution'
 
 type LangStrings = {
   connectingToServer: string
-  memoryEditor: string
+  SEED: string
+  navStudio: string
   navAiActivity: string
   navConstitution: string
   navAutoMemory: string
   navKnowledge: string
+
+  studioTitle: string
+  studioSubtitle: string
+  studioAgentTeam: string
+  studioAgentCount: string
+  studioChat: string
+  studioConnected: string
+  studioDisconnected: string
+  studioApiSettings: string
+  studioAgentIdle: string
+  studioAgentWorking: string
+  studioAgentWaiting: string
+  studioAgentCompleted: string
+  studioAgentError: string
 
   pageConstitutionTitle: string
   pageConstitutionSubtitle: string
@@ -105,11 +120,26 @@ type I18nStrings = LangStrings & {
 const translations: Record<string, LangStrings> = {
   en: {
     connectingToServer: 'Connecting to Memory Server...',
-    memoryEditor: 'Memory Editor',
+    SEED: 'SEED',
+    navStudio: 'Virtual Studio',
     navAiActivity: 'AI Activity',
     navConstitution: 'Constitution',
     navAutoMemory: 'Auto Memory',
     navKnowledge: 'Knowledge',
+
+    studioTitle: 'Seed Virtual Studio',
+    studioSubtitle: 'Multi-Agent Collaboration Platform',
+    studioAgentTeam: 'Agent Team',
+    studioAgentCount: 'agents',
+    studioChat: 'Chat',
+    studioConnected: 'Connected',
+    studioDisconnected: 'Disconnected',
+    studioApiSettings: 'API Settings',
+    studioAgentIdle: 'Idle',
+    studioAgentWorking: 'Working',
+    studioAgentWaiting: 'Waiting',
+    studioAgentCompleted: 'Completed',
+    studioAgentError: 'Error',
 
     pageConstitutionTitle: 'Constitution',
     pageConstitutionSubtitle: 'Claude Code rule system management',
@@ -199,11 +229,26 @@ const translations: Record<string, LangStrings> = {
 
   zh: {
     connectingToServer: '正在连接到记忆服务器...',
-    memoryEditor: '记忆编辑器',
+    SEED: 'SEED',
+    navStudio: '虚拟工作室',
     navAiActivity: 'AI 活动',
     navConstitution: '规则集',
     navAutoMemory: '自动记忆',
     navKnowledge: '项目知识',
+
+    studioTitle: 'Seed 虚拟工作室',
+    studioSubtitle: '多 Agent 协作平台',
+    studioAgentTeam: 'Agent 团队',
+    studioAgentCount: '个 Agent',
+    studioChat: '对话',
+    studioConnected: '已连接',
+    studioDisconnected: '未连接',
+    studioApiSettings: 'API 设置',
+    studioAgentIdle: '空闲',
+    studioAgentWorking: '工作中',
+    studioAgentWaiting: '等待中',
+    studioAgentCompleted: '已完成',
+    studioAgentError: '异常',
 
     pageConstitutionTitle: '规则集',
     pageConstitutionSubtitle: 'Claude Code 规则系统管理',
@@ -293,11 +338,26 @@ const translations: Record<string, LangStrings> = {
 
   ja: {
     connectingToServer: 'メモリサーバーに接続中...',
-    memoryEditor: 'メモリエディタ',
+    SEED: 'Seed',
+    navStudio: 'バーチャルスタジオ',
     navAiActivity: 'AI アクティビティ',
     navConstitution: 'ルールセット',
     navAutoMemory: '自動メモリ',
     navKnowledge: 'プロジェクト知識',
+
+    studioTitle: 'Seed バーチャルスタジオ',
+    studioSubtitle: 'マルチエージェント協業プラットフォーム',
+    studioAgentTeam: 'エージェントチーム',
+    studioAgentCount: 'エージェント',
+    studioChat: 'チャット',
+    studioConnected: '接続済',
+    studioDisconnected: '未接続',
+    studioApiSettings: 'API 設定',
+    studioAgentIdle: '待機中',
+    studioAgentWorking: '作業中',
+    studioAgentWaiting: '待機中',
+    studioAgentCompleted: '完了',
+    studioAgentError: 'エラー',
 
     pageConstitutionTitle: 'ルールセット',
     pageConstitutionSubtitle: 'Claude Code ルールシステム管理',
@@ -387,11 +447,26 @@ const translations: Record<string, LangStrings> = {
 
   ko: {
     connectingToServer: '메모리 서버에 연결 중...',
-    memoryEditor: '메모리 편집기',
+    SEED: 'SEED',
+    navStudio: '가상 스튜디오',
     navAiActivity: 'AI 활동',
     navConstitution: '규칙 세트',
     navAutoMemory: '자동 메모리',
     navKnowledge: '프로젝트 지식',
+
+    studioTitle: 'Seed 가상 스튜디오',
+    studioSubtitle: '멀티 에이전트 협업 플랫폼',
+    studioAgentTeam: '에이전트 팀',
+    studioAgentCount: '개 에이전트',
+    studioChat: '대화',
+    studioConnected: '연결됨',
+    studioDisconnected: '연결 끊김',
+    studioApiSettings: 'API 설정',
+    studioAgentIdle: '대기',
+    studioAgentWorking: '작업 중',
+    studioAgentWaiting: '대기 중',
+    studioAgentCompleted: '완료',
+    studioAgentError: '오류',
 
     pageConstitutionTitle: '규칙 세트',
     pageConstitutionSubtitle: 'Claude Code 규칙 시스템 관리',
